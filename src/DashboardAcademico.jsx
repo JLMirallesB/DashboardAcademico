@@ -1,0 +1,1602 @@
+import React, { useState, useMemo, useCallback, useRef } from 'react';
+import { LineChart, Line, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
+
+const DashboardAcademico = () => {
+  // Estado principal
+  const [datosCompletos, setDatosCompletos] = useState({});
+  const [correlacionesCompletas, setCorrelacionesCompletas] = useState({});
+  const [metadata, setMetadata] = useState({});
+  const [trimestresDisponibles, setTrimestresDisponibles] = useState([]);
+  
+  // Umbrales configurables
+  const [umbrales, setUmbrales] = useState({
+    suspensosAlerta: 30,
+    mediaCritica: 6,
+    mediaFacil: 8,
+    aprobadosMinimo: 90
+  });
+  
+  // UI State
+  const [trimestreSeleccionado, setTrimestreSeleccionado] = useState(null);
+  const [vistaActual, setVistaActual] = useState('estadisticas'); // 'estadisticas', 'correlaciones', 'evolucion'
+  const [selecciones, setSelecciones] = useState([]);
+  const [mostrarModalConfirm, setMostrarModalConfirm] = useState(false);
+  const [trimestrePendiente, setTrimestrePendiente] = useState(null);
+  const [datosPendientes, setDatosPendientes] = useState(null);
+  const [mostrarPanelUmbrales, setMostrarPanelUmbrales] = useState(false);
+  const [mostrarPanelCarga, setMostrarPanelCarga] = useState(true);
+  const [compararNiveles, setCompararNiveles] = useState(false);
+  const [asignaturaComparada, setAsignaturaComparada] = useState('Lenguaje Musical');
+  const [ordenCorrelaciones, setOrdenCorrelaciones] = useState('desc'); // 'desc', 'asc', 'none'
+  
+  const fileInputRef = useRef(null);
+  const jsonInputRef = useRef(null);
+
+  // Colores para comparaciones
+  const colores = [
+    { line: "#1a1a2e", label: "Principal", bg: "#f8f9fa" },
+    { line: "#e63946", label: "Rojo", bg: "#fff5f5" },
+    { line: "#2a9d8f", label: "Verde", bg: "#f0fdf4" },
+    { line: "#e9c46a", label: "Dorado", bg: "#fefce8" },
+    { line: "#9381ff", label: "Violeta", bg: "#f5f3ff" }
+  ];
+
+  // Parser de CSV - detecta automáticamente el separador
+  const parseCSV = useCallback((csvText) => {
+    const lineas = csvText.split('\n').map(l => l.trim()).filter(l => l);
+    
+    // Detectar separador: si hay más ; que , en las primeras líneas, usar ;
+    const primerasLineas = lineas.slice(0, 10).join('\n');
+    const separador = (primerasLineas.match(/;/g) || []).length > (primerasLineas.match(/,/g) || []).length ? ';' : ',';
+    
+    let seccionActual = null;
+    const resultado = {
+      metadata: {},
+      estadisticas: [],
+      correlaciones: []
+    };
+    
+    let encabezadosStats = [];
+    let encabezadosCorr = [];
+    
+    // Función para convertir número (maneja tanto , como . decimal)
+    const parseNumero = (valor) => {
+      if (valor === '' || valor === null || valor === undefined) return null;
+      // Reemplazar coma decimal por punto
+      let num = valor.toString().replace(',', '.');
+      const parsed = parseFloat(num);
+      return isNaN(parsed) ? null : parsed;
+    };
+    
+    for (let i = 0; i < lineas.length; i++) {
+      const linea = lineas[i];
+      
+      // Detectar sección
+      if (linea.startsWith('#METADATA')) {
+        seccionActual = 'metadata';
+        continue;
+      } else if (linea.startsWith('#ESTADISTICAS')) {
+        seccionActual = 'estadisticas';
+        continue;
+      } else if (linea.startsWith('#CORRELACIONES')) {
+        seccionActual = 'correlaciones';
+        continue;
+      } else if (linea.startsWith('#UMBRALES')) {
+        seccionActual = 'umbrales'; // Ignoramos umbrales del CSV
+        continue;
+      }
+      
+      // Parsear según sección usando el separador detectado
+      const campos = linea.split(separador).map(c => c.trim());
+      
+      if (seccionActual === 'metadata') {
+        if (campos[0] === 'Campo') continue; // Skip header
+        if (campos[0] && campos[1]) {
+          resultado.metadata[campos[0]] = campos[1];
+        }
+      } else if (seccionActual === 'estadisticas') {
+        if (campos[0] === 'Nivel') {
+          encabezadosStats = campos;
+          continue;
+        }
+        if (campos[0] && encabezadosStats.length > 0) {
+          const fila = {};
+          encabezadosStats.forEach((h, idx) => {
+            let valor = campos[idx] || '';
+            // Convertir números (columnas desde la 3ª en adelante)
+            if (idx >= 2 && valor !== '') {
+              valor = parseNumero(valor);
+              // Si es porcentaje (Aprobados o Suspendidos) y viene como decimal, convertir
+              if ((h === 'Aprobados' || h === 'Suspendidos') && valor !== null && valor <= 1) {
+                valor = valor * 100;
+              }
+            }
+            fila[h] = valor;
+          });
+          resultado.estadisticas.push(fila);
+        }
+      } else if (seccionActual === 'correlaciones') {
+        if (campos[0] === 'Nivel') {
+          encabezadosCorr = campos;
+          continue;
+        }
+        if (campos[0] && encabezadosCorr.length > 0) {
+          const fila = {};
+          encabezadosCorr.forEach((h, idx) => {
+            let valor = campos[idx] || '';
+            if (h === 'Correlacion' && valor !== '') {
+              valor = parseNumero(valor);
+            }
+            fila[h] = valor;
+          });
+          if (fila.Correlacion !== null && fila.Correlacion !== undefined) {
+            resultado.correlaciones.push(fila);
+          }
+        }
+      }
+    }
+    
+    return resultado;
+  }, []);
+
+  // Procesar datos parseados
+  const procesarDatos = useCallback((parsed) => {
+    const trimestre = parsed.metadata.Trimestre;
+    if (!trimestre) {
+      alert('Error: El CSV no contiene información de trimestre en METADATA');
+      return null;
+    }
+    
+    // Estructurar datos
+    const datosEstructurados = {};
+    parsed.estadisticas.forEach(fila => {
+      const nivel = fila.Nivel;
+      const asignatura = fila.Asignatura;
+      
+      if (!datosEstructurados[nivel]) {
+        datosEstructurados[nivel] = {};
+      }
+      
+      datosEstructurados[nivel][asignatura] = {
+        stats: {
+          registros: fila.Registros,
+          notaMedia: fila.NotaMedia,
+          desviacion: fila.Desviacion,
+          moda: fila.Moda,
+          aprobados: fila.Aprobados,
+          suspendidos: fila.Suspendidos,
+          modaAprobados: fila.ModaAprobados,
+          modaSuspendidos: fila.ModaSuspendidos
+        },
+        distribucion: {
+          1: fila.Dist1 || 0,
+          2: fila.Dist2 || 0,
+          3: fila.Dist3 || 0,
+          4: fila.Dist4 || 0,
+          5: fila.Dist5 || 0,
+          6: fila.Dist6 || 0,
+          7: fila.Dist7 || 0,
+          8: fila.Dist8 || 0,
+          9: fila.Dist9 || 0,
+          10: fila.Dist10 || 0
+        }
+      };
+    });
+    
+    return {
+      trimestre,
+      metadata: parsed.metadata,
+      datos: datosEstructurados,
+      correlaciones: parsed.correlaciones
+    };
+  }, []);
+
+  // Cargar CSV
+  const handleCargarCSV = useCallback((event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const texto = e.target.result;
+      const parsed = parseCSV(texto);
+      const procesado = procesarDatos(parsed);
+      
+      if (!procesado) return;
+      
+      // Verificar si el trimestre ya existe
+      if (trimestresDisponibles.includes(procesado.trimestre)) {
+        setTrimestrePendiente(procesado.trimestre);
+        setDatosPendientes(procesado);
+        setMostrarModalConfirm(true);
+      } else {
+        aplicarDatos(procesado);
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+  }, [parseCSV, procesarDatos, trimestresDisponibles]);
+
+  // Aplicar datos
+  const aplicarDatos = useCallback((procesado) => {
+    const { trimestre, metadata: meta, datos, correlaciones } = procesado;
+    
+    setDatosCompletos(prev => ({
+      ...prev,
+      [trimestre]: datos
+    }));
+    
+    setCorrelacionesCompletas(prev => ({
+      ...prev,
+      [trimestre]: correlaciones
+    }));
+    
+    setMetadata(prev => ({
+      ...prev,
+      [trimestre]: meta
+    }));
+    
+    setTrimestresDisponibles(prev => {
+      const nuevos = prev.includes(trimestre) ? prev : [...prev, trimestre];
+      return nuevos.sort((a, b) => {
+        const orden = { '1EV': 1, '2EV': 2, '3EV': 3, 'FINAL': 4 };
+        return (orden[a] || 99) - (orden[b] || 99);
+      });
+    });
+    
+    if (!trimestreSeleccionado) {
+      setTrimestreSeleccionado(trimestre);
+    }
+    
+    // Inicializar selección por defecto
+    if (selecciones.length === 0 && datos['GLOBAL']) {
+      setSelecciones([{
+        id: 0,
+        trimestre: trimestre,
+        nivel: 'GLOBAL',
+        asignatura: 'Todos'
+      }]);
+    }
+    
+    setMostrarPanelCarga(false);
+  }, [trimestreSeleccionado, selecciones.length]);
+
+  // Confirmar reemplazo de trimestre
+  const confirmarReemplazo = useCallback(() => {
+    if (datosPendientes) {
+      aplicarDatos(datosPendientes);
+    }
+    setMostrarModalConfirm(false);
+    setTrimestrePendiente(null);
+    setDatosPendientes(null);
+  }, [datosPendientes, aplicarDatos]);
+
+  // Cancelar reemplazo
+  const cancelarReemplazo = useCallback(() => {
+    setMostrarModalConfirm(false);
+    setTrimestrePendiente(null);
+    setDatosPendientes(null);
+  }, []);
+
+  // Eliminar trimestre
+  const eliminarTrimestre = useCallback((trimestre) => {
+    setDatosCompletos(prev => {
+      const nuevo = { ...prev };
+      delete nuevo[trimestre];
+      return nuevo;
+    });
+    
+    setCorrelacionesCompletas(prev => {
+      const nuevo = { ...prev };
+      delete nuevo[trimestre];
+      return nuevo;
+    });
+    
+    setMetadata(prev => {
+      const nuevo = { ...prev };
+      delete nuevo[trimestre];
+      return nuevo;
+    });
+    
+    setTrimestresDisponibles(prev => prev.filter(t => t !== trimestre));
+    
+    if (trimestreSeleccionado === trimestre) {
+      const restantes = trimestresDisponibles.filter(t => t !== trimestre);
+      setTrimestreSeleccionado(restantes[0] || null);
+    }
+    
+    setSelecciones(prev => prev.filter(s => s.trimestre !== trimestre));
+  }, [trimestreSeleccionado, trimestresDisponibles]);
+
+  // Exportar JSON
+  const exportarJSON = useCallback(() => {
+    const exportData = {
+      metadata: {
+        exportadoEl: new Date().toISOString(),
+        trimestres: trimestresDisponibles,
+        metadataPorTrimestre: metadata
+      },
+      umbrales,
+      datos: datosCompletos,
+      correlaciones: correlacionesCompletas
+    };
+    
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `dashboard_academico_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [trimestresDisponibles, metadata, umbrales, datosCompletos, correlacionesCompletas]);
+
+  // Importar JSON
+  const handleImportarJSON = useCallback((event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const importado = JSON.parse(e.target.result);
+        
+        if (importado.datos) setDatosCompletos(importado.datos);
+        if (importado.correlaciones) setCorrelacionesCompletas(importado.correlaciones);
+        if (importado.umbrales) setUmbrales(importado.umbrales);
+        if (importado.metadata) {
+          setMetadata(importado.metadata.metadataPorTrimestre || {});
+          const trims = importado.metadata.trimestres || Object.keys(importado.datos || {});
+          setTrimestresDisponibles(trims);
+          if (trims.length > 0) {
+            setTrimestreSeleccionado(trims[0]);
+            const primerTrim = trims[0];
+            const niveles = Object.keys(importado.datos[primerTrim] || {});
+            if (niveles.includes('GLOBAL')) {
+              setSelecciones([{
+                id: 0,
+                trimestre: primerTrim,
+                nivel: 'GLOBAL',
+                asignatura: 'Todos'
+              }]);
+            }
+          }
+        }
+        
+        setMostrarPanelCarga(false);
+      } catch (err) {
+        alert('Error al parsear el archivo JSON');
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+  }, []);
+
+  // Calcular resultado (FÁCIL/DIFÍCIL)
+  const calcularResultado = useCallback((stats) => {
+    if (!stats) return null;
+    
+    const esDificil = stats.suspendidos >= umbrales.suspensosAlerta || 
+                      stats.notaMedia < umbrales.mediaCritica;
+    const esFacil = stats.aprobados >= umbrales.aprobadosMinimo || 
+                    stats.notaMedia >= umbrales.mediaFacil;
+    
+    if (esDificil) return 'DIFÍCIL';
+    if (esFacil) return 'FÁCIL';
+    return null;
+  }, [umbrales]);
+
+  // Obtener niveles disponibles
+  const nivelesDisponibles = useMemo(() => {
+    if (!trimestreSeleccionado || !datosCompletos[trimestreSeleccionado]) return [];
+    return Object.keys(datosCompletos[trimestreSeleccionado]);
+  }, [trimestreSeleccionado, datosCompletos]);
+
+  // Obtener todas las asignaturas disponibles (excluyendo GLOBAL)
+  const todasLasAsignaturas = useMemo(() => {
+    if (!trimestreSeleccionado || !datosCompletos[trimestreSeleccionado]) return [];
+    const asignaturas = new Set();
+    Object.entries(datosCompletos[trimestreSeleccionado]).forEach(([nivel, asigs]) => {
+      if (nivel !== 'GLOBAL') {
+        Object.keys(asigs).forEach(asig => asignaturas.add(asig));
+      }
+    });
+    return Array.from(asignaturas).sort();
+  }, [trimestreSeleccionado, datosCompletos]);
+
+  // Niveles sin GLOBAL para comparación
+  const nivelesSinGlobal = useMemo(() => {
+    return nivelesDisponibles.filter(n => n !== 'GLOBAL');
+  }, [nivelesDisponibles]);
+
+  // Activar comparación de niveles
+  const activarCompararNiveles = useCallback(() => {
+    if (!trimestreSeleccionado) return;
+    setCompararNiveles(true);
+    const nuevasSelecciones = nivelesSinGlobal.map((nivel, idx) => ({
+      id: idx,
+      trimestre: trimestreSeleccionado,
+      nivel,
+      asignatura: asignaturaComparada
+    })).filter(sel => {
+      // Solo incluir si el nivel tiene esa asignatura
+      return datosCompletos[sel.trimestre]?.[sel.nivel]?.[sel.asignatura];
+    });
+    setSelecciones(nuevasSelecciones);
+  }, [trimestreSeleccionado, nivelesSinGlobal, asignaturaComparada, datosCompletos]);
+
+  // Desactivar comparación de niveles
+  const desactivarCompararNiveles = useCallback(() => {
+    setCompararNiveles(false);
+    if (datosCompletos[trimestreSeleccionado]?.['GLOBAL']) {
+      setSelecciones([{
+        id: 0,
+        trimestre: trimestreSeleccionado,
+        nivel: 'GLOBAL',
+        asignatura: 'Todos'
+      }]);
+    }
+  }, [trimestreSeleccionado, datosCompletos]);
+
+  // Cambiar asignatura comparada
+  const cambiarAsignaturaComparada = useCallback((nuevaAsignatura) => {
+    setAsignaturaComparada(nuevaAsignatura);
+    if (compararNiveles) {
+      const nuevasSelecciones = nivelesSinGlobal.map((nivel, idx) => ({
+        id: idx,
+        trimestre: trimestreSeleccionado,
+        nivel,
+        asignatura: nuevaAsignatura
+      })).filter(sel => {
+        return datosCompletos[sel.trimestre]?.[sel.nivel]?.[sel.asignatura];
+      });
+      setSelecciones(nuevasSelecciones);
+    }
+  }, [compararNiveles, nivelesSinGlobal, trimestreSeleccionado, datosCompletos]);
+
+  // Obtener asignaturas por nivel
+  const getAsignaturas = useCallback((trimestre, nivel) => {
+    if (!trimestre || !nivel || !datosCompletos[trimestre]?.[nivel]) return [];
+    return Object.keys(datosCompletos[trimestre][nivel]);
+  }, [datosCompletos]);
+
+  // Gestión de selecciones
+  const agregarSeleccion = useCallback(() => {
+    if (selecciones.length >= 5) return;
+    const nuevoId = Math.max(0, ...selecciones.map(s => s.id)) + 1;
+    const nivel = nivelesDisponibles.find(n => n !== 'GLOBAL') || 'GLOBAL';
+    const asignaturas = getAsignaturas(trimestreSeleccionado, nivel);
+    setSelecciones(prev => [...prev, {
+      id: nuevoId,
+      trimestre: trimestreSeleccionado,
+      nivel,
+      asignatura: asignaturas[0] || ''
+    }]);
+  }, [selecciones, nivelesDisponibles, getAsignaturas, trimestreSeleccionado]);
+
+  const eliminarSeleccion = useCallback((id) => {
+    if (selecciones.length <= 1) return;
+    setSelecciones(prev => prev.filter(s => s.id !== id));
+  }, [selecciones.length]);
+
+  const actualizarSeleccion = useCallback((id, campo, valor) => {
+    setSelecciones(prev => prev.map(s => {
+      if (s.id !== id) return s;
+      const nueva = { ...s, [campo]: valor };
+      
+      // Si cambia trimestre o nivel, actualizar asignatura
+      if (campo === 'trimestre' || campo === 'nivel') {
+        const trim = campo === 'trimestre' ? valor : s.trimestre;
+        const niv = campo === 'nivel' ? valor : s.nivel;
+        const asigs = getAsignaturas(trim, niv);
+        nueva.asignatura = asigs[0] || '';
+      }
+      
+      return nueva;
+    }));
+  }, [getAsignaturas]);
+
+  // Datos para gráfico de distribución
+  const datosDistribucion = useMemo(() => {
+    const chartData = [];
+    for (let nota = 1; nota <= 10; nota++) {
+      const punto = { nota: nota.toString() };
+      selecciones.forEach((sel) => {
+        const datos = datosCompletos[sel.trimestre]?.[sel.nivel]?.[sel.asignatura];
+        if (datos) {
+          const label = `${sel.trimestre} - ${sel.nivel} - ${sel.asignatura}`;
+          punto[label] = datos.distribucion[nota] || 0;
+        }
+      });
+      chartData.push(punto);
+    }
+    return chartData;
+  }, [selecciones, datosCompletos]);
+
+  // Correlaciones del trimestre seleccionado (con ordenación)
+  const correlacionesTrimestre = useMemo(() => {
+    if (!trimestreSeleccionado) return [];
+    const corrs = correlacionesCompletas[trimestreSeleccionado] || [];
+    
+    if (ordenCorrelaciones === 'none') return corrs;
+    
+    return [...corrs].sort((a, b) => {
+      const valA = a.Correlacion ?? 0;
+      const valB = b.Correlacion ?? 0;
+      return ordenCorrelaciones === 'desc' ? valB - valA : valA - valB;
+    });
+  }, [trimestreSeleccionado, correlacionesCompletas, ordenCorrelaciones]);
+
+  // Tipos de correlaciones únicos para el gráfico de evolución
+  const tiposCorrelacion = useMemo(() => {
+    const tipos = new Set();
+    Object.values(correlacionesCompletas).forEach(corrs => {
+      corrs.forEach(c => {
+        tipos.add(`${c.Asignatura1}-${c.Asignatura2}`);
+      });
+    });
+    return Array.from(tipos);
+  }, [correlacionesCompletas]);
+
+  // Datos para gráfico de evolución de correlaciones
+  const datosEvolucionCorrelaciones = useMemo(() => {
+    if (tiposCorrelacion.length === 0) return [];
+    
+    // Función para abreviar nombres de asignaturas
+    const abreviar = (nombre) => {
+      const abreviaturas = {
+        'Lenguaje Musical': 'LM',
+        'Coro': 'Cor',
+        'Conjunto': 'Con',
+        'Especialidad': 'Esp',
+        'Arpa': 'Arp',
+        'Clarinete': 'Cla',
+        'Contrabajo': 'Ctb',
+        'Fagot': 'Fag',
+        'Flauta': 'Fla',
+        'Guitarra': 'Gui',
+        'Oboe': 'Obo',
+        'Percusión': 'Per',
+        'Piano': 'Pia',
+        'Saxofón': 'Sax',
+        'Trombón': 'Trb',
+        'Trompa': 'Trp',
+        'Trompeta': 'Tpt',
+        'Viola': 'Vla',
+        'Violín': 'Vln',
+        'Violoncello': 'Vcl'
+      };
+      return abreviaturas[nombre] || nombre.substring(0, 3);
+    };
+    
+    return tiposCorrelacion.map(tipo => {
+      const [asig1, asig2] = tipo.split('-');
+      const punto = { 
+        par: `${abreviar(asig1)}-${abreviar(asig2)}`, 
+        parCompleto: `${asig1} ↔ ${asig2}` 
+      };
+      
+      ['1EEM', '2EEM', '3EEM', '4EEM'].forEach(nivel => {
+        // Buscar en todos los trimestres
+        Object.entries(correlacionesCompletas).forEach(([trim, corrs]) => {
+          const corr = corrs.find(c => 
+            c.Asignatura1 === asig1 && c.Asignatura2 === asig2 && c.Nivel === nivel
+          );
+          if (corr) {
+            if (!punto[nivel]) punto[nivel] = {};
+            punto[nivel] = corr.Correlacion;
+          }
+        });
+      });
+      
+      return punto;
+    });
+  }, [tiposCorrelacion, correlacionesCompletas]);
+
+  // Interpretar nivel de correlación
+  const interpretarCorrelacion = (valor) => {
+    if (valor < 0) return { nivel: 'Inversa', color: '#1a1a2e', textColor: 'white' };
+    const abs = Math.abs(valor);
+    if (abs >= 0.8) return { nivel: 'Muy fuerte', color: '#065f46', textColor: 'white' };
+    if (abs >= 0.6) return { nivel: 'Fuerte', color: '#059669', textColor: 'white' };
+    if (abs >= 0.4) return { nivel: 'Moderada', color: '#fbbf24', textColor: 'black' };
+    if (abs >= 0.2) return { nivel: 'Débil', color: '#f97316', textColor: 'white' };
+    return { nivel: 'Muy débil', color: '#ef4444', textColor: 'white' };
+  };
+
+  // Si no hay datos, mostrar pantalla de carga
+  if (trimestresDisponibles.length === 0) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-8">
+        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display&display=swap');
+          * { font-family: 'DM Sans', sans-serif; }
+          h1, h2, h3 { font-family: 'DM Serif Display', serif; }
+        `}</style>
+        
+        <div className="max-w-xl w-full">
+          <div className="text-center mb-12">
+            <h1 className="text-5xl text-slate-800 mb-4">Dashboard Académico</h1>
+            <p className="text-slate-500 text-lg">Análisis de rendimiento por curso, asignatura y trimestre</p>
+          </div>
+          
+          <div className="bg-white rounded-2xl shadow-xl p-8 border border-slate-200">
+            <h2 className="text-2xl text-slate-700 mb-6 text-center">Cargar datos</h2>
+            
+            <div className="space-y-4">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full py-4 px-6 bg-slate-800 text-white rounded-xl hover:bg-slate-700 transition-all font-medium text-lg flex items-center justify-center gap-3"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Cargar CSV de trimestre
+              </button>
+              
+              <button
+                onClick={() => jsonInputRef.current?.click()}
+                className="w-full py-4 px-6 bg-white text-slate-700 rounded-xl border-2 border-slate-300 hover:border-slate-400 transition-all font-medium text-lg flex items-center justify-center gap-3"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                Importar JSON guardado
+              </button>
+            </div>
+            
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv"
+              onChange={handleCargarCSV}
+              className="hidden"
+            />
+            <input
+              ref={jsonInputRef}
+              type="file"
+              accept=".json"
+              onChange={handleImportarJSON}
+              className="hidden"
+            />
+            
+            <div className="mt-8 p-4 bg-slate-50 rounded-xl">
+              <p className="text-sm text-slate-600 text-center">
+                Exporta los datos desde la hoja EXPORTAR de tu Excel en formato CSV, 
+                o importa un archivo JSON previamente guardado.
+              </p>
+            </div>
+          </div>
+          
+          {/* Footer */}
+          <p className="text-center text-sm text-slate-400 mt-8">
+            App diseñada por <a href="https://jlmirall.es" target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:text-slate-800 underline">José Luis Miralles Bono</a> con ayuda de Claude
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display&display=swap');
+        * { font-family: 'DM Sans', sans-serif; }
+        h1, h2, h3 { font-family: 'DM Serif Display', serif; }
+        select {
+          -webkit-appearance: none;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23475569' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right 0.75rem center;
+        }
+      `}</style>
+
+      {/* Modal de confirmación */}
+      {mostrarModalConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
+            <h3 className="text-2xl text-slate-800 mb-4">Trimestre ya cargado</h3>
+            <p className="text-slate-600 mb-6">
+              El trimestre <span className="font-bold">{trimestrePendiente}</span> ya está cargado. 
+              ¿Quieres reemplazar los datos existentes?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={cancelarReemplazo}
+                className="flex-1 py-3 px-4 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-all font-medium"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmarReemplazo}
+                className="flex-1 py-3 px-4 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all font-medium"
+              >
+                Reemplazar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Header */}
+      <div className="max-w-7xl mx-auto mb-8">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="text-5xl text-slate-800 mb-2">Dashboard Académico</h1>
+            <p className="text-xl text-slate-600 font-medium">
+              {metadata[trimestresDisponibles[0]]?.Centro || 'EEM'} · 
+              Curso {metadata[trimestresDisponibles[0]]?.CursoAcademico || ''}
+            </p>
+          </div>
+          
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="py-2 px-4 bg-white text-slate-700 rounded-lg border border-slate-300 hover:bg-slate-50 transition-all text-sm font-medium flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Añadir trimestre
+            </button>
+            <button
+              onClick={() => jsonInputRef.current?.click()}
+              className="py-2 px-4 bg-white text-slate-700 rounded-lg border border-slate-300 hover:bg-slate-50 transition-all text-sm font-medium"
+            >
+              Importar JSON
+            </button>
+            <button
+              onClick={exportarJSON}
+              className="py-2 px-4 bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition-all text-sm font-medium"
+            >
+              Exportar JSON
+            </button>
+          </div>
+        </div>
+        
+        <input ref={fileInputRef} type="file" accept=".csv" onChange={handleCargarCSV} className="hidden" />
+        <input ref={jsonInputRef} type="file" accept=".json" onChange={handleImportarJSON} className="hidden" />
+      </div>
+
+      {/* Trimestres cargados */}
+      <div className="max-w-7xl mx-auto mb-6">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm text-slate-500 font-medium">Trimestres cargados:</span>
+          {trimestresDisponibles.map(trim => (
+            <div
+              key={trim}
+              className={`inline-flex items-center gap-2 py-1.5 px-3 rounded-full text-sm font-medium transition-all ${
+                trim === trimestreSeleccionado
+                  ? 'bg-slate-800 text-white'
+                  : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
+              }`}
+            >
+              <button onClick={() => setTrimestreSeleccionado(trim)}>
+                {trim}
+              </button>
+              {trimestresDisponibles.length > 1 && (
+                <button
+                  onClick={() => eliminarTrimestre(trim)}
+                  className={`ml-1 hover:text-red-500 ${trim === trimestreSeleccionado ? 'text-white/70' : 'text-slate-400'}`}
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Navegación de vistas */}
+      <div className="max-w-7xl mx-auto mb-6">
+        <div className="flex gap-1 p-1 bg-white rounded-xl border border-slate-200 w-fit">
+          {[
+            { id: 'estadisticas', label: 'Estadísticas' },
+            { id: 'correlaciones', label: 'Correlaciones' },
+            { id: 'evolucion', label: 'Evolución' }
+          ].map(vista => (
+            <button
+              key={vista.id}
+              onClick={() => setVistaActual(vista.id)}
+              className={`py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+                vistaActual === vista.id
+                  ? 'bg-slate-800 text-white'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              {vista.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Panel de Umbrales */}
+      <div className="max-w-7xl mx-auto mb-6">
+        <button
+          onClick={() => setMostrarPanelUmbrales(!mostrarPanelUmbrales)}
+          className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-800 transition-all"
+        >
+          <svg className={`w-4 h-4 transition-transform ${mostrarPanelUmbrales ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+          Configurar umbrales
+        </button>
+        
+        {mostrarPanelUmbrales && (
+          <div className="mt-4 p-6 bg-white rounded-xl border border-slate-200">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-sm font-medium text-slate-700">Configuración de umbrales</span>
+              <button
+                onClick={() => setUmbrales({
+                  suspensosAlerta: 30,
+                  mediaCritica: 6,
+                  mediaFacil: 8,
+                  aprobadosMinimo: 90
+                })}
+                className="text-xs py-1 px-3 bg-slate-100 text-slate-600 rounded hover:bg-slate-200 transition-all"
+              >
+                Restaurar valores por defecto
+              </button>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1">% Suspensos alerta</label>
+                <input
+                  type="number"
+                  value={umbrales.suspensosAlerta}
+                  onChange={(e) => setUmbrales(prev => ({ ...prev, suspensosAlerta: parseFloat(e.target.value) || 0 }))}
+                  className="w-full py-2 px-3 border border-slate-300 rounded-lg text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1">Media crítica</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={umbrales.mediaCritica}
+                  onChange={(e) => setUmbrales(prev => ({ ...prev, mediaCritica: parseFloat(e.target.value) || 0 }))}
+                  className="w-full py-2 px-3 border border-slate-300 rounded-lg text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1">Media fácil</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={umbrales.mediaFacil}
+                  onChange={(e) => setUmbrales(prev => ({ ...prev, mediaFacil: parseFloat(e.target.value) || 0 }))}
+                  className="w-full py-2 px-3 border border-slate-300 rounded-lg text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1">% Aprobados mínimo</label>
+                <input
+                  type="number"
+                  value={umbrales.aprobadosMinimo}
+                  onChange={(e) => setUmbrales(prev => ({ ...prev, aprobadosMinimo: parseFloat(e.target.value) || 0 }))}
+                  className="w-full py-2 px-3 border border-slate-300 rounded-lg text-sm"
+                />
+              </div>
+            </div>
+            <div className="mt-4 text-xs text-slate-500">
+              <span className="inline-block px-2 py-0.5 bg-red-100 text-red-700 rounded mr-2">DIFÍCIL</span>
+              Suspensos ≥ {umbrales.suspensosAlerta}% o Media &lt; {umbrales.mediaCritica}
+              <span className="mx-4">|</span>
+              <span className="inline-block px-2 py-0.5 bg-green-100 text-green-700 rounded mr-2">FÁCIL</span>
+              Aprobados ≥ {umbrales.aprobadosMinimo}% o Media ≥ {umbrales.mediaFacil}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* VISTA: ESTADÍSTICAS */}
+      {vistaActual === 'estadisticas' && (
+        <div className="max-w-7xl mx-auto">
+          {/* Selectores */}
+          <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-slate-800">Selecciones para comparar</h3>
+              {!compararNiveles && selecciones.length < 5 && (
+                <button
+                  onClick={agregarSeleccion}
+                  className="py-2 px-4 bg-slate-800 text-white text-sm rounded-lg hover:bg-slate-700 transition-all"
+                >
+                  + Añadir
+                </button>
+              )}
+            </div>
+
+            {/* Opción de comparar niveles */}
+            {todasLasAsignaturas.length > 0 && (
+              <div className="mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-slate-700">
+                      Comparar misma asignatura en todos los niveles (1EEM - 4EEM)
+                    </span>
+                    <button
+                      onClick={() => compararNiveles ? desactivarCompararNiveles() : activarCompararNiveles()}
+                      className={`relative w-12 h-6 rounded-full transition-colors ${
+                        compararNiveles ? 'bg-slate-800' : 'bg-slate-300'
+                      }`}
+                    >
+                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                        compararNiveles ? 'translate-x-7' : 'translate-x-1'
+                      }`} />
+                    </button>
+                  </div>
+                </div>
+                {compararNiveles && (
+                  <div>
+                    <label className="block text-xs font-medium text-slate-500 mb-2 uppercase">Asignatura a comparar</label>
+                    <select
+                      value={asignaturaComparada}
+                      onChange={(e) => cambiarAsignaturaComparada(e.target.value)}
+                      className="w-full md:w-64 py-2 px-3 bg-white border border-slate-300 rounded-lg text-sm"
+                    >
+                      {todasLasAsignaturas.map(asig => (
+                        <option key={asig} value={asig}>{asig}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            <div className="space-y-3">
+              {selecciones.map((sel, idx) => (
+                <div
+                  key={sel.id}
+                  className="p-4 rounded-lg border-2"
+                  style={{ borderColor: colores[idx].line, backgroundColor: colores[idx].bg }}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: colores[idx].line }} />
+                      <span className="text-sm font-semibold" style={{ color: colores[idx].line }}>
+                        Selección {idx + 1}
+                      </span>
+                    </div>
+                    {!compararNiveles && selecciones.length > 1 && (
+                      <button
+                        onClick={() => eliminarSeleccion(sel.id)}
+                        className="text-slate-400 hover:text-red-500 text-xl"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                  
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Trimestre</label>
+                      <select
+                        value={sel.trimestre}
+                        onChange={(e) => actualizarSeleccion(sel.id, 'trimestre', e.target.value)}
+                        disabled={compararNiveles}
+                        className="w-full py-2 px-3 bg-white border border-slate-300 rounded-lg text-sm disabled:bg-slate-100 disabled:cursor-not-allowed"
+                      >
+                        {trimestresDisponibles.map(t => (
+                          <option key={t} value={t}>{t}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Nivel</label>
+                      <select
+                        value={sel.nivel}
+                        onChange={(e) => actualizarSeleccion(sel.id, 'nivel', e.target.value)}
+                        disabled={compararNiveles}
+                        className="w-full py-2 px-3 bg-white border border-slate-300 rounded-lg text-sm disabled:bg-slate-100 disabled:cursor-not-allowed"
+                      >
+                        {Object.keys(datosCompletos[sel.trimestre] || {}).map(n => (
+                          <option key={n} value={n}>{n === 'GLOBAL' ? '📊 GLOBAL' : n}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Asignatura</label>
+                      <select
+                        value={sel.asignatura}
+                        onChange={(e) => actualizarSeleccion(sel.id, 'asignatura', e.target.value)}
+                        disabled={compararNiveles}
+                        className="w-full py-2 px-3 bg-white border border-slate-300 rounded-lg text-sm disabled:bg-slate-100 disabled:cursor-not-allowed"
+                      >
+                        {getAsignaturas(sel.trimestre, sel.nivel).map(a => (
+                          <option key={a} value={a}>{a}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Tarjetas de estadísticas */}
+          <div className="grid grid-cols-1 gap-4 mb-6">
+            {selecciones.map((sel, idx) => {
+              const datos = datosCompletos[sel.trimestre]?.[sel.nivel]?.[sel.asignatura];
+              if (!datos) return null;
+              
+              const resultado = calcularResultado(datos.stats);
+              const base = selecciones[0];
+              const datosBase = datosCompletos[base.trimestre]?.[base.nivel]?.[base.asignatura];
+              
+              // Generar descripción textual
+              const generarDescripcion = () => {
+                const { stats } = datos;
+                const partes = [];
+                
+                // Análisis de nota media
+                if (stats.notaMedia >= 8) {
+                  partes.push(`Excelente rendimiento con una media de ${stats.notaMedia.toFixed(2)}`);
+                } else if (stats.notaMedia >= 7) {
+                  partes.push(`Buen rendimiento con una media de ${stats.notaMedia.toFixed(2)}`);
+                } else if (stats.notaMedia >= 6) {
+                  partes.push(`Rendimiento aceptable con una media de ${stats.notaMedia.toFixed(2)}`);
+                } else if (stats.notaMedia >= 5) {
+                  partes.push(`Rendimiento ajustado con una media de ${stats.notaMedia.toFixed(2)}`);
+                } else {
+                  partes.push(`Rendimiento bajo con una media de ${stats.notaMedia.toFixed(2)}`);
+                }
+                
+                // Análisis de aprobados/suspendidos
+                if (stats.aprobados === 100) {
+                  partes.push('100% de aprobados');
+                } else if (stats.aprobados >= 90) {
+                  partes.push(`alto porcentaje de aprobados (${stats.aprobados}%)`);
+                } else if (stats.suspendidos >= 20) {
+                  partes.push(`atención: ${stats.suspendidos}% de suspensos`);
+                }
+                
+                // Análisis de dispersión
+                if (stats.desviacion <= 1) {
+                  partes.push('notas muy homogéneas');
+                } else if (stats.desviacion >= 2) {
+                  partes.push('alta dispersión en las notas');
+                }
+                
+                // Análisis de moda
+                if (stats.moda) {
+                  partes.push(`la nota más frecuente es ${stats.moda}`);
+                }
+                
+                return partes.join('. ') + '.';
+              };
+              
+              return (
+                <div
+                  key={sel.id}
+                  className="bg-white rounded-xl border-2 p-4"
+                  style={{ borderColor: colores[idx].line }}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: colores[idx].line }} />
+                      <h4 className="font-semibold text-slate-800 text-sm">
+                        {sel.trimestre} · {sel.nivel} · {sel.asignatura}
+                      </h4>
+                      {resultado && (
+                        <span className={`text-xs px-2 py-0.5 rounded font-medium ${
+                          resultado === 'DIFÍCIL' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+                        }`}>
+                          {resultado}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-4 md:grid-cols-8 gap-2 mb-3">
+                    {[
+                      { label: 'N', title: 'Registros', key: 'registros', format: (v) => v },
+                      { label: 'Media', title: 'Nota Media', key: 'notaMedia', format: (v) => v?.toFixed(2) },
+                      { label: 'σ', title: 'Desviación', key: 'desviacion', format: (v) => v?.toFixed(2) },
+                      { label: 'Moda', title: 'Moda', key: 'moda', format: (v) => v ?? '—' },
+                      { label: 'Apr.', title: '% Aprobados', key: 'aprobados', format: (v) => `${v?.toFixed(0)}%` },
+                      { label: 'Sus.', title: '% Suspendidos', key: 'suspendidos', format: (v) => `${v?.toFixed(0)}%` },
+                      { label: 'M.Apr', title: 'Moda Aprobados', key: 'modaAprobados', format: (v) => v ?? '—' },
+                      { label: 'M.Sus', title: 'Moda Suspendidos', key: 'modaSuspendidos', format: (v) => v ?? '—' }
+                    ].map(({ label, title, key, format }) => {
+                      const valor = datos.stats[key];
+                      let diff = null;
+                      if (idx > 0 && datosBase && ['notaMedia', 'aprobados', 'suspendidos'].includes(key)) {
+                        diff = valor - datosBase.stats[key];
+                      }
+                      
+                      return (
+                        <div key={key} className="bg-slate-50 rounded p-2 text-center" title={title}>
+                          <div className="text-xs text-slate-500">{label}</div>
+                          <div className="text-sm font-bold text-slate-800">{format(valor)}</div>
+                          {diff !== null && (
+                            <div className={`text-xs font-medium ${diff >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              {diff >= 0 ? '+' : ''}{diff.toFixed(1)}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  
+                  {/* Descripción textual */}
+                  <div className="text-xs text-slate-600 bg-slate-50 rounded p-2 italic">
+                    {generarDescripcion()}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Gráfico de distribución */}
+          <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
+            <h3 className="text-lg font-semibold text-slate-800 mb-4">Distribución de Notas</h3>
+            <ResponsiveContainer width="100%" height={400}>
+              <LineChart data={datosDistribucion}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="nota" stroke="#64748b" />
+                <YAxis stroke="#64748b" />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'white',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px'
+                  }}
+                />
+                <Legend />
+                {selecciones.map((sel, idx) => {
+                  const label = `${sel.trimestre} - ${sel.nivel} - ${sel.asignatura}`;
+                  return (
+                    <Line
+                      key={sel.id}
+                      type="monotone"
+                      dataKey={label}
+                      stroke={colores[idx].line}
+                      strokeWidth={2}
+                      dot={{ fill: colores[idx].line, r: 4 }}
+                    />
+                  );
+                })}
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Tabla de distribución */}
+          <div className="bg-white rounded-xl border border-slate-200 p-6">
+            <h3 className="text-lg font-semibold text-slate-800 mb-4">Tabla de Distribución</h3>
+            <div className="overflow-x-auto">
+              {(() => {
+                // Calcular totales y máximos para el mapa de calor
+                const totales = selecciones.map(sel => {
+                  const datos = datosCompletos[sel.trimestre]?.[sel.nivel]?.[sel.asignatura];
+                  return datos ? Object.values(datos.distribucion).reduce((a, b) => a + b, 0) : 0;
+                });
+                
+                // Encontrar el máximo valor para el mapa de calor
+                let maxValor = 0;
+                selecciones.forEach((sel) => {
+                  const datos = datosCompletos[sel.trimestre]?.[sel.nivel]?.[sel.asignatura];
+                  if (datos) {
+                    Object.values(datos.distribucion).forEach(v => {
+                      if (v > maxValor) maxValor = v;
+                    });
+                  }
+                });
+                
+                // Función para color del mapa de calor (rojo = alto, verde = bajo)
+                const getHeatmapColor = (valor, max) => {
+                  if (max === 0 || valor === 0) return 'transparent';
+                  const intensity = valor / max;
+                  // De verde claro (bajo) a rojo (alto)
+                  if (intensity < 0.33) {
+                    return `rgba(134, 239, 172, ${0.3 + intensity})`; // Verde claro
+                  } else if (intensity < 0.66) {
+                    return `rgba(253, 224, 71, ${0.3 + intensity * 0.5})`; // Amarillo
+                  } else {
+                    return `rgba(248, 113, 113, ${0.4 + intensity * 0.4})`; // Rojo
+                  }
+                };
+                
+                // Calcular agrupaciones
+                const calcularAgrupacion = (dist) => {
+                  const total = Object.values(dist).reduce((a, b) => a + b, 0);
+                  const grupos = {
+                    insuficiente: (dist[1] || 0) + (dist[2] || 0) + (dist[3] || 0) + (dist[4] || 0),
+                    suficiente: dist[5] || 0,
+                    bien: dist[6] || 0,
+                    notable: (dist[7] || 0) + (dist[8] || 0),
+                    excelente: (dist[9] || 0) + (dist[10] || 0)
+                  };
+                  const porcentajes = {
+                    insuficiente: total > 0 ? (grupos.insuficiente / total * 100).toFixed(1) : '0.0',
+                    suficiente: total > 0 ? (grupos.suficiente / total * 100).toFixed(1) : '0.0',
+                    bien: total > 0 ? (grupos.bien / total * 100).toFixed(1) : '0.0',
+                    notable: total > 0 ? (grupos.notable / total * 100).toFixed(1) : '0.0',
+                    excelente: total > 0 ? (grupos.excelente / total * 100).toFixed(1) : '0.0'
+                  };
+                  return { grupos, porcentajes };
+                };
+                
+                return (
+                  <>
+                    <table className="w-full mb-8">
+                      <thead>
+                        <tr className="border-b-2 border-slate-200">
+                          <th className="py-3 px-3 text-left text-sm font-semibold text-slate-600">Nota</th>
+                          {selecciones.map((sel, idx) => (
+                            <th key={sel.id} className="py-3 px-2 text-center text-xs font-semibold text-slate-700">
+                              <div>{sel.trimestre} · {sel.nivel}</div>
+                              <div className="font-normal text-slate-500">{sel.asignatura}</div>
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(nota => (
+                          <tr key={nota} className="border-b border-slate-100">
+                            <td className="py-2 px-3 font-medium text-slate-700">{nota}</td>
+                            {selecciones.map((sel, idx) => {
+                              const datos = datosCompletos[sel.trimestre]?.[sel.nivel]?.[sel.asignatura];
+                              const valor = datos?.distribucion[nota] || 0;
+                              const total = totales[idx];
+                              const porcentaje = total > 0 ? (valor / total * 100).toFixed(1) : '0.0';
+                              return (
+                                <td 
+                                  key={sel.id} 
+                                  className="py-2 px-2 text-center"
+                                  style={{ backgroundColor: getHeatmapColor(valor, maxValor) }}
+                                >
+                                  <span className="font-semibold text-slate-800">{valor}</span>
+                                  <span className="text-xs text-slate-700 ml-1">({porcentaje}%)</span>
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ))}
+                        <tr className="border-t-2 border-slate-300 font-bold bg-slate-50">
+                          <td className="py-3 px-3 text-slate-700">TOTAL</td>
+                          {selecciones.map((sel, idx) => (
+                            <td key={sel.id} className="py-3 px-2 text-center text-slate-800">
+                              {totales[idx]}
+                            </td>
+                          ))}
+                        </tr>
+                      </tbody>
+                    </table>
+                    
+                    {/* Tabla de agrupaciones */}
+                    <h4 className="text-md font-semibold text-slate-700 mb-3">Agrupación por calificaciones</h4>
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b-2 border-slate-200">
+                          <th className="py-3 px-3 text-left text-sm font-semibold text-slate-600">Calificación</th>
+                          <th className="py-3 px-3 text-left text-xs font-normal text-slate-500">Notas</th>
+                          {selecciones.map((sel, idx) => (
+                            <th key={sel.id} className="py-3 px-2 text-center text-xs font-semibold text-slate-700">
+                              {sel.trimestre} · {sel.nivel}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[
+                          { key: 'insuficiente', label: 'Insuficiente', notas: '1-4', color: '#ef4444' },
+                          { key: 'suficiente', label: 'Suficiente', notas: '5', color: '#f97316' },
+                          { key: 'bien', label: 'Bien', notas: '6', color: '#fbbf24' },
+                          { key: 'notable', label: 'Notable', notas: '7-8', color: '#22c55e' },
+                          { key: 'excelente', label: 'Excelente', notas: '9-10', color: '#059669' }
+                        ].map(({ key, label, notas, color }) => (
+                          <tr key={key} className="border-b border-slate-100">
+                            <td className="py-2 px-3 font-medium" style={{ color }}>{label}</td>
+                            <td className="py-2 px-3 text-xs text-slate-500">{notas}</td>
+                            {selecciones.map((sel, idx) => {
+                              const datos = datosCompletos[sel.trimestre]?.[sel.nivel]?.[sel.asignatura];
+                              if (!datos) return <td key={sel.id} className="py-2 px-2 text-center">—</td>;
+                              const { grupos, porcentajes } = calcularAgrupacion(datos.distribucion);
+                              return (
+                                <td key={sel.id} className="py-2 px-2 text-center">
+                                  <span className="font-semibold text-slate-800">{grupos[key]}</span>
+                                  <span className="text-xs text-slate-800 ml-1">({porcentajes[key]}%)</span>
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* VISTA: CORRELACIONES */}
+      {vistaActual === 'correlaciones' && (
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+              <h3 className="text-lg font-semibold text-slate-800">
+                Correlaciones · {trimestreSeleccionado}
+              </h3>
+              <div className="flex flex-wrap items-center gap-3">
+                <select
+                  value={trimestreSeleccionado}
+                  onChange={(e) => setTrimestreSeleccionado(e.target.value)}
+                  className="py-2 px-4 border border-slate-300 rounded-lg text-sm"
+                >
+                  {trimestresDisponibles.map(t => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+                <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
+                  <button
+                    onClick={() => setOrdenCorrelaciones('desc')}
+                    className={`py-1.5 px-3 text-xs font-medium rounded transition-all ${
+                      ordenCorrelaciones === 'desc' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'
+                    }`}
+                  >
+                    Mayor → Menor
+                  </button>
+                  <button
+                    onClick={() => setOrdenCorrelaciones('asc')}
+                    className={`py-1.5 px-3 text-xs font-medium rounded transition-all ${
+                      ordenCorrelaciones === 'asc' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'
+                    }`}
+                  >
+                    Menor → Mayor
+                  </button>
+                  <button
+                    onClick={() => setOrdenCorrelaciones('none')}
+                    className={`py-1.5 px-3 text-xs font-medium rounded transition-all ${
+                      ordenCorrelaciones === 'none' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'
+                    }`}
+                  >
+                    Sin ordenar
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            {/* Leyenda compacta */}
+            <div className="mb-4 flex flex-wrap gap-2 text-xs">
+              <span className="px-2 py-0.5 rounded text-white" style={{ backgroundColor: '#1a1a2e' }}>&lt;0 Inversa</span>
+              <span className="px-2 py-0.5 rounded text-white" style={{ backgroundColor: '#065f46' }}>≥0,80 Muy fuerte</span>
+              <span className="px-2 py-0.5 rounded text-white" style={{ backgroundColor: '#059669' }}>≥0,60 Fuerte</span>
+              <span className="px-2 py-0.5 rounded" style={{ backgroundColor: '#fbbf24' }}>≥0,40 Moderada</span>
+              <span className="px-2 py-0.5 rounded text-white" style={{ backgroundColor: '#f97316' }}>≥0,20 Débil</span>
+              <span className="px-2 py-0.5 rounded text-white" style={{ backgroundColor: '#ef4444' }}>&lt;0,20 Muy débil</span>
+            </div>
+            
+            {correlacionesTrimestre.length === 0 ? (
+              <p className="text-slate-500 text-center py-8">No hay datos de correlaciones para este trimestre.</p>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2">
+                {correlacionesTrimestre.map((corr, idx) => {
+                  const interp = interpretarCorrelacion(corr.Correlacion);
+                  return (
+                    <div 
+                      key={idx} 
+                      className="p-3 rounded-lg border border-slate-200 hover:shadow-md transition-all"
+                      style={{ borderLeftWidth: '4px', borderLeftColor: interp.color }}
+                    >
+                      <div className="text-xs text-slate-400 mb-1">{corr.Nivel}</div>
+                      <div className="text-sm font-semibold text-slate-800 leading-tight mb-2">
+                        {corr.Asignatura1}
+                        <span className="text-slate-400 mx-1">↔</span>
+                        {corr.Asignatura2}
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span 
+                          className="text-lg font-bold font-mono"
+                          style={{ color: interp.color }}
+                        >
+                          {corr.Correlacion?.toFixed(2)}
+                        </span>
+                        <span
+                          className="text-xs px-1.5 py-0.5 rounded"
+                          style={{ backgroundColor: interp.color, color: interp.textColor }}
+                        >
+                          {interp.nivel}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          
+          {/* Gráfico de evolución de correlaciones por nivel */}
+          {trimestresDisponibles.length >= 1 && correlacionesTrimestre.length > 0 && (
+            <div className="bg-white rounded-xl border border-slate-200 p-6">
+              <h3 className="text-lg font-semibold text-slate-800 mb-2">Evolución de correlaciones por nivel</h3>
+              <p className="text-sm text-slate-500 mb-6">Cada línea representa un nivel (1EEM-4EEM), el eje X muestra los pares de asignaturas</p>
+              
+              <ResponsiveContainer width="100%" height={400}>
+                <LineChart data={datosEvolucionCorrelaciones} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis 
+                    dataKey="par" 
+                    stroke="#64748b" 
+                    angle={-45}
+                    textAnchor="end"
+                    height={80}
+                    interval={0}
+                    tick={{ fontSize: 11 }}
+                  />
+                  <YAxis 
+                    stroke="#64748b" 
+                    domain={[-0.2, 0.8]}
+                    tickFormatter={(v) => v.toFixed(1)}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'white',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px'
+                    }}
+                    formatter={(value, name) => [value?.toFixed(2), name]}
+                    labelFormatter={(label, payload) => {
+                      if (payload && payload[0]) {
+                        return payload[0].payload.parCompleto;
+                      }
+                      return label;
+                    }}
+                  />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="1EEM"
+                    name="1EEM"
+                    stroke="#3b82f6"
+                    strokeWidth={2}
+                    dot={{ fill: '#3b82f6', r: 4 }}
+                    connectNulls
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="2EEM"
+                    name="2EEM"
+                    stroke="#ef4444"
+                    strokeWidth={2}
+                    dot={{ fill: '#ef4444', r: 4 }}
+                    connectNulls
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="3EEM"
+                    name="3EEM"
+                    stroke="#22c55e"
+                    strokeWidth={2}
+                    dot={{ fill: '#22c55e', r: 4 }}
+                    connectNulls
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="4EEM"
+                    name="4EEM"
+                    stroke="#a855f7"
+                    strokeWidth={2}
+                    dot={{ fill: '#a855f7', r: 4 }}
+                    connectNulls
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* VISTA: EVOLUCIÓN */}
+      {vistaActual === 'evolucion' && (
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
+            <h3 className="text-lg font-semibold text-slate-800 mb-4">Evolución entre trimestres</h3>
+            
+            {trimestresDisponibles.length < 2 ? (
+              <div className="text-center py-12">
+                <p className="text-slate-500 mb-2">Necesitas cargar al menos 2 trimestres para ver la evolución.</p>
+                <p className="text-sm text-slate-400">Trimestres cargados: {trimestresDisponibles.join(', ') || 'Ninguno'}</p>
+              </div>
+            ) : (
+              <>
+                <p className="text-sm text-slate-600 mb-6">
+                  Compara la evolución de una asignatura o nivel a lo largo de los trimestres cargados.
+                  Usa el selector de selecciones en la vista "Estadísticas" para elegir diferentes combinaciones
+                  de trimestre + nivel + asignatura y ver cómo cambian las métricas.
+                </p>
+                
+                {/* Gráfico de evolución de nota media */}
+                {(() => {
+                  const nivel = selecciones[0]?.nivel || 'GLOBAL';
+                  const asignatura = selecciones[0]?.asignatura || 'Todos';
+                  
+                  const datosEvolucion = trimestresDisponibles.map(trim => {
+                    const d = datosCompletos[trim]?.[nivel]?.[asignatura];
+                    return {
+                      trimestre: trim,
+                      notaMedia: d?.stats.notaMedia || null,
+                      aprobados: d?.stats.aprobados || null,
+                      suspendidos: d?.stats.suspendidos || null
+                    };
+                  }).filter(d => d.notaMedia !== null);
+                  
+                  if (datosEvolucion.length < 2) {
+                    return (
+                      <p className="text-slate-500 text-center py-8">
+                        No hay datos suficientes para {nivel} - {asignatura} en múltiples trimestres.
+                      </p>
+                    );
+                  }
+                  
+                  return (
+                    <div>
+                      <div className="mb-4 p-3 bg-slate-50 rounded-lg">
+                        <span className="text-sm font-medium text-slate-700">
+                          Mostrando evolución de: <span className="font-bold">{nivel} - {asignatura}</span>
+                        </span>
+                      </div>
+                      
+                      <ResponsiveContainer width="100%" height={400}>
+                        <LineChart data={datosEvolucion}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                          <XAxis dataKey="trimestre" stroke="#64748b" />
+                          <YAxis yAxisId="left" stroke="#64748b" domain={[0, 10]} />
+                          <YAxis yAxisId="right" orientation="right" stroke="#64748b" domain={[0, 100]} />
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: 'white',
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '8px'
+                            }}
+                          />
+                          <Legend />
+                          <Line
+                            yAxisId="left"
+                            type="monotone"
+                            dataKey="notaMedia"
+                            name="Nota Media"
+                            stroke="#1a1a2e"
+                            strokeWidth={3}
+                            dot={{ fill: '#1a1a2e', r: 6 }}
+                          />
+                          <Line
+                            yAxisId="right"
+                            type="monotone"
+                            dataKey="aprobados"
+                            name="% Aprobados"
+                            stroke="#22c55e"
+                            strokeWidth={2}
+                            dot={{ fill: '#22c55e', r: 5 }}
+                          />
+                          <Line
+                            yAxisId="right"
+                            type="monotone"
+                            dataKey="suspendidos"
+                            name="% Suspendidos"
+                            stroke="#ef4444"
+                            strokeWidth={2}
+                            dot={{ fill: '#ef4444', r: 5 }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  );
+                })()}
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Footer */}
+      <footer className="max-w-7xl mx-auto mt-12 py-6 border-t border-slate-200">
+        <p className="text-center text-sm text-slate-400">
+          App diseñada por <a href="https://jlmirall.es" target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:text-slate-800 underline">José Luis Miralles Bono</a> con ayuda de Claude
+        </p>
+      </footer>
+    </div>
+  );
+};
+
+export default DashboardAcademico;
