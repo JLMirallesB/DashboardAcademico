@@ -24,7 +24,7 @@ const DashboardAcademico = () => {
   
   // UI State
   const [trimestreSeleccionado, setTrimestreSeleccionado] = useState(null);
-  const [vistaActual, setVistaActual] = useState('estadisticas'); // 'estadisticas', 'correlaciones', 'evolucion', 'dificultad'
+  const [vistaActual, setVistaActual] = useState('estadisticas'); // 'estadisticas', 'correlaciones', 'evolucion', 'dificultad', 'asignaturas'
   const [selecciones, setSelecciones] = useState([]);
   const [mostrarModalConfirm, setMostrarModalConfirm] = useState(false);
   const [trimestrePendiente, setTrimestrePendiente] = useState(null);
@@ -37,6 +37,10 @@ const DashboardAcademico = () => {
   const [ejeCorrelaciones, setEjeCorrelaciones] = useState('niveles'); // 'pares' o 'niveles'
   const [modoHeatmap, setModoHeatmap] = useState('relativo'); // 'absoluto' o 'relativo'
   const [modoDistribucion, setModoDistribucion] = useState('porcentaje'); // 'absoluto' o 'porcentaje'
+
+  // Filtros para vista de asignaturas
+  const [filtroNivel, setFiltroNivel] = useState('ALL'); // 'ALL', '1EEM', '2EEM', etc.
+  const [filtroTrimestre, setFiltroTrimestre] = useState('ALL'); // 'ALL' o un trimestre específico
   
   const fileInputRef = useRef(null);
   const jsonInputRef = useRef(null);
@@ -1198,7 +1202,8 @@ const DashboardAcademico = () => {
             { id: 'estadisticas', label: t('statistics') },
             { id: 'correlaciones', label: t('correlations') },
             { id: 'evolucion', label: t('evolution') },
-            { id: 'dificultad', label: t('difficulty') }
+            { id: 'dificultad', label: t('difficulty') },
+            { id: 'asignaturas', label: t('subjectsData') }
           ].map(vista => (
             <button
               key={vista.id}
@@ -2506,6 +2511,155 @@ const DashboardAcademico = () => {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* VISTA: DATOS DE ASIGNATURAS */}
+      {vistaActual === 'asignaturas' && (
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-white rounded-xl border border-slate-200 p-6">
+            {/* Filtros */}
+            <div className="flex flex-col md:flex-row gap-4 mb-6">
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-slate-700 mb-2">{t('filterByTrimester')}</label>
+                <select
+                  value={filtroTrimestre}
+                  onChange={(e) => setFiltroTrimestre(e.target.value)}
+                  className="w-full py-2 px-3 border border-slate-300 rounded-lg text-sm bg-white"
+                >
+                  <option value="ALL">{t('allTrimesters')}</option>
+                  {trimestresDisponibles.map(trim => (
+                    <option key={trim} value={trim}>{trim}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-slate-700 mb-2">{t('filterByLevel')}</label>
+                <select
+                  value={filtroNivel}
+                  onChange={(e) => setFiltroNivel(e.target.value)}
+                  className="w-full py-2 px-3 border border-slate-300 rounded-lg text-sm bg-white"
+                >
+                  <option value="ALL">{t('allLevels')}</option>
+                  {['1EEM', '2EEM', '3EEM', '4EEM'].map(nivel => (
+                    <option key={nivel} value={nivel}>{nivel}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Grid de asignaturas */}
+            {(() => {
+              // Recopilar todas las asignaturas según filtros
+              const asignaturas = [];
+              const trimestresAFiltrar = filtroTrimestre === 'ALL' ? trimestresDisponibles : [filtroTrimestre];
+
+              trimestresAFiltrar.forEach(trimestre => {
+                if (!datosCompletos[trimestre]) return;
+
+                Object.entries(datosCompletos[trimestre]).forEach(([nivel, asigs]) => {
+                  // Filtrar por nivel si no es ALL
+                  if (filtroNivel !== 'ALL' && nivel !== filtroNivel) return;
+                  if (nivel === 'GLOBAL') return;
+
+                  Object.entries(asigs).forEach(([asignatura, data]) => {
+                    if (asignatura === 'Todos' || !data?.stats) return;
+
+                    asignaturas.push({
+                      trimestre,
+                      nivel,
+                      asignatura,
+                      stats: data.stats,
+                      resultado: calcularResultado(data.stats)
+                    });
+                  });
+                });
+              });
+
+              const count = asignaturas.length;
+
+              return (
+                <>
+                  <p className="text-sm text-slate-600 mb-4">
+                    {t('showingSubjects').replace('{count}', count)}
+                  </p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {asignaturas.map((item, idx) => {
+                      const { trimestre, nivel, asignatura, stats, resultado } = item;
+
+                      // Determinar colores según resultado
+                      let bgColor, borderColor, badgeBg, badgeText;
+                      if (resultado === 'DIFÍCIL') {
+                        bgColor = 'bg-red-50';
+                        borderColor = 'border-red-200';
+                        badgeBg = 'bg-red-100';
+                        badgeText = 'text-red-700';
+                      } else if (resultado === 'FÁCIL') {
+                        bgColor = 'bg-green-50';
+                        borderColor = 'border-green-200';
+                        badgeBg = 'bg-green-100';
+                        badgeText = 'text-green-700';
+                      } else {
+                        bgColor = 'bg-slate-50';
+                        borderColor = 'border-slate-200';
+                        badgeBg = 'bg-slate-100';
+                        badgeText = 'text-slate-700';
+                      }
+
+                      return (
+                        <div
+                          key={`${trimestre}-${nivel}-${asignatura}-${idx}`}
+                          className={`${bgColor} ${borderColor} border rounded-lg p-4 transition-all hover:shadow-md`}
+                        >
+                          {/* Header con badge */}
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex-1">
+                              <div className="text-xs font-medium text-slate-500 mb-1">{trimestre} · {nivel}</div>
+                              <h4 className="text-sm font-semibold text-slate-800 leading-tight">{asignatura}</h4>
+                            </div>
+                            <span className={`${badgeBg} ${badgeText} text-xs px-2 py-0.5 rounded font-medium ml-2`}>
+                              {t(resultado === 'DIFÍCIL' ? 'difficult' : resultado === 'FÁCIL' ? 'easy' : 'neutral')}
+                            </span>
+                          </div>
+
+                          {/* Métricas */}
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs text-slate-600">{t('records')}:</span>
+                              <span className="text-sm font-semibold text-slate-800">{stats.registros}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs text-slate-600">{t('average')}:</span>
+                              <span className="text-sm font-semibold text-slate-800">{(stats.notaMedia || 0).toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs text-slate-600">{t('mode')}:</span>
+                              <span className="text-sm font-semibold text-slate-800">{stats.moda || '-'}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs text-green-600">{t('passed')}:</span>
+                              <span className="text-sm font-semibold text-green-700">{(stats.aprobados || 0).toFixed(1)}%</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs text-red-600">{t('failed')}:</span>
+                              <span className="text-sm font-semibold text-red-700">{(stats.suspendidos || 0).toFixed(1)}%</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {count === 0 && (
+                    <div className="text-center py-12">
+                      <p className="text-slate-500">{t('noCorrelationData')}</p>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
         </div>
       )}

@@ -20,6 +20,7 @@ export const translations = {
     correlations: 'Correlaciones',
     evolution: 'Evolución',
     difficulty: 'Dificultad',
+    subjectsData: 'Datos de Asignaturas',
 
     // KPIs
     kpis: 'Indicadores Clave del Centro',
@@ -119,6 +120,13 @@ export const translations = {
     showingEvolution: 'Mostrando evolución de',
     notEnoughData: 'No hay datos suficientes para {level} - {subject} en múltiples trimestres.',
 
+    // Datos de Asignaturas
+    filterByLevel: 'Filtrar por nivel',
+    filterByTrimester: 'Filtrar por evaluación',
+    allLevels: 'Todos los niveles',
+    allTrimesters: 'Todas las evaluaciones',
+    showingSubjects: 'Mostrando {count} asignaturas',
+
     // Mensajes
     trimesterAlreadyLoaded: 'Trimestre ya cargado',
     replaceConfirm: 'El trimestre {trimester} ya está cargado. ¿Quieres reemplazar los datos existentes?',
@@ -151,6 +159,7 @@ export const translations = {
     correlations: 'Correlacions',
     evolution: 'Evolució',
     difficulty: 'Dificultat',
+    subjectsData: 'Dades d\'Assignatures',
 
     // KPIs
     kpis: 'Indicadors Clau del Centre',
@@ -249,6 +258,13 @@ export const translations = {
     trimestersLoaded: 'Trimestres carregats',
     showingEvolution: 'Mostrant evolució de',
     notEnoughData: 'No hi ha dades suficients per a {level} - {subject} en múltiples trimestres.',
+
+    // Dades d'Assignatures
+    filterByLevel: 'Filtrar per nivell',
+    filterByTrimester: 'Filtrar per avaluació',
+    allLevels: 'Tots els nivells',
+    allTrimesters: 'Totes les avaluacions',
+    showingSubjects: 'Mostrant {count} assignatures',
 
     // Missatges
     trimesterAlreadyLoaded: 'Trimestre ja carregat',
