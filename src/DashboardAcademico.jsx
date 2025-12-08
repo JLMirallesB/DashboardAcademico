@@ -39,8 +39,11 @@ const DashboardAcademico = () => {
   const [modoDistribucion, setModoDistribucion] = useState('porcentaje'); // 'absoluto' o 'porcentaje'
 
   // Filtros para vista de asignaturas
-  const [filtroNivel, setFiltroNivel] = useState('ALL'); // 'ALL', '1EEM', '2EEM', etc.
+  const [filtroNivel, setFiltroNivel] = useState('ALL'); // 'ALL', 'GLOBAL', '1EEM', '2EEM', etc.
   const [filtroTrimestre, setFiltroTrimestre] = useState('ALL'); // 'ALL' o un trimestre específico
+
+  // Vista de dificultad: por niveles o global
+  const [vistaDificultad, setVistaDificultad] = useState('niveles'); // 'niveles' o 'global'
   
   const fileInputRef = useRef(null);
   const jsonInputRef = useRef(null);
@@ -918,9 +921,12 @@ const DashboardAcademico = () => {
     const datos = datosCompletos[trimestreSeleccionado];
     const asignaturas = [];
 
-    // Recopilar todas las asignaturas (excluyendo GLOBAL y "Todos")
+    // Recopilar todas las asignaturas según vista
     Object.entries(datos).forEach(([nivel, asigs]) => {
-      if (nivel === 'GLOBAL') return;
+      // Si vista es 'niveles', excluir GLOBAL. Si es 'global', solo incluir GLOBAL
+      if (vistaDificultad === 'niveles' && nivel === 'GLOBAL') return;
+      if (vistaDificultad === 'global' && nivel !== 'GLOBAL') return;
+
       Object.entries(asigs).forEach(([asig, data]) => {
         if (asig === 'Todos' || !data?.stats) return;
 
@@ -991,7 +997,7 @@ const DashboardAcademico = () => {
       faciles: faciles.length
     });
     return { dificiles, neutrales, faciles, todas: asignaturas };
-  }, [trimestreSeleccionado, datosCompletos, calcularResultado, umbrales]);
+  }, [trimestreSeleccionado, datosCompletos, calcularResultado, umbrales, vistaDificultad]);
 
   // Si no hay datos, mostrar pantalla de carga
   if (trimestresDisponibles.length === 0) {
@@ -2365,7 +2371,32 @@ const DashboardAcademico = () => {
       {vistaActual === 'dificultad' && analisisDificultad && (
         <div className="max-w-7xl mx-auto">
           <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
-            <h3 className="text-lg font-semibold text-slate-800 mb-4">{t('difficulty')}</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-slate-800">{t('difficulty')}</h3>
+              {/* Toggle Por Niveles / Global */}
+              <div className="inline-flex bg-slate-100 rounded-lg p-1">
+                <button
+                  onClick={() => setVistaDificultad('niveles')}
+                  className={`px-3 py-1 text-xs font-medium rounded transition-all ${
+                    vistaDificultad === 'niveles'
+                      ? 'bg-white text-slate-800 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  {t('viewByLevels')}
+                </button>
+                <button
+                  onClick={() => setVistaDificultad('global')}
+                  className={`px-3 py-1 text-xs font-medium rounded transition-all ${
+                    vistaDificultad === 'global'
+                      ? 'bg-white text-slate-800 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  {t('viewGlobal')}
+                </button>
+              </div>
+            </div>
 
             {/* Selector de trimestre */}
             <div className="mb-6 p-3 bg-slate-50 rounded-lg">
@@ -2542,6 +2573,7 @@ const DashboardAcademico = () => {
                   className="w-full py-2 px-3 border border-slate-300 rounded-lg text-sm bg-white"
                 >
                   <option value="ALL">{t('allLevels')}</option>
+                  <option value="GLOBAL">{t('global')}</option>
                   {['1EEM', '2EEM', '3EEM', '4EEM'].map(nivel => (
                     <option key={nivel} value={nivel}>{nivel}</option>
                   ))}
@@ -2561,7 +2593,10 @@ const DashboardAcademico = () => {
                 Object.entries(datosCompletos[trimestre]).forEach(([nivel, asigs]) => {
                   // Filtrar por nivel si no es ALL
                   if (filtroNivel !== 'ALL' && nivel !== filtroNivel) return;
-                  if (nivel === 'GLOBAL') return;
+                  // Si filtroNivel no es ALL ni GLOBAL, excluir GLOBAL
+                  if (filtroNivel !== 'ALL' && filtroNivel !== 'GLOBAL' && nivel === 'GLOBAL') return;
+                  // Si filtroNivel es ALL, excluir GLOBAL (no mezclar agregados con datos por nivel)
+                  if (filtroNivel === 'ALL' && nivel === 'GLOBAL') return;
 
                   Object.entries(asigs).forEach(([asignatura, data]) => {
                     if (asignatura === 'Todos' || !data?.stats) return;

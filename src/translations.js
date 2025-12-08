@@ -126,6 +126,8 @@ export const translations = {
     allLevels: 'Todos los niveles',
     allTrimesters: 'Todas las evaluaciones',
     showingSubjects: 'Mostrando {count} asignaturas',
+    viewByLevels: 'Por Niveles',
+    viewGlobal: 'Global',
 
     // Mensajes
     trimesterAlreadyLoaded: 'Trimestre ya cargado',
@@ -265,6 +267,8 @@ export const translations = {
     allLevels: 'Tots els nivells',
     allTrimesters: 'Totes les avaluacions',
     showingSubjects: 'Mostrant {count} assignatures',
+    viewByLevels: 'Per Nivells',
+    viewGlobal: 'Global',
 
     // Missatges
     trimesterAlreadyLoaded: 'Trimestre ja carregat',
