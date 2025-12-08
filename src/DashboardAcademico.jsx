@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { LineChart, Line, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import { translations } from './translations.js';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const DashboardAcademico = () => {
   // Estado de idioma
@@ -44,9 +46,23 @@ const DashboardAcademico = () => {
 
   // Vista de dificultad: por niveles o global
   const [vistaDificultad, setVistaDificultad] = useState('niveles'); // 'niveles' o 'global'
-  
+
+  // Estado para generación de informes
+  const [mostrarModalInforme, setMostrarModalInforme] = useState(false);
+  const [generandoInforme, setGenerandoInforme] = useState(false);
+  const [configInforme, setConfigInforme] = useState({
+    nombreCentro: 'Conservatorio Profesional de Música',
+    cursoAcademico: '2024-2025',
+    incluirKPIs: true,
+    incluirDificultad: true,
+    incluirCorrelaciones: true,
+    incluirEvolucion: true
+  });
+
   const fileInputRef = useRef(null);
   const jsonInputRef = useRef(null);
+  const kpisRef = useRef(null);
+  const dificultadRef = useRef(null);
 
   // Colores para comparaciones
   const colores = [
@@ -999,6 +1015,151 @@ const DashboardAcademico = () => {
     return { dificiles, neutrales, faciles, todas: asignaturas };
   }, [trimestreSeleccionado, datosCompletos, calcularResultado, umbrales, vistaDificultad]);
 
+  // Función para generar informe PDF
+  const generarInformePDF = useCallback(async () => {
+    if (!trimestreSeleccionado || !datosCompletos[trimestreSeleccionado]) {
+      alert('No hay datos cargados para generar el informe');
+      return;
+    }
+
+    setGenerandoInforme(true);
+
+    try {
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      let yPosition = 20;
+
+      // Página de portada
+      pdf.setFontSize(24);
+      pdf.text(configInforme.nombreCentro, pageWidth / 2, 60, { align: 'center' });
+
+      pdf.setFontSize(18);
+      pdf.text(t('reportTitle'), pageWidth / 2, 80, { align: 'center' });
+
+      pdf.setFontSize(14);
+      pdf.text(`${t('academicYear')}: ${configInforme.cursoAcademico}`, pageWidth / 2, 100, { align: 'center' });
+      pdf.text(`${t('trimester')}: ${trimestreSeleccionado}`, pageWidth / 2, 110, { align: 'center' });
+
+      pdf.setFontSize(10);
+      pdf.text(`${t('reportFor')} ${new Date().toLocaleDateString()}`, pageWidth / 2, 130, { align: 'center' });
+
+      // KPIs (si está habilitado)
+      if (configInforme.incluirKPIs && kpisRef.current) {
+        pdf.addPage();
+        yPosition = 20;
+
+        pdf.setFontSize(16);
+        pdf.text(t('kpis'), 20, yPosition);
+        yPosition += 10;
+
+        const canvas = await html2canvas(kpisRef.current, {
+          scale: 2,
+          logging: false,
+          useCORS: true
+        });
+
+        const imgData = canvas.toDataURL('image/png');
+        const imgWidth = pageWidth - 40;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+        if (yPosition + imgHeight > pageHeight - 20) {
+          pdf.addPage();
+          yPosition = 20;
+        }
+
+        pdf.addImage(imgData, 'PNG', 20, yPosition, imgWidth, imgHeight);
+        yPosition += imgHeight + 10;
+      }
+
+      // Análisis de Dificultad (si está habilitado)
+      if (configInforme.incluirDificultad && dificultadRef.current) {
+        pdf.addPage();
+        yPosition = 20;
+
+        pdf.setFontSize(16);
+        pdf.text(t('difficulty'), 20, yPosition);
+        yPosition += 10;
+
+        const canvas = await html2canvas(dificultadRef.current, {
+          scale: 2,
+          logging: false,
+          useCORS: true,
+          height: dificultadRef.current.scrollHeight
+        });
+
+        const imgData = canvas.toDataURL('image/png');
+        const imgWidth = pageWidth - 40;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+        // Si la imagen es muy alta, dividirla en múltiples páginas
+        let remainingHeight = imgHeight;
+        let sourceY = 0;
+
+        while (remainingHeight > 0) {
+          const availableHeight = pageHeight - yPosition - 20;
+          const sliceHeight = Math.min(remainingHeight, availableHeight);
+          const sourceHeight = (sliceHeight * canvas.width) / imgWidth;
+
+          pdf.addImage(
+            imgData,
+            'PNG',
+            20,
+            yPosition,
+            imgWidth,
+            sliceHeight,
+            '',
+            'FAST',
+            0
+          );
+
+          remainingHeight -= sliceHeight;
+          sourceY += sourceHeight;
+
+          if (remainingHeight > 0) {
+            pdf.addPage();
+            yPosition = 20;
+          }
+        }
+      }
+
+      // Información de correlaciones (si está habilitado y hay datos)
+      if (configInforme.incluirCorrelaciones && correlacionesTrimestre.length > 0) {
+        pdf.addPage();
+        yPosition = 20;
+
+        pdf.setFontSize(16);
+        pdf.text(t('correlationsTitle'), 20, yPosition);
+        yPosition += 10;
+
+        pdf.setFontSize(10);
+        const top10 = correlacionesTrimestre.slice(0, 10);
+
+        top10.forEach((corr, idx) => {
+          if (yPosition > pageHeight - 30) {
+            pdf.addPage();
+            yPosition = 20;
+          }
+
+          const texto = `${idx + 1}. ${corr.Asignatura1} - ${corr.Asignatura2} (${corr.Nivel}): ${(corr.Correlacion || 0).toFixed(3)}`;
+          pdf.text(texto, 25, yPosition);
+          yPosition += 7;
+        });
+      }
+
+      // Guardar PDF
+      const nombreArchivo = `Informe_${configInforme.nombreCentro.replace(/\s+/g, '_')}_${trimestreSeleccionado}_${new Date().toISOString().split('T')[0]}.pdf`;
+      pdf.save(nombreArchivo);
+
+      setMostrarModalInforme(false);
+    } catch (error) {
+      console.error('Error al generar PDF:', error);
+      alert('Error al generar el informe PDF');
+    } finally {
+      setGenerandoInforme(false);
+    }
+  }, [trimestreSeleccionado, datosCompletos, configInforme, kpisGlobales, correlacionesTrimestre, t]);
+
   // Si no hay datos, mostrar pantalla de carga
   if (trimestresDisponibles.length === 0) {
     return (
@@ -1165,6 +1326,15 @@ const DashboardAcademico = () => {
             >
               {t('exportJSON')}
             </button>
+            <button
+              onClick={() => setMostrarModalInforme(true)}
+              className="py-2 px-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all text-sm font-medium flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              {t('generateReport')}
+            </button>
           </div>
         </div>
 
@@ -1323,7 +1493,7 @@ const DashboardAcademico = () => {
         <div className="max-w-7xl mx-auto">
           {/* Panel de KPIs Globales */}
           {kpisGlobales && (
-            <div className="mb-6">
+            <div className="mb-6" ref={kpisRef}>
               <h3 className="text-lg font-semibold text-slate-800 mb-4">{t('kpis')}</h3>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                 {/* Nota Media del Centro */}
@@ -2370,7 +2540,7 @@ const DashboardAcademico = () => {
       {/* VISTA: DIFICULTAD */}
       {vistaActual === 'dificultad' && analisisDificultad && (
         <div className="max-w-7xl mx-auto">
-          <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
+          <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6" ref={dificultadRef}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-slate-800">{t('difficulty')}</h3>
               {/* Toggle Por Niveles / Global */}
@@ -2695,6 +2865,113 @@ const DashboardAcademico = () => {
                 </>
               );
             })()}
+          </div>
+        </div>
+      )}
+
+      {/* Modal de configuración de informe */}
+      {mostrarModalInforme && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-slate-200">
+              <h2 className="text-2xl font-bold text-slate-800">{t('reportConfig')}</h2>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Nombre del centro */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  {t('centerName')}
+                </label>
+                <input
+                  type="text"
+                  value={configInforme.nombreCentro}
+                  onChange={(e) => setConfigInforme(prev => ({ ...prev, nombreCentro: e.target.value }))}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              {/* Curso académico */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  {t('academicYear')}
+                </label>
+                <input
+                  type="text"
+                  value={configInforme.cursoAcademico}
+                  onChange={(e) => setConfigInforme(prev => ({ ...prev, cursoAcademico: e.target.value }))}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              {/* Opciones de contenido */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-slate-800">Contenido del informe</h3>
+
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={configInforme.incluirKPIs}
+                    onChange={(e) => setConfigInforme(prev => ({ ...prev, incluirKPIs: e.target.checked }))}
+                    className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-slate-700">{t('includeKPIs')}</span>
+                </label>
+
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={configInforme.incluirDificultad}
+                    onChange={(e) => setConfigInforme(prev => ({ ...prev, incluirDificultad: e.target.checked }))}
+                    className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-slate-700">{t('includeDifficulty')}</span>
+                </label>
+
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={configInforme.incluirCorrelaciones}
+                    onChange={(e) => setConfigInforme(prev => ({ ...prev, incluirCorrelaciones: e.target.checked }))}
+                    className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-slate-700">{t('includeCorrelations')}</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Botones */}
+            <div className="p-6 border-t border-slate-200 flex gap-3 justify-end">
+              <button
+                onClick={() => setMostrarModalInforme(false)}
+                disabled={generandoInforme}
+                className="px-4 py-2 text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200 transition-all font-medium disabled:opacity-50"
+              >
+                {t('cancel')}
+              </button>
+              <button
+                onClick={generarInformePDF}
+                disabled={generandoInforme}
+                className="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all font-medium disabled:opacity-50 flex items-center gap-2"
+              >
+                {generandoInforme ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    {t('generating')}
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    {t('generatePDF')}
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -136,6 +136,20 @@ export const translations = {
     csvInstructions: 'Exporta los datos desde la hoja EXPORTAR de tu Excel en formato CSV, o importa un archivo JSON previamente guardado.',
     trimestersLoadedLabel: 'Trimestres cargados:',
 
+    // Informes
+    generateReport: 'Generar Informe',
+    reportConfig: 'Configuración del Informe',
+    generating: 'Generando informe...',
+    reportTitle: 'Informe Académico',
+    includeKPIs: 'Incluir KPIs del Centro',
+    includeDifficulty: 'Incluir Análisis de Dificultad',
+    includeCorrelations: 'Incluir Correlaciones',
+    includeEvolution: 'Incluir Evolución',
+    generatePDF: 'Generar PDF',
+    centerName: 'Nombre del Centro',
+    academicYear: 'Curso Académico',
+    reportFor: 'Informe para',
+
     // Footer
     designedBy: 'App diseñada por',
     withHelpOf: 'con ayuda de Claude',
@@ -276,6 +290,20 @@ export const translations = {
     noCorrelationData: 'No hi ha dades de correlacions per a aquest trimestre.',
     csvInstructions: 'Exporta les dades des del full EXPORTAR del teu Excel en format CSV, o importa un arxiu JSON prèviament guardat.',
     trimestersLoadedLabel: 'Trimestres carregats:',
+
+    // Informes
+    generateReport: 'Generar Informe',
+    reportConfig: 'Configuració de l\'Informe',
+    generating: 'Generant informe...',
+    reportTitle: 'Informe Acadèmic',
+    includeKPIs: 'Incloure KPIs del Centre',
+    includeDifficulty: 'Incloure Anàlisi de Dificultat',
+    includeCorrelations: 'Incloure Correlacions',
+    includeEvolution: 'Incloure Evolució',
+    generatePDF: 'Generar PDF',
+    centerName: 'Nom del Centre',
+    academicYear: 'Curs Acadèmic',
+    reportFor: 'Informe per a',
 
     // Footer
     designedBy: 'App dissenyada per',
