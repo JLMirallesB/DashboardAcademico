@@ -197,51 +197,30 @@ const DashboardAcademico = () => {
     };
   }, []);
 
-  // Cargar CSV
-  const handleCargarCSV = useCallback((event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-    
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const texto = e.target.result;
-      const parsed = parseCSV(texto);
-      const procesado = procesarDatos(parsed);
-      
-      if (!procesado) return;
-      
-      // Verificar si el trimestre ya existe
-      if (trimestresDisponibles.includes(procesado.trimestre)) {
-        setTrimestrePendiente(procesado.trimestre);
-        setDatosPendientes(procesado);
-        setMostrarModalConfirm(true);
-      } else {
-        aplicarDatos(procesado);
-      }
-    };
-    reader.readAsText(file);
-    event.target.value = '';
-  }, [parseCSV, procesarDatos, trimestresDisponibles]);
-
   // Aplicar datos
   const aplicarDatos = useCallback((procesado) => {
+    console.log('[DEBUG] Aplicando datos:', procesado);
     const { trimestre, metadata: meta, datos, correlaciones } = procesado;
-    
+
+    console.log('[DEBUG] Trimestre:', trimestre);
+    console.log('[DEBUG] Datos:', Object.keys(datos));
+    console.log('[DEBUG] Correlaciones:', correlaciones?.length);
+
     setDatosCompletos(prev => ({
       ...prev,
       [trimestre]: datos
     }));
-    
+
     setCorrelacionesCompletas(prev => ({
       ...prev,
       [trimestre]: correlaciones
     }));
-    
+
     setMetadata(prev => ({
       ...prev,
       [trimestre]: meta
     }));
-    
+
     setTrimestresDisponibles(prev => {
       const nuevos = prev.includes(trimestre) ? prev : [...prev, trimestre];
       return nuevos.sort((a, b) => {
@@ -249,13 +228,15 @@ const DashboardAcademico = () => {
         return (orden[a] || 99) - (orden[b] || 99);
       });
     });
-    
+
     if (!trimestreSeleccionado) {
+      console.log('[DEBUG] Estableciendo trimestre seleccionado:', trimestre);
       setTrimestreSeleccionado(trimestre);
     }
-    
+
     // Inicializar selección por defecto
     if (selecciones.length === 0 && datos['GLOBAL']) {
+      console.log('[DEBUG] Inicializando selección por defecto');
       setSelecciones([{
         id: 0,
         trimestre: trimestre,
@@ -263,9 +244,45 @@ const DashboardAcademico = () => {
         asignatura: 'Todos'
       }]);
     }
-    
+
+    console.log('[DEBUG] Datos aplicados correctamente');
     setMostrarPanelCarga(false);
   }, [trimestreSeleccionado, selecciones.length]);
+
+  // Cargar CSV
+  const handleCargarCSV = useCallback((event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    console.log('[DEBUG] Cargando archivo CSV:', file.name);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const texto = e.target.result;
+      console.log('[DEBUG] CSV leído, longitud:', texto.length);
+      const parsed = parseCSV(texto);
+      console.log('[DEBUG] CSV parseado:', parsed);
+      const procesado = procesarDatos(parsed);
+      console.log('[DEBUG] Datos procesados:', procesado);
+
+      if (!procesado) {
+        console.error('[DEBUG] Error: procesarDatos devolvió null');
+        return;
+      }
+
+      // Verificar si el trimestre ya existe
+      if (trimestresDisponibles.includes(procesado.trimestre)) {
+        console.log('[DEBUG] Trimestre ya existe, mostrando modal de confirmación');
+        setTrimestrePendiente(procesado.trimestre);
+        setDatosPendientes(procesado);
+        setMostrarModalConfirm(true);
+      } else {
+        console.log('[DEBUG] Aplicando datos de nuevo trimestre:', procesado.trimestre);
+        aplicarDatos(procesado);
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+  }, [parseCSV, procesarDatos, trimestresDisponibles, aplicarDatos]);
 
   // Confirmar reemplazo de trimestre
   const confirmarReemplazo = useCallback(() => {
@@ -702,7 +719,7 @@ const DashboardAcademico = () => {
   }, [datosEvolucionCorrelacionesAlt]);
 
   // Interpretar nivel de correlación
-  const interpretarCorrelacion = (valor) => {
+  const interpretarCorrelacion = useCallback((valor) => {
     if (valor < 0) return { nivel: t('inverse'), color: '#1a1a2e', textColor: 'white' };
     const abs = Math.abs(valor);
     if (abs >= 0.8) return { nivel: t('veryStrong'), color: '#065f46', textColor: 'white' };
@@ -710,15 +727,23 @@ const DashboardAcademico = () => {
     if (abs >= 0.4) return { nivel: t('moderate'), color: '#fbbf24', textColor: 'black' };
     if (abs >= 0.2) return { nivel: t('weak'), color: '#f97316', textColor: 'white' };
     return { nivel: t('veryWeak'), color: '#ef4444', textColor: 'white' };
-  };
+  }, [idioma]);
 
   // Calcular KPIs globales del centro
   const kpisGlobales = useMemo(() => {
-    if (!trimestreSeleccionado || !datosCompletos[trimestreSeleccionado]) return null;
+    console.log('[DEBUG] Calculando kpisGlobales...');
+    if (!trimestreSeleccionado || !datosCompletos[trimestreSeleccionado]) {
+      console.log('[DEBUG] No hay trimestre seleccionado o datos completos');
+      return null;
+    }
 
     const datos = datosCompletos[trimestreSeleccionado];
     const global = datos['GLOBAL'];
-    if (!global || !global['Todos']) return null;
+    if (!global || !global['Todos']) {
+      console.log('[DEBUG] No hay datos GLOBAL o GLOBAL/Todos');
+      return null;
+    }
+    console.log('[DEBUG] Datos GLOBAL encontrados:', Object.keys(global));
 
     // Lista de asignaturas instrumentales (todas excepto LM, Coro, Conjunto, Todos)
     const asignaturasInstrumentales = new Set();
@@ -750,12 +775,12 @@ const DashboardAcademico = () => {
     };
 
     // KPI 1: Nota media del centro (GLOBAL/Todos)
-    const notaMediaCentro = global['Todos'].stats.notaMedia;
+    const notaMediaCentro = global['Todos']?.stats?.notaMedia || 0;
 
     // KPI 2: Nota media de Lenguaje Musical
     const datosLM = [];
     Object.entries(datos).forEach(([nivel, asigs]) => {
-      if (nivel !== 'GLOBAL' && asigs['Lenguaje Musical']) {
+      if (nivel !== 'GLOBAL' && asigs['Lenguaje Musical']?.stats) {
         datosLM.push({
           valor: asigs['Lenguaje Musical'].stats.notaMedia,
           peso: asigs['Lenguaje Musical'].stats.registros
@@ -769,7 +794,7 @@ const DashboardAcademico = () => {
     Object.entries(datos).forEach(([nivel, asigs]) => {
       if (nivel !== 'GLOBAL') {
         Object.entries(asigs).forEach(([asig, data]) => {
-          if (!['Lenguaje Musical', 'Coro', 'Conjunto', 'Todos'].includes(asig)) {
+          if (!['Lenguaje Musical', 'Coro', 'Conjunto', 'Todos'].includes(asig) && data?.stats) {
             datosEsp.push({
               valor: data.stats.notaMedia,
               peso: data.stats.registros
@@ -785,18 +810,20 @@ const DashboardAcademico = () => {
     let countFaciles = 0;
     Object.entries(datos).forEach(([nivel, asigs]) => {
       Object.entries(asigs).forEach(([asig, data]) => {
-        const resultado = calcularResultado(data.stats);
-        if (resultado === 'DIFÍCIL') countDificiles++;
-        if (resultado === 'FÁCIL') countFaciles++;
+        if (data?.stats) {
+          const resultado = calcularResultado(data.stats);
+          if (resultado === 'DIFÍCIL') countDificiles++;
+          if (resultado === 'FÁCIL') countFaciles++;
+        }
       });
     });
 
     // KPI 5-7: % Aprobados (total, LM, especialidades)
-    const aprobadosCentro = global['Todos'].stats.aprobados;
+    const aprobadosCentro = global['Todos']?.stats?.aprobados || 0;
 
     const datosAprobadosLM = [];
     Object.entries(datos).forEach(([nivel, asigs]) => {
-      if (nivel !== 'GLOBAL' && asigs['Lenguaje Musical']) {
+      if (nivel !== 'GLOBAL' && asigs['Lenguaje Musical']?.stats) {
         datosAprobadosLM.push({
           valor: asigs['Lenguaje Musical'].stats.aprobados,
           peso: asigs['Lenguaje Musical'].stats.registros
@@ -809,7 +836,7 @@ const DashboardAcademico = () => {
     Object.entries(datos).forEach(([nivel, asigs]) => {
       if (nivel !== 'GLOBAL') {
         Object.entries(asigs).forEach(([asig, data]) => {
-          if (!['Lenguaje Musical', 'Coro', 'Conjunto', 'Todos'].includes(asig)) {
+          if (!['Lenguaje Musical', 'Coro', 'Conjunto', 'Todos'].includes(asig) && data?.stats) {
             datosAprobadosEsp.push({
               valor: data.stats.aprobados,
               peso: data.stats.registros
@@ -821,11 +848,11 @@ const DashboardAcademico = () => {
     const aprobadosEsp = calcularMediaPonderada(datosAprobadosEsp);
 
     // KPI 8-10: % Suspendidos (total, LM, especialidades)
-    const suspendidosCentro = global['Todos'].stats.suspendidos;
+    const suspendidosCentro = global['Todos']?.stats?.suspendidos || 0;
 
     const datosSuspendidosLM = [];
     Object.entries(datos).forEach(([nivel, asigs]) => {
-      if (nivel !== 'GLOBAL' && asigs['Lenguaje Musical']) {
+      if (nivel !== 'GLOBAL' && asigs['Lenguaje Musical']?.stats) {
         datosSuspendidosLM.push({
           valor: asigs['Lenguaje Musical'].stats.suspendidos,
           peso: asigs['Lenguaje Musical'].stats.registros
@@ -838,7 +865,7 @@ const DashboardAcademico = () => {
     Object.entries(datos).forEach(([nivel, asigs]) => {
       if (nivel !== 'GLOBAL') {
         Object.entries(asigs).forEach(([asig, data]) => {
-          if (!['Lenguaje Musical', 'Coro', 'Conjunto', 'Todos'].includes(asig)) {
+          if (!['Lenguaje Musical', 'Coro', 'Conjunto', 'Todos'].includes(asig) && data?.stats) {
             datosSuspendidosEsp.push({
               valor: data.stats.suspendidos,
               peso: data.stats.registros
@@ -849,7 +876,7 @@ const DashboardAcademico = () => {
     });
     const suspendidosEsp = calcularMediaPonderada(datosSuspendidosEsp);
 
-    return {
+    const result = {
       notaMediaCentro,
       notaMediaLM,
       notaMediaEsp,
@@ -862,11 +889,17 @@ const DashboardAcademico = () => {
       suspendidosLM,
       suspendidosEsp
     };
+    console.log('[DEBUG] KPIs globales calculados:', result);
+    return result;
   }, [trimestreSeleccionado, datosCompletos, calcularResultado]);
 
   // Análisis de dificultad de asignaturas
   const analisisDificultad = useMemo(() => {
-    if (!trimestreSeleccionado || !datosCompletos[trimestreSeleccionado]) return null;
+    console.log('[DEBUG] Calculando analisisDificultad...');
+    if (!trimestreSeleccionado || !datosCompletos[trimestreSeleccionado]) {
+      console.log('[DEBUG] No hay trimestre seleccionado o datos completos para análisis');
+      return null;
+    }
 
     const datos = datosCompletos[trimestreSeleccionado];
     const asignaturas = [];
@@ -875,7 +908,7 @@ const DashboardAcademico = () => {
     Object.entries(datos).forEach(([nivel, asigs]) => {
       if (nivel === 'GLOBAL') return;
       Object.entries(asigs).forEach(([asig, data]) => {
-        if (asig === 'Todos') return;
+        if (asig === 'Todos' || !data?.stats) return;
 
         const stats = data.stats;
         const resultado = calcularResultado(stats);
@@ -935,6 +968,11 @@ const DashboardAcademico = () => {
     const neutrales = asignaturas.filter(a => a.categoria === 'NEUTRAL');
     const faciles = asignaturas.filter(a => a.categoria === 'FÁCIL');
 
+    console.log('[DEBUG] Análisis de dificultad completado:', {
+      dificiles: dificiles.length,
+      neutrales: neutrales.length,
+      faciles: faciles.length
+    });
     return { dificiles, neutrales, faciles, todas: asignaturas };
   }, [trimestreSeleccionado, datosCompletos, calcularResultado, umbrales]);
 
