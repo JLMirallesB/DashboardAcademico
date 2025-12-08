@@ -33,6 +33,7 @@ const DashboardAcademico = () => {
   const [compararNiveles, setCompararNiveles] = useState(false);
   const [asignaturaComparada, setAsignaturaComparada] = useState('Lenguaje Musical');
   const [ordenCorrelaciones, setOrdenCorrelaciones] = useState('desc'); // 'desc', 'asc', 'none'
+  const [ejeCorrelaciones, setEjeCorrelaciones] = useState('pares'); // 'pares' o 'niveles'
   
   const fileInputRef = useRef(null);
   const jsonInputRef = useRef(null);
@@ -596,6 +597,104 @@ const DashboardAcademico = () => {
       return punto;
     });
   }, [tiposCorrelacion, correlacionesCompletas]);
+
+  // Datos alternativos para gráfico de evolución de correlaciones (eje X = niveles, líneas = pares)
+  const datosEvolucionCorrelacionesAlt = useMemo(() => {
+    if (tiposCorrelacion.length === 0) return [];
+
+    // Función para abreviar nombres de asignaturas
+    const abreviar = (nombre) => {
+      const abreviaturas = {
+        'Lenguaje Musical': 'LM',
+        'Coro': 'Cor',
+        'Conjunto': 'Con',
+        'Especialidad': 'Esp',
+        'Arpa': 'Arp',
+        'Clarinete': 'Cla',
+        'Contrabajo': 'Ctb',
+        'Fagot': 'Fag',
+        'Flauta': 'Fla',
+        'Guitarra': 'Gui',
+        'Oboe': 'Obo',
+        'Percusión': 'Per',
+        'Piano': 'Pia',
+        'Saxofón': 'Sax',
+        'Trombón': 'Trb',
+        'Trompa': 'Trp',
+        'Trompeta': 'Tpt',
+        'Viola': 'Vla',
+        'Violín': 'Vln',
+        'Violoncello': 'Vcl'
+      };
+      return abreviaturas[nombre] || nombre.substring(0, 3);
+    };
+
+    // Calcular promedio de correlaciones para cada par de asignaturas
+    const promediosPares = {};
+    tiposCorrelacion.forEach(tipo => {
+      const [asig1, asig2] = tipo.split('-');
+      let suma = 0;
+      let count = 0;
+
+      ['1EEM', '2EEM', '3EEM', '4EEM'].forEach(nivel => {
+        Object.entries(correlacionesCompletas).forEach(([trim, corrs]) => {
+          const corr = corrs.find(c =>
+            c.Asignatura1 === asig1 && c.Asignatura2 === asig2 && c.Nivel === nivel
+          );
+          if (corr && corr.Correlacion !== null) {
+            suma += Math.abs(corr.Correlacion);
+            count++;
+          }
+        });
+      });
+
+      promediosPares[tipo] = count > 0 ? suma / count : 0;
+    });
+
+    // Seleccionar los 10 pares más relevantes (mayor correlación promedio)
+    const paresOrdenados = Object.entries(promediosPares)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([tipo]) => tipo);
+
+    // Crear estructura de datos con eje X = niveles
+    return ['1EEM', '2EEM', '3EEM', '4EEM'].map(nivel => {
+      const punto = { nivel };
+
+      paresOrdenados.forEach(tipo => {
+        const [asig1, asig2] = tipo.split('-');
+        const parAbreviado = `${abreviar(asig1)}-${abreviar(asig2)}`;
+
+        // Buscar correlación en todos los trimestres para este nivel y par
+        Object.entries(correlacionesCompletas).forEach(([trim, corrs]) => {
+          const corr = corrs.find(c =>
+            c.Asignatura1 === asig1 && c.Asignatura2 === asig2 && c.Nivel === nivel
+          );
+          if (corr) {
+            punto[parAbreviado] = corr.Correlacion;
+          }
+        });
+      });
+
+      return punto;
+    });
+  }, [tiposCorrelacion, correlacionesCompletas]);
+
+  // Obtener pares de asignaturas para el modo alternativo
+  const paresCorrelacionesAlt = useMemo(() => {
+    if (datosEvolucionCorrelacionesAlt.length === 0) return [];
+
+    const pares = new Set();
+    datosEvolucionCorrelacionesAlt.forEach(punto => {
+      Object.keys(punto).forEach(key => {
+        if (key !== 'nivel') {
+          pares.add(key);
+        }
+      });
+    });
+
+    return Array.from(pares);
+  }, [datosEvolucionCorrelacionesAlt]);
 
   // Interpretar nivel de correlación
   const interpretarCorrelacion = (valor) => {
@@ -1403,7 +1502,7 @@ const DashboardAcademico = () => {
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-4 md:grid-cols-8 gap-2 mb-3">
+                  <div className="grid grid-cols-4 md:grid-cols-8 lg:grid-cols-8 gap-2 mb-3">
                     {[
                       { label: 'N', title: t('records'), key: 'registros', format: (v) => v },
                       { label: t('average'), title: t('average'), key: 'notaMedia', format: (v) => v?.toFixed(2) },
@@ -1421,11 +1520,11 @@ const DashboardAcademico = () => {
                       }
 
                       return (
-                        <div key={key} className="bg-slate-50 rounded p-2 text-center" title={title}>
-                          <div className="text-xs text-slate-500">{label}</div>
-                          <div className="text-sm font-bold text-slate-800">{format(valor)}</div>
+                        <div key={key} className="bg-slate-50 rounded p-2 md:p-3 lg:p-4 text-center min-h-[60px] md:min-h-[70px] lg:min-h-[80px] flex flex-col justify-center" title={title}>
+                          <div className="text-xs md:text-sm text-slate-500">{label}</div>
+                          <div className="text-sm md:text-base lg:text-lg font-bold text-slate-800">{format(valor)}</div>
                           {diff !== null && (
-                            <div className={`text-xs font-medium ${diff >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            <div className={`text-xs md:text-sm font-medium ${diff >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                               {diff >= 0 ? '+' : ''}{diff.toFixed(1)}
                             </div>
                           )}
@@ -1435,69 +1534,86 @@ const DashboardAcademico = () => {
                   </div>
 
                   {/* Descripción textual */}
-                  <div className="text-xs text-slate-600 bg-slate-50 rounded p-2 italic mb-3">
+                  <div className="text-xs text-slate-600 bg-slate-50 rounded p-2 italic">
                     {generarDescripcion()}
-                  </div>
-
-                  {/* Gráfico Radar */}
-                  <div className="bg-slate-50 rounded-lg p-3">
-                    <h5 className="text-xs font-semibold text-slate-700 mb-2 text-center">{t('radarChart')}</h5>
-                    <ResponsiveContainer width="100%" height={220}>
-                      <RadarChart data={[
-                        {
-                          metric: t('average'),
-                          value: (datos.stats.notaMedia / 10) * 100, // Normalizar a 0-100
-                          fullMark: 100
-                        },
-                        {
-                          metric: `% ${t('passed')}`,
-                          value: datos.stats.aprobados,
-                          fullMark: 100
-                        },
-                        {
-                          metric: `% ${t('excellence')}`,
-                          value: ((datos.distribucion[9] || 0) + (datos.distribucion[10] || 0)) / datos.stats.registros * 100,
-                          fullMark: 100
-                        },
-                        {
-                          metric: t('mode'),
-                          value: datos.stats.moda ? (datos.stats.moda / 10) * 100 : 0,
-                          fullMark: 100
-                        }
-                      ]}>
-                        <PolarGrid stroke="#cbd5e1" />
-                        <PolarAngleAxis
-                          dataKey="metric"
-                          tick={{ fill: '#64748b', fontSize: 11 }}
-                        />
-                        <PolarRadiusAxis
-                          angle={90}
-                          domain={[0, 100]}
-                          tick={{ fill: '#94a3b8', fontSize: 10 }}
-                        />
-                        <Radar
-                          name={sel.asignatura}
-                          dataKey="value"
-                          stroke={colores[idx].line}
-                          fill={colores[idx].line}
-                          fillOpacity={0.3}
-                          strokeWidth={2}
-                        />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: 'white',
-                            border: '1px solid #e2e8f0',
-                            borderRadius: '8px'
-                          }}
-                          formatter={(value) => value.toFixed(1)}
-                        />
-                      </RadarChart>
-                    </ResponsiveContainer>
                   </div>
                 </div>
               );
             })}
           </div>
+
+          {/* Radar combinado de todas las selecciones */}
+          {selecciones.length > 0 && (
+            <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
+              <h3 className="text-lg font-semibold text-slate-800 mb-4 text-center">{t('radarComparison')}</h3>
+              <ResponsiveContainer width="100%" height={400}>
+                <RadarChart data={(() => {
+                  // Calcular datos del radar para cada selección
+                  const metricas = ['Nota Media', `% ${t('passed')}`, `% ${t('excellence')}`, t('mode')];
+
+                  return metricas.map((metrica, metricaIdx) => {
+                    const punto = { subject: metrica };
+
+                    selecciones.forEach((sel, idx) => {
+                      if (idx >= 5) return; // Máximo 5 selecciones
+
+                      const datos = calcularDatosSeleccion(sel);
+                      if (!datos) return;
+
+                      const label = `Sel ${idx + 1}`;
+
+                      if (metricaIdx === 0) {
+                        // Nota Media (normalizada 0-100)
+                        punto[label] = (datos.stats.notaMedia / 10) * 100;
+                      } else if (metricaIdx === 1) {
+                        // % Aprobados (0-100)
+                        punto[label] = datos.stats.aprobados;
+                      } else if (metricaIdx === 2) {
+                        // % Excelencia (0-100)
+                        punto[label] = ((datos.distribucion[9] || 0) + (datos.distribucion[10] || 0)) / datos.stats.registros * 100;
+                      } else if (metricaIdx === 3) {
+                        // Moda (normalizada 0-100)
+                        punto[label] = datos.stats.moda ? (datos.stats.moda / 10) * 100 : 0;
+                      }
+                    });
+
+                    return punto;
+                  });
+                })()}>
+                  <PolarGrid stroke="#cbd5e1" />
+                  <PolarAngleAxis
+                    dataKey="subject"
+                    tick={{ fill: '#64748b', fontSize: 12 }}
+                  />
+                  <PolarRadiusAxis
+                    angle={90}
+                    domain={[0, 100]}
+                    tick={{ fill: '#94a3b8', fontSize: 10 }}
+                  />
+                  {selecciones.slice(0, 5).map((sel, idx) => (
+                    <Radar
+                      key={sel.id}
+                      name={`${sel.trimestre} - ${sel.nivel} - ${sel.asignatura}`}
+                      dataKey={`Sel ${idx + 1}`}
+                      stroke={colores[idx].line}
+                      fill={colores[idx].line}
+                      fillOpacity={0.15}
+                      strokeWidth={2}
+                    />
+                  ))}
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'white',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px'
+                    }}
+                    formatter={(value) => value.toFixed(1)}
+                  />
+                  <Legend />
+                </RadarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
 
           {/* Gráfico de distribución */}
           <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
@@ -1782,78 +1898,149 @@ const DashboardAcademico = () => {
           {/* Gráfico de evolución de correlaciones por nivel */}
           {trimestresDisponibles.length >= 1 && correlacionesTrimestre.length > 0 && (
             <div className="bg-white rounded-xl border border-slate-200 p-6">
-              <h3 className="text-lg font-semibold text-slate-800 mb-2">{t('correlationEvolution')}</h3>
-              <p className="text-sm text-slate-500 mb-6">{t('correlationEvolutionDesc')}</p>
-              
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-800 mb-1">{t('correlationEvolution')}</h3>
+                  <p className="text-sm text-slate-500">
+                    {ejeCorrelaciones === 'pares' ? t('correlationEvolutionDesc') : 'El eje X muestra los niveles (1EEM-4EEM), cada línea representa un par de asignaturas'}
+                  </p>
+                </div>
+                <div className="flex gap-2 bg-slate-100 rounded-lg p-1">
+                  <button
+                    onClick={() => setEjeCorrelaciones('pares')}
+                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                      ejeCorrelaciones === 'pares'
+                        ? 'bg-white text-slate-800 shadow-sm'
+                        : 'text-slate-600 hover:text-slate-800'
+                    }`}
+                  >
+                    {t('correlationToggleSubjects')}
+                  </button>
+                  <button
+                    onClick={() => setEjeCorrelaciones('niveles')}
+                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                      ejeCorrelaciones === 'niveles'
+                        ? 'bg-white text-slate-800 shadow-sm'
+                        : 'text-slate-600 hover:text-slate-800'
+                    }`}
+                  >
+                    {t('correlationToggleLevels')}
+                  </button>
+                </div>
+              </div>
+
               <ResponsiveContainer width="100%" height={400}>
-                <LineChart data={datosEvolucionCorrelaciones} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis 
-                    dataKey="par" 
-                    stroke="#64748b" 
-                    angle={-45}
-                    textAnchor="end"
-                    height={80}
-                    interval={0}
-                    tick={{ fontSize: 11 }}
-                  />
-                  <YAxis 
-                    stroke="#64748b" 
-                    domain={[-0.2, 0.8]}
-                    tickFormatter={(v) => v.toFixed(1)}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'white',
-                      border: '1px solid #e2e8f0',
-                      borderRadius: '8px'
-                    }}
-                    formatter={(value, name) => [value?.toFixed(2), name]}
-                    labelFormatter={(label, payload) => {
-                      if (payload && payload[0]) {
-                        return payload[0].payload.parCompleto;
-                      }
-                      return label;
-                    }}
-                  />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="1EEM"
-                    name="1EEM"
-                    stroke="#3b82f6"
-                    strokeWidth={2}
-                    dot={{ fill: '#3b82f6', r: 4 }}
-                    connectNulls
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="2EEM"
-                    name="2EEM"
-                    stroke="#ef4444"
-                    strokeWidth={2}
-                    dot={{ fill: '#ef4444', r: 4 }}
-                    connectNulls
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="3EEM"
-                    name="3EEM"
-                    stroke="#22c55e"
-                    strokeWidth={2}
-                    dot={{ fill: '#22c55e', r: 4 }}
-                    connectNulls
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="4EEM"
-                    name="4EEM"
-                    stroke="#a855f7"
-                    strokeWidth={2}
-                    dot={{ fill: '#a855f7', r: 4 }}
-                    connectNulls
-                  />
-                </LineChart>
+                {ejeCorrelaciones === 'pares' ? (
+                  <LineChart data={datosEvolucionCorrelaciones} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis
+                      dataKey="par"
+                      stroke="#64748b"
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
+                      interval={0}
+                      tick={{ fontSize: 11 }}
+                    />
+                    <YAxis
+                      stroke="#64748b"
+                      domain={[-0.2, 0.8]}
+                      tickFormatter={(v) => v.toFixed(1)}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'white',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '8px'
+                      }}
+                      formatter={(value, name) => [value?.toFixed(2), name]}
+                      labelFormatter={(label, payload) => {
+                        if (payload && payload[0]) {
+                          return payload[0].payload.parCompleto;
+                        }
+                        return label;
+                      }}
+                    />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="1EEM"
+                      name="1EEM"
+                      stroke="#3b82f6"
+                      strokeWidth={2}
+                      dot={{ fill: '#3b82f6', r: 4 }}
+                      connectNulls
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="2EEM"
+                      name="2EEM"
+                      stroke="#ef4444"
+                      strokeWidth={2}
+                      dot={{ fill: '#ef4444', r: 4 }}
+                      connectNulls
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="3EEM"
+                      name="3EEM"
+                      stroke="#22c55e"
+                      strokeWidth={2}
+                      dot={{ fill: '#22c55e', r: 4 }}
+                      connectNulls
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="4EEM"
+                      name="4EEM"
+                      stroke="#a855f7"
+                      strokeWidth={2}
+                      dot={{ fill: '#a855f7', r: 4 }}
+                      connectNulls
+                    />
+                  </LineChart>
+                ) : (
+                  <LineChart data={datosEvolucionCorrelacionesAlt} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis
+                      dataKey="nivel"
+                      stroke="#64748b"
+                      tick={{ fontSize: 12 }}
+                    />
+                    <YAxis
+                      stroke="#64748b"
+                      domain={[-0.2, 0.8]}
+                      tickFormatter={(v) => v.toFixed(1)}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'white',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '8px'
+                      }}
+                      formatter={(value, name) => [value?.toFixed(2), name]}
+                    />
+                    <Legend />
+                    {paresCorrelacionesAlt.map((par, idx) => {
+                      const coloresLineas = [
+                        '#3b82f6', '#ef4444', '#22c55e', '#a855f7', '#f59e0b',
+                        '#ec4899', '#06b6d4', '#8b5cf6', '#14b8a6', '#f97316'
+                      ];
+                      return (
+                        <Line
+                          key={par}
+                          type="monotone"
+                          dataKey={par}
+                          name={par}
+                          stroke={coloresLineas[idx % coloresLineas.length]}
+                          strokeWidth={2}
+                          dot={{ fill: coloresLineas[idx % coloresLineas.length], r: 4 }}
+                          connectNulls
+                        />
+                      );
+                    })}
+                  </LineChart>
+                )}
               </ResponsiveContainer>
             </div>
           )}

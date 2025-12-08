@@ -96,6 +96,9 @@ export const translations = {
     veryWeak: 'Muy débil',
     correlationEvolution: 'Evolución de correlaciones por nivel',
     correlationEvolutionDesc: 'Cada línea representa un nivel (1EEM-4EEM), el eje X muestra los pares de asignaturas',
+    correlationToggleSubjects: 'Por Asignaturas',
+    correlationToggleLevels: 'Por Niveles',
+    radarComparison: 'Comparación Radar',
 
     // Evolución
     evolutionTitle: 'Evolución entre trimestres',
@@ -213,6 +216,9 @@ export const translations = {
     veryWeak: 'Molt dèbil',
     correlationEvolution: 'Evolució de correlacions per nivell',
     correlationEvolutionDesc: 'Cada línia representa un nivell (1EEM-4EEM), l\'eix X mostra els parells d\'assignatures',
+    correlationToggleSubjects: 'Per Assignatures',
+    correlationToggleLevels: 'Per Nivells',
+    radarComparison: 'Comparació Radar',
 
     // Evolució
     evolutionTitle: 'Evolució entre trimestres',
