@@ -787,7 +787,7 @@ const DashboardAcademico = () => {
         });
       }
     });
-    const notaMediaLM = calcularMediaPonderada(datosLM);
+    const notaMediaLM = calcularMediaPonderada(datosLM) || 0;
 
     // KPI 3: Nota media de Especialidades
     const datosEsp = [];
@@ -803,7 +803,7 @@ const DashboardAcademico = () => {
         });
       }
     });
-    const notaMediaEsp = calcularMediaPonderada(datosEsp);
+    const notaMediaEsp = calcularMediaPonderada(datosEsp) || 0;
 
     // KPI 4: Contador de asignaturas difíciles/fáciles
     let countDificiles = 0;
@@ -830,7 +830,7 @@ const DashboardAcademico = () => {
         });
       }
     });
-    const aprobadosLM = calcularMediaPonderada(datosAprobadosLM);
+    const aprobadosLM = calcularMediaPonderada(datosAprobadosLM) || 0;
 
     const datosAprobadosEsp = [];
     Object.entries(datos).forEach(([nivel, asigs]) => {
@@ -845,7 +845,7 @@ const DashboardAcademico = () => {
         });
       }
     });
-    const aprobadosEsp = calcularMediaPonderada(datosAprobadosEsp);
+    const aprobadosEsp = calcularMediaPonderada(datosAprobadosEsp) || 0;
 
     // KPI 8-10: % Suspendidos (total, LM, especialidades)
     const suspendidosCentro = global['Todos']?.stats?.suspendidos || 0;
@@ -859,7 +859,7 @@ const DashboardAcademico = () => {
         });
       }
     });
-    const suspendidosLM = calcularMediaPonderada(datosSuspendidosLM);
+    const suspendidosLM = calcularMediaPonderada(datosSuspendidosLM) || 0;
 
     const datosSuspendidosEsp = [];
     Object.entries(datos).forEach(([nivel, asigs]) => {
@@ -874,7 +874,7 @@ const DashboardAcademico = () => {
         });
       }
     });
-    const suspendidosEsp = calcularMediaPonderada(datosSuspendidosEsp);
+    const suspendidosEsp = calcularMediaPonderada(datosSuspendidosEsp) || 0;
 
     const result = {
       notaMediaCentro,
@@ -921,24 +921,24 @@ const DashboardAcademico = () => {
           categoria = 'DIFÍCIL';
           const motivos = [];
           if (stats.suspendidos >= umbrales.suspensosAlerta) {
-            motivos.push(`${stats.suspendidos.toFixed(1)}% de suspensos (umbral: ${umbrales.suspensosAlerta}%)`);
+            motivos.push(`${(stats.suspendidos || 0).toFixed(1)}% de suspensos (umbral: ${umbrales.suspensosAlerta}%)`);
           }
           if (stats.notaMedia < umbrales.mediaCritica) {
-            motivos.push(`nota media de ${stats.notaMedia.toFixed(2)} (umbral crítico: ${umbrales.mediaCritica})`);
+            motivos.push(`nota media de ${(stats.notaMedia || 0).toFixed(2)} (umbral crítico: ${umbrales.mediaCritica})`);
           }
           razon = `Esta asignatura tiene ${motivos.join(' y/o ')}`;
         } else if (resultado === 'FÁCIL') {
           categoria = 'FÁCIL';
           const motivos = [];
           if (stats.aprobados >= umbrales.aprobadosMinimo) {
-            motivos.push(`${stats.aprobados.toFixed(1)}% de aprobados (umbral: ${umbrales.aprobadosMinimo}%)`);
+            motivos.push(`${(stats.aprobados || 0).toFixed(1)}% de aprobados (umbral: ${umbrales.aprobadosMinimo}%)`);
           }
           if (stats.notaMedia >= umbrales.mediaFacil) {
-            motivos.push(`nota media de ${stats.notaMedia.toFixed(2)} (umbral fácil: ${umbrales.mediaFacil})`);
+            motivos.push(`nota media de ${(stats.notaMedia || 0).toFixed(2)} (umbral fácil: ${umbrales.mediaFacil})`);
           }
           razon = `Esta asignatura tiene ${motivos.join(' y/o ')}`;
         } else {
-          razon = `Esta asignatura se encuentra en un rango equilibrado con ${stats.aprobados.toFixed(1)}% de aprobados y una nota media de ${stats.notaMedia.toFixed(2)}`;
+          razon = `Esta asignatura se encuentra en un rango equilibrado con ${(stats.aprobados || 0).toFixed(1)}% de aprobados y una nota media de ${(stats.notaMedia || 0).toFixed(2)}`;
         }
 
         asignaturas.push({
@@ -1297,7 +1297,7 @@ const DashboardAcademico = () => {
                     </svg>
                     <span className="text-xs font-medium text-blue-700">{t('kpiCenterAvg')}</span>
                   </div>
-                  <div className="text-3xl font-bold text-blue-900">{kpisGlobales.notaMediaCentro.toFixed(2)}</div>
+                  <div className="text-3xl font-bold text-blue-900">{(kpisGlobales.notaMediaCentro || 0).toFixed(2)}</div>
                 </div>
 
                 {/* Nota Media LM */}
@@ -1309,7 +1309,7 @@ const DashboardAcademico = () => {
                     <span className="text-xs font-medium text-purple-700">{t('kpiLMAvg')}</span>
                   </div>
                   <div className="text-3xl font-bold text-purple-900">
-                    {kpisGlobales.notaMediaLM !== null ? kpisGlobales.notaMediaLM.toFixed(2) : '—'}
+                    {(kpisGlobales.notaMediaLM || 0).toFixed(2)}
                   </div>
                 </div>
 
@@ -1322,7 +1322,7 @@ const DashboardAcademico = () => {
                     <span className="text-xs font-medium text-amber-700">{t('kpiInstrAvg')}</span>
                   </div>
                   <div className="text-3xl font-bold text-amber-900">
-                    {kpisGlobales.notaMediaEsp !== null ? kpisGlobales.notaMediaEsp.toFixed(2) : '—'}
+                    {(kpisGlobales.notaMediaEsp || 0).toFixed(2)}
                   </div>
                 </div>
 
@@ -1356,7 +1356,7 @@ const DashboardAcademico = () => {
                     </svg>
                     <span className="text-xs font-medium text-teal-700">{t('kpiPassedAvg')}</span>
                   </div>
-                  <div className="text-3xl font-bold text-teal-900">{kpisGlobales.aprobadosCentro.toFixed(1)}%</div>
+                  <div className="text-3xl font-bold text-teal-900">{(kpisGlobales.aprobadosCentro || 0).toFixed(1)}%</div>
                 </div>
 
                 {/* % Aprobados LM */}
@@ -1368,7 +1368,7 @@ const DashboardAcademico = () => {
                     <span className="text-xs font-medium text-cyan-700">{t('kpiPassedLM')}</span>
                   </div>
                   <div className="text-3xl font-bold text-cyan-900">
-                    {kpisGlobales.aprobadosLM !== null ? kpisGlobales.aprobadosLM.toFixed(1) + '%' : '—'}
+                    {(kpisGlobales.aprobadosLM || 0).toFixed(1)}%
                   </div>
                 </div>
 
@@ -1381,7 +1381,7 @@ const DashboardAcademico = () => {
                     <span className="text-xs font-medium text-lime-700">{t('kpiPassedInstr')}</span>
                   </div>
                   <div className="text-3xl font-bold text-lime-900">
-                    {kpisGlobales.aprobadosEsp !== null ? kpisGlobales.aprobadosEsp.toFixed(1) + '%' : '—'}
+                    {(kpisGlobales.aprobadosEsp || 0).toFixed(1)}%
                   </div>
                 </div>
 
@@ -1393,7 +1393,7 @@ const DashboardAcademico = () => {
                     </svg>
                     <span className="text-xs font-medium text-rose-700">{t('kpiFailedAvg')}</span>
                   </div>
-                  <div className="text-3xl font-bold text-rose-900">{kpisGlobales.suspendidosCentro.toFixed(1)}%</div>
+                  <div className="text-3xl font-bold text-rose-900">{(kpisGlobales.suspendidosCentro || 0).toFixed(1)}%</div>
                 </div>
 
                 {/* % Suspendidos LM */}
@@ -1405,7 +1405,7 @@ const DashboardAcademico = () => {
                     <span className="text-xs font-medium text-pink-700">{t('kpiFailedLM')}</span>
                   </div>
                   <div className="text-3xl font-bold text-pink-900">
-                    {kpisGlobales.suspendidosLM !== null ? kpisGlobales.suspendidosLM.toFixed(1) + '%' : '—'}
+                    {(kpisGlobales.suspendidosLM || 0).toFixed(1)}%
                   </div>
                 </div>
 
@@ -1418,7 +1418,7 @@ const DashboardAcademico = () => {
                     <span className="text-xs font-medium text-orange-700">{t('kpiFailedInstr')}</span>
                   </div>
                   <div className="text-3xl font-bold text-orange-900">
-                    {kpisGlobales.suspendidosEsp !== null ? kpisGlobales.suspendidosEsp.toFixed(1) + '%' : '—'}
+                    {(kpisGlobales.suspendidosEsp || 0).toFixed(1)}%
                   </div>
                 </div>
               </div>
@@ -1563,15 +1563,15 @@ const DashboardAcademico = () => {
                 
                 // Análisis de nota media
                 if (stats.notaMedia >= 8) {
-                  partes.push(`Excelente rendimiento con una media de ${stats.notaMedia.toFixed(2)}`);
+                  partes.push(`Excelente rendimiento con una media de ${(stats.notaMedia || 0).toFixed(2)}`);
                 } else if (stats.notaMedia >= 7) {
-                  partes.push(`Buen rendimiento con una media de ${stats.notaMedia.toFixed(2)}`);
+                  partes.push(`Buen rendimiento con una media de ${(stats.notaMedia || 0).toFixed(2)}`);
                 } else if (stats.notaMedia >= 6) {
-                  partes.push(`Rendimiento aceptable con una media de ${stats.notaMedia.toFixed(2)}`);
+                  partes.push(`Rendimiento aceptable con una media de ${(stats.notaMedia || 0).toFixed(2)}`);
                 } else if (stats.notaMedia >= 5) {
-                  partes.push(`Rendimiento ajustado con una media de ${stats.notaMedia.toFixed(2)}`);
+                  partes.push(`Rendimiento ajustado con una media de ${(stats.notaMedia || 0).toFixed(2)}`);
                 } else {
-                  partes.push(`Rendimiento bajo con una media de ${stats.notaMedia.toFixed(2)}`);
+                  partes.push(`Rendimiento bajo con una media de ${(stats.notaMedia || 0).toFixed(2)}`);
                 }
                 
                 // Análisis de aprobados/suspendidos
@@ -1728,7 +1728,7 @@ const DashboardAcademico = () => {
                       border: '1px solid #e2e8f0',
                       borderRadius: '8px'
                     }}
-                    formatter={(value) => value.toFixed(1)}
+                    formatter={(value) => (value || 0).toFixed(1)}
                   />
                   <Legend />
                 </RadarChart>
@@ -2066,7 +2066,7 @@ const DashboardAcademico = () => {
                     <YAxis
                       stroke="#64748b"
                       domain={[-0.2, 0.8]}
-                      tickFormatter={(v) => v.toFixed(1)}
+                      tickFormatter={(v) => (v || 0).toFixed(1)}
                     />
                     <Tooltip
                       contentStyle={{
@@ -2131,7 +2131,7 @@ const DashboardAcademico = () => {
                     <YAxis
                       stroke="#64748b"
                       domain={[-0.2, 0.8]}
-                      tickFormatter={(v) => v.toFixed(1)}
+                      tickFormatter={(v) => (v || 0).toFixed(1)}
                     />
                     <Tooltip
                       contentStyle={{
@@ -2309,15 +2309,15 @@ const DashboardAcademico = () => {
                       </p>
                       <div className="grid grid-cols-3 gap-2 text-xs">
                         <div className="bg-white rounded p-2 text-center">
-                          <div className="font-semibold text-slate-800">{asig.notaMedia.toFixed(2)}</div>
+                          <div className="font-semibold text-slate-800">{(asig.notaMedia || 0).toFixed(2)}</div>
                           <div className="text-slate-500">{t('average')}</div>
                         </div>
                         <div className="bg-white rounded p-2 text-center">
-                          <div className="font-semibold text-green-600">{asig.aprobados.toFixed(1)}%</div>
+                          <div className="font-semibold text-green-600">{(asig.aprobados || 0).toFixed(1)}%</div>
                           <div className="text-slate-500">{t('passed')}</div>
                         </div>
                         <div className="bg-white rounded p-2 text-center">
-                          <div className="font-semibold text-red-600">{asig.suspendidos.toFixed(1)}%</div>
+                          <div className="font-semibold text-red-600">{(asig.suspendidos || 0).toFixed(1)}%</div>
                           <div className="text-slate-500">{t('failed')}</div>
                         </div>
                       </div>
@@ -2355,15 +2355,15 @@ const DashboardAcademico = () => {
                       </p>
                       <div className="grid grid-cols-3 gap-2 text-xs">
                         <div className="bg-white rounded p-2 text-center">
-                          <div className="font-semibold text-slate-800">{asig.notaMedia.toFixed(2)}</div>
+                          <div className="font-semibold text-slate-800">{(asig.notaMedia || 0).toFixed(2)}</div>
                           <div className="text-slate-500">{t('average')}</div>
                         </div>
                         <div className="bg-white rounded p-2 text-center">
-                          <div className="font-semibold text-green-600">{asig.aprobados.toFixed(1)}%</div>
+                          <div className="font-semibold text-green-600">{(asig.aprobados || 0).toFixed(1)}%</div>
                           <div className="text-slate-500">{t('passed')}</div>
                         </div>
                         <div className="bg-white rounded p-2 text-center">
-                          <div className="font-semibold text-red-600">{asig.suspendidos.toFixed(1)}%</div>
+                          <div className="font-semibold text-red-600">{(asig.suspendidos || 0).toFixed(1)}%</div>
                           <div className="text-slate-500">{t('failed')}</div>
                         </div>
                       </div>
@@ -2401,15 +2401,15 @@ const DashboardAcademico = () => {
                       </p>
                       <div className="grid grid-cols-3 gap-2 text-xs">
                         <div className="bg-white rounded p-2 text-center">
-                          <div className="font-semibold text-slate-800">{asig.notaMedia.toFixed(2)}</div>
+                          <div className="font-semibold text-slate-800">{(asig.notaMedia || 0).toFixed(2)}</div>
                           <div className="text-slate-500">{t('average')}</div>
                         </div>
                         <div className="bg-white rounded p-2 text-center">
-                          <div className="font-semibold text-green-600">{asig.aprobados.toFixed(1)}%</div>
+                          <div className="font-semibold text-green-600">{(asig.aprobados || 0).toFixed(1)}%</div>
                           <div className="text-slate-500">{t('passed')}</div>
                         </div>
                         <div className="bg-white rounded p-2 text-center">
-                          <div className="font-semibold text-red-600">{asig.suspendidos.toFixed(1)}%</div>
+                          <div className="font-semibold text-red-600">{(asig.suspendidos || 0).toFixed(1)}%</div>
                           <div className="text-slate-500">{t('failed')}</div>
                         </div>
                       </div>
