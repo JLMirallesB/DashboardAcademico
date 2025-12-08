@@ -37,7 +37,7 @@ npm run preview
 
 El proyecto está configurado para desplegarse automáticamente en GitHub Pages mediante GitHub Actions cuando se hace push a la rama `main`.
 
-URL de la aplicación: https://[tu-usuario].github.io/Dashboard_Academico/
+URL de la aplicación: https://jlmirallesb.github.io/DashboardAcademico/
 
 ## Autor
 
