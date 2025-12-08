@@ -1,12 +1,7 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { LineChart, Line, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
-import { translations } from './translations.js';
 
 const DashboardAcademico = () => {
-  // Estado de idioma
-  const [idioma, setIdioma] = useState('es');
-  const t = (key) => translations[idioma][key];
-
   // Estado principal
   const [datosCompletos, setDatosCompletos] = useState({});
   const [correlacionesCompletas, setCorrelacionesCompletas] = useState({});
@@ -599,166 +594,14 @@ const DashboardAcademico = () => {
 
   // Interpretar nivel de correlación
   const interpretarCorrelacion = (valor) => {
-    if (valor < 0) return { nivel: t('inverse'), color: '#1a1a2e', textColor: 'white' };
+    if (valor < 0) return { nivel: 'Inversa', color: '#1a1a2e', textColor: 'white' };
     const abs = Math.abs(valor);
-    if (abs >= 0.8) return { nivel: t('veryStrong'), color: '#065f46', textColor: 'white' };
-    if (abs >= 0.6) return { nivel: t('strong'), color: '#059669', textColor: 'white' };
-    if (abs >= 0.4) return { nivel: t('moderate'), color: '#fbbf24', textColor: 'black' };
-    if (abs >= 0.2) return { nivel: t('weak'), color: '#f97316', textColor: 'white' };
-    return { nivel: t('veryWeak'), color: '#ef4444', textColor: 'white' };
+    if (abs >= 0.8) return { nivel: 'Muy fuerte', color: '#065f46', textColor: 'white' };
+    if (abs >= 0.6) return { nivel: 'Fuerte', color: '#059669', textColor: 'white' };
+    if (abs >= 0.4) return { nivel: 'Moderada', color: '#fbbf24', textColor: 'black' };
+    if (abs >= 0.2) return { nivel: 'Débil', color: '#f97316', textColor: 'white' };
+    return { nivel: 'Muy débil', color: '#ef4444', textColor: 'white' };
   };
-
-  // Calcular KPIs globales del centro
-  const kpisGlobales = useMemo(() => {
-    if (!trimestreSeleccionado || !datosCompletos[trimestreSeleccionado]) return null;
-
-    const datos = datosCompletos[trimestreSeleccionado];
-    const global = datos['GLOBAL'];
-    if (!global || !global['Todos']) return null;
-
-    // Lista de asignaturas instrumentales (todas excepto LM, Coro, Conjunto, Todos)
-    const asignaturasInstrumentales = new Set();
-    const asignaturasLM = new Set();
-
-    // Recopilar todas las asignaturas de todos los niveles
-    Object.entries(datos).forEach(([nivel, asigs]) => {
-      if (nivel === 'GLOBAL') return;
-      Object.keys(asigs).forEach(asig => {
-        if (asig === 'Lenguaje Musical') {
-          asignaturasLM.add(`${nivel}-${asig}`);
-        } else if (!['Coro', 'Conjunto', 'Todos'].includes(asig)) {
-          asignaturasInstrumentales.add(`${nivel}-${asig}`);
-        }
-      });
-    });
-
-    // Función helper para calcular media ponderada
-    const calcularMediaPonderada = (lista) => {
-      let sumaPonderada = 0;
-      let sumaPesos = 0;
-      lista.forEach(({ valor, peso }) => {
-        if (valor !== null && valor !== undefined && peso > 0) {
-          sumaPonderada += valor * peso;
-          sumaPesos += peso;
-        }
-      });
-      return sumaPesos > 0 ? sumaPonderada / sumaPesos : null;
-    };
-
-    // KPI 1: Nota media del centro (GLOBAL/Todos)
-    const notaMediaCentro = global['Todos'].stats.notaMedia;
-
-    // KPI 2: Nota media de Lenguaje Musical
-    const datosLM = [];
-    Object.entries(datos).forEach(([nivel, asigs]) => {
-      if (nivel !== 'GLOBAL' && asigs['Lenguaje Musical']) {
-        datosLM.push({
-          valor: asigs['Lenguaje Musical'].stats.notaMedia,
-          peso: asigs['Lenguaje Musical'].stats.registros
-        });
-      }
-    });
-    const notaMediaLM = calcularMediaPonderada(datosLM);
-
-    // KPI 3: Nota media de Especialidades
-    const datosEsp = [];
-    Object.entries(datos).forEach(([nivel, asigs]) => {
-      if (nivel !== 'GLOBAL') {
-        Object.entries(asigs).forEach(([asig, data]) => {
-          if (!['Lenguaje Musical', 'Coro', 'Conjunto', 'Todos'].includes(asig)) {
-            datosEsp.push({
-              valor: data.stats.notaMedia,
-              peso: data.stats.registros
-            });
-          }
-        });
-      }
-    });
-    const notaMediaEsp = calcularMediaPonderada(datosEsp);
-
-    // KPI 4: Contador de asignaturas difíciles/fáciles
-    let countDificiles = 0;
-    let countFaciles = 0;
-    Object.entries(datos).forEach(([nivel, asigs]) => {
-      Object.entries(asigs).forEach(([asig, data]) => {
-        const resultado = calcularResultado(data.stats);
-        if (resultado === 'DIFÍCIL') countDificiles++;
-        if (resultado === 'FÁCIL') countFaciles++;
-      });
-    });
-
-    // KPI 5-7: % Aprobados (total, LM, especialidades)
-    const aprobadosCentro = global['Todos'].stats.aprobados;
-
-    const datosAprobadosLM = [];
-    Object.entries(datos).forEach(([nivel, asigs]) => {
-      if (nivel !== 'GLOBAL' && asigs['Lenguaje Musical']) {
-        datosAprobadosLM.push({
-          valor: asigs['Lenguaje Musical'].stats.aprobados,
-          peso: asigs['Lenguaje Musical'].stats.registros
-        });
-      }
-    });
-    const aprobadosLM = calcularMediaPonderada(datosAprobadosLM);
-
-    const datosAprobadosEsp = [];
-    Object.entries(datos).forEach(([nivel, asigs]) => {
-      if (nivel !== 'GLOBAL') {
-        Object.entries(asigs).forEach(([asig, data]) => {
-          if (!['Lenguaje Musical', 'Coro', 'Conjunto', 'Todos'].includes(asig)) {
-            datosAprobadosEsp.push({
-              valor: data.stats.aprobados,
-              peso: data.stats.registros
-            });
-          }
-        });
-      }
-    });
-    const aprobadosEsp = calcularMediaPonderada(datosAprobadosEsp);
-
-    // KPI 8-10: % Suspendidos (total, LM, especialidades)
-    const suspendidosCentro = global['Todos'].stats.suspendidos;
-
-    const datosSuspendidosLM = [];
-    Object.entries(datos).forEach(([nivel, asigs]) => {
-      if (nivel !== 'GLOBAL' && asigs['Lenguaje Musical']) {
-        datosSuspendidosLM.push({
-          valor: asigs['Lenguaje Musical'].stats.suspendidos,
-          peso: asigs['Lenguaje Musical'].stats.registros
-        });
-      }
-    });
-    const suspendidosLM = calcularMediaPonderada(datosSuspendidosLM);
-
-    const datosSuspendidosEsp = [];
-    Object.entries(datos).forEach(([nivel, asigs]) => {
-      if (nivel !== 'GLOBAL') {
-        Object.entries(asigs).forEach(([asig, data]) => {
-          if (!['Lenguaje Musical', 'Coro', 'Conjunto', 'Todos'].includes(asig)) {
-            datosSuspendidosEsp.push({
-              valor: data.stats.suspendidos,
-              peso: data.stats.registros
-            });
-          }
-        });
-      }
-    });
-    const suspendidosEsp = calcularMediaPonderada(datosSuspendidosEsp);
-
-    return {
-      notaMediaCentro,
-      notaMediaLM,
-      notaMediaEsp,
-      countDificiles,
-      countFaciles,
-      aprobadosCentro,
-      aprobadosLM,
-      aprobadosEsp,
-      suspendidosCentro,
-      suspendidosLM,
-      suspendidosEsp
-    };
-  }, [trimestreSeleccionado, datosCompletos, calcularResultado]);
 
   // Si no hay datos, mostrar pantalla de carga
   if (trimestresDisponibles.length === 0) {
@@ -769,16 +612,16 @@ const DashboardAcademico = () => {
           * { font-family: 'DM Sans', sans-serif; }
           h1, h2, h3 { font-family: 'DM Serif Display', serif; }
         `}</style>
-
+        
         <div className="max-w-xl w-full">
           <div className="text-center mb-12">
-            <h1 className="text-5xl text-slate-800 mb-4">{t('appTitle')}</h1>
-            <p className="text-slate-500 text-lg">{t('appSubtitle')}</p>
+            <h1 className="text-5xl text-slate-800 mb-4">Dashboard Académico</h1>
+            <p className="text-slate-500 text-lg">Análisis de rendimiento por curso, asignatura y trimestre</p>
           </div>
-
+          
           <div className="bg-white rounded-2xl shadow-xl p-8 border border-slate-200">
-            <h2 className="text-2xl text-slate-700 mb-6 text-center">{t('loadData')}</h2>
-
+            <h2 className="text-2xl text-slate-700 mb-6 text-center">Cargar datos</h2>
+            
             <div className="space-y-4">
               <button
                 onClick={() => fileInputRef.current?.click()}
@@ -787,9 +630,9 @@ const DashboardAcademico = () => {
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                {t('loadCSV')}
+                Cargar CSV de trimestre
               </button>
-
+              
               <button
                 onClick={() => jsonInputRef.current?.click()}
                 className="w-full py-4 px-6 bg-white text-slate-700 rounded-xl border-2 border-slate-300 hover:border-slate-400 transition-all font-medium text-lg flex items-center justify-center gap-3"
@@ -797,10 +640,10 @@ const DashboardAcademico = () => {
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                 </svg>
-                {t('importJSON')}
+                Importar JSON guardado
               </button>
             </div>
-
+            
             <input
               ref={fileInputRef}
               type="file"
@@ -815,17 +658,18 @@ const DashboardAcademico = () => {
               onChange={handleImportarJSON}
               className="hidden"
             />
-
+            
             <div className="mt-8 p-4 bg-slate-50 rounded-xl">
               <p className="text-sm text-slate-600 text-center">
-                {t('csvInstructions')}
+                Exporta los datos desde la hoja EXPORTAR de tu Excel en formato CSV, 
+                o importa un archivo JSON previamente guardado.
               </p>
             </div>
           </div>
-
+          
           {/* Footer */}
           <p className="text-center text-sm text-slate-400 mt-8">
-            {t('designedBy')} <a href="https://jlmirall.es" target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:text-slate-800 underline">José Luis Miralles Bono</a> {t('withHelpOf')}
+            App diseñada por <a href="https://jlmirall.es" target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:text-slate-800 underline">José Luis Miralles Bono</a> con ayuda de Claude
           </p>
         </div>
       </div>
@@ -850,22 +694,23 @@ const DashboardAcademico = () => {
       {mostrarModalConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
-            <h3 className="text-2xl text-slate-800 mb-4">{t('trimesterAlreadyLoaded')}</h3>
+            <h3 className="text-2xl text-slate-800 mb-4">Trimestre ya cargado</h3>
             <p className="text-slate-600 mb-6">
-              {t('replaceConfirm').replace('{trimester}', trimestrePendiente)}
+              El trimestre <span className="font-bold">{trimestrePendiente}</span> ya está cargado. 
+              ¿Quieres reemplazar los datos existentes?
             </p>
             <div className="flex gap-3">
               <button
                 onClick={cancelarReemplazo}
                 className="flex-1 py-3 px-4 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-all font-medium"
               >
-                {t('cancel')}
+                Cancelar
               </button>
               <button
                 onClick={confirmarReemplazo}
                 className="flex-1 py-3 px-4 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all font-medium"
               >
-                {t('replace')}
+                Reemplazar
               </button>
             </div>
           </div>
@@ -875,35 +720,14 @@ const DashboardAcademico = () => {
       {/* Header */}
       <div className="max-w-7xl mx-auto mb-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div>
-              <h1 className="text-5xl text-slate-800 mb-2">{t('appTitle')}</h1>
-              <p className="text-xl text-slate-600 font-medium">
-                {metadata[trimestresDisponibles[0]]?.Centro || 'EEM'} ·
-                Curso {metadata[trimestresDisponibles[0]]?.CursoAcademico || ''}
-              </p>
-            </div>
-            {/* Selector de idioma */}
-            <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
-              <button
-                onClick={() => setIdioma('es')}
-                className={`px-2 py-1 text-xs font-medium rounded transition-all ${
-                  idioma === 'es' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                ES
-              </button>
-              <button
-                onClick={() => setIdioma('va')}
-                className={`px-2 py-1 text-xs font-medium rounded transition-all ${
-                  idioma === 'va' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                VA
-              </button>
-            </div>
+          <div>
+            <h1 className="text-5xl text-slate-800 mb-2">Dashboard Académico</h1>
+            <p className="text-xl text-slate-600 font-medium">
+              {metadata[trimestresDisponibles[0]]?.Centro || 'EEM'} · 
+              Curso {metadata[trimestresDisponibles[0]]?.CursoAcademico || ''}
+            </p>
           </div>
-
+          
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => fileInputRef.current?.click()}
@@ -912,23 +736,23 @@ const DashboardAcademico = () => {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              {t('addTrimester')}
+              Añadir trimestre
             </button>
             <button
               onClick={() => jsonInputRef.current?.click()}
               className="py-2 px-4 bg-white text-slate-700 rounded-lg border border-slate-300 hover:bg-slate-50 transition-all text-sm font-medium"
             >
-              {t('importJSON')}
+              Importar JSON
             </button>
             <button
               onClick={exportarJSON}
               className="py-2 px-4 bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition-all text-sm font-medium"
             >
-              {t('exportJSON')}
+              Exportar JSON
             </button>
           </div>
         </div>
-
+        
         <input ref={fileInputRef} type="file" accept=".csv" onChange={handleCargarCSV} className="hidden" />
         <input ref={jsonInputRef} type="file" accept=".json" onChange={handleImportarJSON} className="hidden" />
       </div>
@@ -936,7 +760,7 @@ const DashboardAcademico = () => {
       {/* Trimestres cargados */}
       <div className="max-w-7xl mx-auto mb-6">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm text-slate-500 font-medium">{t('trimestersLoadedLabel')}</span>
+          <span className="text-sm text-slate-500 font-medium">Trimestres cargados:</span>
           {trimestresDisponibles.map(trim => (
             <div
               key={trim}
@@ -966,9 +790,9 @@ const DashboardAcademico = () => {
       <div className="max-w-7xl mx-auto mb-6">
         <div className="flex gap-1 p-1 bg-white rounded-xl border border-slate-200 w-fit">
           {[
-            { id: 'estadisticas', label: t('statistics') },
-            { id: 'correlaciones', label: t('correlations') },
-            { id: 'evolucion', label: t('evolution') }
+            { id: 'estadisticas', label: 'Estadísticas' },
+            { id: 'correlaciones', label: 'Correlaciones' },
+            { id: 'evolucion', label: 'Evolución' }
           ].map(vista => (
             <button
               key={vista.id}
@@ -994,13 +818,13 @@ const DashboardAcademico = () => {
           <svg className={`w-4 h-4 transition-transform ${mostrarPanelUmbrales ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
-          {t('configureThresholds')}
+          Configurar umbrales
         </button>
-
+        
         {mostrarPanelUmbrales && (
           <div className="mt-4 p-6 bg-white rounded-xl border border-slate-200">
             <div className="flex items-center justify-between mb-4">
-              <span className="text-sm font-medium text-slate-700">{t('thresholdConfig')}</span>
+              <span className="text-sm font-medium text-slate-700">Configuración de umbrales</span>
               <button
                 onClick={() => setUmbrales({
                   suspensosAlerta: 30,
@@ -1010,12 +834,12 @@ const DashboardAcademico = () => {
                 })}
                 className="text-xs py-1 px-3 bg-slate-100 text-slate-600 rounded hover:bg-slate-200 transition-all"
               >
-                {t('restoreDefaults')}
+                Restaurar valores por defecto
               </button>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">{t('failedAlert')}</label>
+                <label className="block text-xs font-medium text-slate-500 mb-1">% Suspensos alerta</label>
                 <input
                   type="number"
                   value={umbrales.suspensosAlerta}
@@ -1024,7 +848,7 @@ const DashboardAcademico = () => {
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">{t('criticalAvg')}</label>
+                <label className="block text-xs font-medium text-slate-500 mb-1">Media crítica</label>
                 <input
                   type="number"
                   step="0.1"
@@ -1034,7 +858,7 @@ const DashboardAcademico = () => {
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">{t('easyAvg')}</label>
+                <label className="block text-xs font-medium text-slate-500 mb-1">Media fácil</label>
                 <input
                   type="number"
                   step="0.1"
@@ -1044,7 +868,7 @@ const DashboardAcademico = () => {
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">{t('minPassed')}</label>
+                <label className="block text-xs font-medium text-slate-500 mb-1">% Aprobados mínimo</label>
                 <input
                   type="number"
                   value={umbrales.aprobadosMinimo}
@@ -1054,11 +878,11 @@ const DashboardAcademico = () => {
               </div>
             </div>
             <div className="mt-4 text-xs text-slate-500">
-              <span className="inline-block px-2 py-0.5 bg-red-100 text-red-700 rounded mr-2">{t('difficult')}</span>
-              {t('failed')} ≥ {umbrales.suspensosAlerta}% o {t('average')} &lt; {umbrales.mediaCritica}
+              <span className="inline-block px-2 py-0.5 bg-red-100 text-red-700 rounded mr-2">DIFÍCIL</span>
+              Suspensos ≥ {umbrales.suspensosAlerta}% o Media &lt; {umbrales.mediaCritica}
               <span className="mx-4">|</span>
-              <span className="inline-block px-2 py-0.5 bg-green-100 text-green-700 rounded mr-2">{t('easy')}</span>
-              {t('passed')} ≥ {umbrales.aprobadosMinimo}% o {t('average')} ≥ {umbrales.mediaFacil}
+              <span className="inline-block px-2 py-0.5 bg-green-100 text-green-700 rounded mr-2">FÁCIL</span>
+              Aprobados ≥ {umbrales.aprobadosMinimo}% o Media ≥ {umbrales.mediaFacil}
             </div>
           </div>
         )}
@@ -1067,157 +891,16 @@ const DashboardAcademico = () => {
       {/* VISTA: ESTADÍSTICAS */}
       {vistaActual === 'estadisticas' && (
         <div className="max-w-7xl mx-auto">
-          {/* Panel de KPIs Globales */}
-          {kpisGlobales && (
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-slate-800 mb-4">{t('kpis')}</h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-                {/* Nota Media del Centro */}
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span className="text-xs font-medium text-blue-700">{t('kpiCenterAvg')}</span>
-                  </div>
-                  <div className="text-3xl font-bold text-blue-900">{kpisGlobales.notaMediaCentro.toFixed(2)}</div>
-                </div>
-
-                {/* Nota Media LM */}
-                <div className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                    </svg>
-                    <span className="text-xs font-medium text-purple-700">{t('kpiLMAvg')}</span>
-                  </div>
-                  <div className="text-3xl font-bold text-purple-900">
-                    {kpisGlobales.notaMediaLM !== null ? kpisGlobales.notaMediaLM.toFixed(2) : '—'}
-                  </div>
-                </div>
-
-                {/* Nota Media Especialidades */}
-                <div className="bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-200 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                    </svg>
-                    <span className="text-xs font-medium text-amber-700">{t('kpiInstrAvg')}</span>
-                  </div>
-                  <div className="text-3xl font-bold text-amber-900">
-                    {kpisGlobales.notaMediaEsp !== null ? kpisGlobales.notaMediaEsp.toFixed(2) : '—'}
-                  </div>
-                </div>
-
-                {/* Asignaturas Difíciles */}
-                <div className="bg-gradient-to-br from-red-50 to-red-100 border border-red-200 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                    <span className="text-xs font-medium text-red-700">{t('kpiDifficult')}</span>
-                  </div>
-                  <div className="text-3xl font-bold text-red-900">{kpisGlobales.countDificiles}</div>
-                </div>
-
-                {/* Asignaturas Fáciles */}
-                <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
-                    </svg>
-                    <span className="text-xs font-medium text-green-700">{t('kpiEasy')}</span>
-                  </div>
-                  <div className="text-3xl font-bold text-green-900">{kpisGlobales.countFaciles}</div>
-                </div>
-
-                {/* % Aprobados Total */}
-                <div className="bg-gradient-to-br from-teal-50 to-teal-100 border border-teal-200 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span className="text-xs font-medium text-teal-700">{t('kpiPassedAvg')}</span>
-                  </div>
-                  <div className="text-3xl font-bold text-teal-900">{kpisGlobales.aprobadosCentro.toFixed(1)}%</div>
-                </div>
-
-                {/* % Aprobados LM */}
-                <div className="bg-gradient-to-br from-cyan-50 to-cyan-100 border border-cyan-200 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <svg className="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                    </svg>
-                    <span className="text-xs font-medium text-cyan-700">{t('kpiPassedLM')}</span>
-                  </div>
-                  <div className="text-3xl font-bold text-cyan-900">
-                    {kpisGlobales.aprobadosLM !== null ? kpisGlobales.aprobadosLM.toFixed(1) + '%' : '—'}
-                  </div>
-                </div>
-
-                {/* % Aprobados Especialidades */}
-                <div className="bg-gradient-to-br from-lime-50 to-lime-100 border border-lime-200 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <svg className="w-5 h-5 text-lime-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                    </svg>
-                    <span className="text-xs font-medium text-lime-700">{t('kpiPassedInstr')}</span>
-                  </div>
-                  <div className="text-3xl font-bold text-lime-900">
-                    {kpisGlobales.aprobadosEsp !== null ? kpisGlobales.aprobadosEsp.toFixed(1) + '%' : '—'}
-                  </div>
-                </div>
-
-                {/* % Suspendidos Total */}
-                <div className="bg-gradient-to-br from-rose-50 to-rose-100 border border-rose-200 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <svg className="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                    <span className="text-xs font-medium text-rose-700">{t('kpiFailedAvg')}</span>
-                  </div>
-                  <div className="text-3xl font-bold text-rose-900">{kpisGlobales.suspendidosCentro.toFixed(1)}%</div>
-                </div>
-
-                {/* % Suspendidos LM */}
-                <div className="bg-gradient-to-br from-pink-50 to-pink-100 border border-pink-200 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <svg className="w-5 h-5 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                    </svg>
-                    <span className="text-xs font-medium text-pink-700">{t('kpiFailedLM')}</span>
-                  </div>
-                  <div className="text-3xl font-bold text-pink-900">
-                    {kpisGlobales.suspendidosLM !== null ? kpisGlobales.suspendidosLM.toFixed(1) + '%' : '—'}
-                  </div>
-                </div>
-
-                {/* % Suspendidos Especialidades */}
-                <div className="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                    </svg>
-                    <span className="text-xs font-medium text-orange-700">{t('kpiFailedInstr')}</span>
-                  </div>
-                  <div className="text-3xl font-bold text-orange-900">
-                    {kpisGlobales.suspendidosEsp !== null ? kpisGlobales.suspendidosEsp.toFixed(1) + '%' : '—'}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Selectores */}
           <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-slate-800">{t('selections')}</h3>
+              <h3 className="text-lg font-semibold text-slate-800">Selecciones para comparar</h3>
               {!compararNiveles && selecciones.length < 5 && (
                 <button
                   onClick={agregarSeleccion}
                   className="py-2 px-4 bg-slate-800 text-white text-sm rounded-lg hover:bg-slate-700 transition-all"
                 >
-                  + {t('add')}
+                  + Añadir
                 </button>
               )}
             </div>
@@ -1228,7 +911,7 @@ const DashboardAcademico = () => {
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-medium text-slate-700">
-                      {t('compareLevels')}
+                      Comparar misma asignatura en todos los niveles (1EEM - 4EEM)
                     </span>
                     <button
                       onClick={() => compararNiveles ? desactivarCompararNiveles() : activarCompararNiveles()}
@@ -1244,7 +927,7 @@ const DashboardAcademico = () => {
                 </div>
                 {compararNiveles && (
                   <div>
-                    <label className="block text-xs font-medium text-slate-500 mb-2 uppercase">{t('subjectToCompare')}</label>
+                    <label className="block text-xs font-medium text-slate-500 mb-2 uppercase">Asignatura a comparar</label>
                     <select
                       value={asignaturaComparada}
                       onChange={(e) => cambiarAsignaturaComparada(e.target.value)}
@@ -1270,7 +953,7 @@ const DashboardAcademico = () => {
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full" style={{ backgroundColor: colores[idx].line }} />
                       <span className="text-sm font-semibold" style={{ color: colores[idx].line }}>
-                        {t('selection')} {idx + 1}
+                        Selección {idx + 1}
                       </span>
                     </div>
                     {!compararNiveles && selecciones.length > 1 && (
@@ -1282,10 +965,10 @@ const DashboardAcademico = () => {
                       </button>
                     )}
                   </div>
-
+                  
                   <div className="grid grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-xs font-medium text-slate-500 mb-1">{t('trimester')}</label>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Trimestre</label>
                       <select
                         value={sel.trimestre}
                         onChange={(e) => actualizarSeleccion(sel.id, 'trimestre', e.target.value)}
@@ -1298,7 +981,7 @@ const DashboardAcademico = () => {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-slate-500 mb-1">{t('level')}</label>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Nivel</label>
                       <select
                         value={sel.nivel}
                         onChange={(e) => actualizarSeleccion(sel.id, 'nivel', e.target.value)}
@@ -1306,12 +989,12 @@ const DashboardAcademico = () => {
                         className="w-full py-2 px-3 bg-white border border-slate-300 rounded-lg text-sm disabled:bg-slate-100 disabled:cursor-not-allowed"
                       >
                         {Object.keys(datosCompletos[sel.trimestre] || {}).map(n => (
-                          <option key={n} value={n}>{n === 'GLOBAL' ? `📊 ${t('global')}` : n}</option>
+                          <option key={n} value={n}>{n === 'GLOBAL' ? '📊 GLOBAL' : n}</option>
                         ))}
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-slate-500 mb-1">{t('subject')}</label>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Asignatura</label>
                       <select
                         value={sel.asignatura}
                         onChange={(e) => actualizarSeleccion(sel.id, 'asignatura', e.target.value)}
@@ -1405,21 +1088,21 @@ const DashboardAcademico = () => {
                   
                   <div className="grid grid-cols-4 md:grid-cols-8 gap-2 mb-3">
                     {[
-                      { label: 'N', title: t('records'), key: 'registros', format: (v) => v },
-                      { label: t('average'), title: t('average'), key: 'notaMedia', format: (v) => v?.toFixed(2) },
-                      { label: 'σ', title: t('deviation'), key: 'desviacion', format: (v) => v?.toFixed(2) },
-                      { label: t('mode'), title: t('mode'), key: 'moda', format: (v) => v ?? '—' },
-                      { label: t('passed'), title: `% ${t('passed')}`, key: 'aprobados', format: (v) => `${v?.toFixed(0)}%` },
-                      { label: t('failed'), title: `% ${t('failed')}`, key: 'suspendidos', format: (v) => `${v?.toFixed(0)}%` },
-                      { label: `${t('mode')} ${t('passed')}`, title: t('passedMode'), key: 'modaAprobados', format: (v) => v ?? '—' },
-                      { label: `${t('mode')} ${t('failed')}`, title: t('failedMode'), key: 'modaSuspendidos', format: (v) => v ?? '—' }
+                      { label: 'N', title: 'Registros', key: 'registros', format: (v) => v },
+                      { label: 'Media', title: 'Nota Media', key: 'notaMedia', format: (v) => v?.toFixed(2) },
+                      { label: 'σ', title: 'Desviación', key: 'desviacion', format: (v) => v?.toFixed(2) },
+                      { label: 'Moda', title: 'Moda', key: 'moda', format: (v) => v ?? '—' },
+                      { label: 'Apr.', title: '% Aprobados', key: 'aprobados', format: (v) => `${v?.toFixed(0)}%` },
+                      { label: 'Sus.', title: '% Suspendidos', key: 'suspendidos', format: (v) => `${v?.toFixed(0)}%` },
+                      { label: 'M.Apr', title: 'Moda Aprobados', key: 'modaAprobados', format: (v) => v ?? '—' },
+                      { label: 'M.Sus', title: 'Moda Suspendidos', key: 'modaSuspendidos', format: (v) => v ?? '—' }
                     ].map(({ label, title, key, format }) => {
                       const valor = datos.stats[key];
                       let diff = null;
                       if (idx > 0 && datosBase && ['notaMedia', 'aprobados', 'suspendidos'].includes(key)) {
                         diff = valor - datosBase.stats[key];
                       }
-
+                      
                       return (
                         <div key={key} className="bg-slate-50 rounded p-2 text-center" title={title}>
                           <div className="text-xs text-slate-500">{label}</div>
@@ -1433,66 +1116,10 @@ const DashboardAcademico = () => {
                       );
                     })}
                   </div>
-
+                  
                   {/* Descripción textual */}
-                  <div className="text-xs text-slate-600 bg-slate-50 rounded p-2 italic mb-3">
+                  <div className="text-xs text-slate-600 bg-slate-50 rounded p-2 italic">
                     {generarDescripcion()}
-                  </div>
-
-                  {/* Gráfico Radar */}
-                  <div className="bg-slate-50 rounded-lg p-3">
-                    <h5 className="text-xs font-semibold text-slate-700 mb-2 text-center">{t('radarChart')}</h5>
-                    <ResponsiveContainer width="100%" height={220}>
-                      <RadarChart data={[
-                        {
-                          metric: t('average'),
-                          value: (datos.stats.notaMedia / 10) * 100, // Normalizar a 0-100
-                          fullMark: 100
-                        },
-                        {
-                          metric: `% ${t('passed')}`,
-                          value: datos.stats.aprobados,
-                          fullMark: 100
-                        },
-                        {
-                          metric: `% ${t('excellence')}`,
-                          value: ((datos.distribucion[9] || 0) + (datos.distribucion[10] || 0)) / datos.stats.registros * 100,
-                          fullMark: 100
-                        },
-                        {
-                          metric: t('mode'),
-                          value: datos.stats.moda ? (datos.stats.moda / 10) * 100 : 0,
-                          fullMark: 100
-                        }
-                      ]}>
-                        <PolarGrid stroke="#cbd5e1" />
-                        <PolarAngleAxis
-                          dataKey="metric"
-                          tick={{ fill: '#64748b', fontSize: 11 }}
-                        />
-                        <PolarRadiusAxis
-                          angle={90}
-                          domain={[0, 100]}
-                          tick={{ fill: '#94a3b8', fontSize: 10 }}
-                        />
-                        <Radar
-                          name={sel.asignatura}
-                          dataKey="value"
-                          stroke={colores[idx].line}
-                          fill={colores[idx].line}
-                          fillOpacity={0.3}
-                          strokeWidth={2}
-                        />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: 'white',
-                            border: '1px solid #e2e8f0',
-                            borderRadius: '8px'
-                          }}
-                          formatter={(value) => value.toFixed(1)}
-                        />
-                      </RadarChart>
-                    </ResponsiveContainer>
                   </div>
                 </div>
               );
@@ -1501,7 +1128,7 @@ const DashboardAcademico = () => {
 
           {/* Gráfico de distribución */}
           <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
-            <h3 className="text-lg font-semibold text-slate-800 mb-4">{t('gradeDistribution')}</h3>
+            <h3 className="text-lg font-semibold text-slate-800 mb-4">Distribución de Notas</h3>
             <ResponsiveContainer width="100%" height={400}>
               <LineChart data={datosDistribucion}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -1534,7 +1161,7 @@ const DashboardAcademico = () => {
 
           {/* Tabla de distribución */}
           <div className="bg-white rounded-xl border border-slate-200 p-6">
-            <h3 className="text-lg font-semibold text-slate-800 mb-4">{t('distributionTable')}</h3>
+            <h3 className="text-lg font-semibold text-slate-800 mb-4">Tabla de Distribución</h3>
             <div className="overflow-x-auto">
               {(() => {
                 // Calcular totales y máximos para el mapa de calor
@@ -1593,7 +1220,7 @@ const DashboardAcademico = () => {
                     <table className="w-full mb-8">
                       <thead>
                         <tr className="border-b-2 border-slate-200">
-                          <th className="py-3 px-3 text-left text-sm font-semibold text-slate-600">{t('grade')}</th>
+                          <th className="py-3 px-3 text-left text-sm font-semibold text-slate-600">Nota</th>
                           {selecciones.map((sel, idx) => (
                             <th key={sel.id} className="py-3 px-2 text-center text-xs font-semibold text-slate-700">
                               <div>{sel.trimestre} · {sel.nivel}</div>
@@ -1612,8 +1239,8 @@ const DashboardAcademico = () => {
                               const total = totales[idx];
                               const porcentaje = total > 0 ? (valor / total * 100).toFixed(1) : '0.0';
                               return (
-                                <td
-                                  key={sel.id}
+                                <td 
+                                  key={sel.id} 
                                   className="py-2 px-2 text-center"
                                   style={{ backgroundColor: getHeatmapColor(valor, maxValor) }}
                                 >
@@ -1625,7 +1252,7 @@ const DashboardAcademico = () => {
                           </tr>
                         ))}
                         <tr className="border-t-2 border-slate-300 font-bold bg-slate-50">
-                          <td className="py-3 px-3 text-slate-700">{t('total')}</td>
+                          <td className="py-3 px-3 text-slate-700">TOTAL</td>
                           {selecciones.map((sel, idx) => (
                             <td key={sel.id} className="py-3 px-2 text-center text-slate-800">
                               {totales[idx]}
@@ -1634,14 +1261,14 @@ const DashboardAcademico = () => {
                         </tr>
                       </tbody>
                     </table>
-
+                    
                     {/* Tabla de agrupaciones */}
-                    <h4 className="text-md font-semibold text-slate-700 mb-3">{t('groupByGrade')}</h4>
+                    <h4 className="text-md font-semibold text-slate-700 mb-3">Agrupación por calificaciones</h4>
                     <table className="w-full">
                       <thead>
                         <tr className="border-b-2 border-slate-200">
-                          <th className="py-3 px-3 text-left text-sm font-semibold text-slate-600">{t('grade')}</th>
-                          <th className="py-3 px-3 text-left text-xs font-normal text-slate-500">{t('grades')}</th>
+                          <th className="py-3 px-3 text-left text-sm font-semibold text-slate-600">Calificación</th>
+                          <th className="py-3 px-3 text-left text-xs font-normal text-slate-500">Notas</th>
                           {selecciones.map((sel, idx) => (
                             <th key={sel.id} className="py-3 px-2 text-center text-xs font-semibold text-slate-700">
                               {sel.trimestre} · {sel.nivel}
@@ -1651,11 +1278,11 @@ const DashboardAcademico = () => {
                       </thead>
                       <tbody>
                         {[
-                          { key: 'insuficiente', label: t('insufficient'), notas: '1-4', color: '#ef4444' },
-                          { key: 'suficiente', label: t('sufficient'), notas: '5', color: '#f97316' },
-                          { key: 'bien', label: t('good'), notas: '6', color: '#fbbf24' },
-                          { key: 'notable', label: t('notable'), notas: '7-8', color: '#22c55e' },
-                          { key: 'excelente', label: t('excellent'), notas: '9-10', color: '#059669' }
+                          { key: 'insuficiente', label: 'Insuficiente', notas: '1-4', color: '#ef4444' },
+                          { key: 'suficiente', label: 'Suficiente', notas: '5', color: '#f97316' },
+                          { key: 'bien', label: 'Bien', notas: '6', color: '#fbbf24' },
+                          { key: 'notable', label: 'Notable', notas: '7-8', color: '#22c55e' },
+                          { key: 'excelente', label: 'Excelente', notas: '9-10', color: '#059669' }
                         ].map(({ key, label, notas, color }) => (
                           <tr key={key} className="border-b border-slate-100">
                             <td className="py-2 px-3 font-medium" style={{ color }}>{label}</td>
@@ -1689,7 +1316,7 @@ const DashboardAcademico = () => {
           <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
               <h3 className="text-lg font-semibold text-slate-800">
-                {t('correlationsTitle')} · {trimestreSeleccionado}
+                Correlaciones · {trimestreSeleccionado}
               </h3>
               <div className="flex flex-wrap items-center gap-3">
                 <select
@@ -1708,7 +1335,7 @@ const DashboardAcademico = () => {
                       ordenCorrelaciones === 'desc' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'
                     }`}
                   >
-                    {t('sortDesc')}
+                    Mayor → Menor
                   </button>
                   <button
                     onClick={() => setOrdenCorrelaciones('asc')}
@@ -1716,7 +1343,7 @@ const DashboardAcademico = () => {
                       ordenCorrelaciones === 'asc' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'
                     }`}
                   >
-                    {t('sortAsc')}
+                    Menor → Mayor
                   </button>
                   <button
                     onClick={() => setOrdenCorrelaciones('none')}
@@ -1724,24 +1351,24 @@ const DashboardAcademico = () => {
                       ordenCorrelaciones === 'none' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'
                     }`}
                   >
-                    {t('noSort')}
+                    Sin ordenar
                   </button>
                 </div>
               </div>
             </div>
-
+            
             {/* Leyenda compacta */}
             <div className="mb-4 flex flex-wrap gap-2 text-xs">
-              <span className="px-2 py-0.5 rounded text-white" style={{ backgroundColor: '#1a1a2e' }}>&lt;0 {t('inverse')}</span>
-              <span className="px-2 py-0.5 rounded text-white" style={{ backgroundColor: '#065f46' }}>≥0,80 {t('veryStrong')}</span>
-              <span className="px-2 py-0.5 rounded text-white" style={{ backgroundColor: '#059669' }}>≥0,60 {t('strong')}</span>
-              <span className="px-2 py-0.5 rounded" style={{ backgroundColor: '#fbbf24' }}>≥0,40 {t('moderate')}</span>
-              <span className="px-2 py-0.5 rounded text-white" style={{ backgroundColor: '#f97316' }}>≥0,20 {t('weak')}</span>
-              <span className="px-2 py-0.5 rounded text-white" style={{ backgroundColor: '#ef4444' }}>&lt;0,20 {t('veryWeak')}</span>
+              <span className="px-2 py-0.5 rounded text-white" style={{ backgroundColor: '#1a1a2e' }}>&lt;0 Inversa</span>
+              <span className="px-2 py-0.5 rounded text-white" style={{ backgroundColor: '#065f46' }}>≥0,80 Muy fuerte</span>
+              <span className="px-2 py-0.5 rounded text-white" style={{ backgroundColor: '#059669' }}>≥0,60 Fuerte</span>
+              <span className="px-2 py-0.5 rounded" style={{ backgroundColor: '#fbbf24' }}>≥0,40 Moderada</span>
+              <span className="px-2 py-0.5 rounded text-white" style={{ backgroundColor: '#f97316' }}>≥0,20 Débil</span>
+              <span className="px-2 py-0.5 rounded text-white" style={{ backgroundColor: '#ef4444' }}>&lt;0,20 Muy débil</span>
             </div>
-
+            
             {correlacionesTrimestre.length === 0 ? (
-              <p className="text-slate-500 text-center py-8">{t('noCorrelationData')}</p>
+              <p className="text-slate-500 text-center py-8">No hay datos de correlaciones para este trimestre.</p>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2">
                 {correlacionesTrimestre.map((corr, idx) => {
@@ -1782,8 +1409,8 @@ const DashboardAcademico = () => {
           {/* Gráfico de evolución de correlaciones por nivel */}
           {trimestresDisponibles.length >= 1 && correlacionesTrimestre.length > 0 && (
             <div className="bg-white rounded-xl border border-slate-200 p-6">
-              <h3 className="text-lg font-semibold text-slate-800 mb-2">{t('correlationEvolution')}</h3>
-              <p className="text-sm text-slate-500 mb-6">{t('correlationEvolutionDesc')}</p>
+              <h3 className="text-lg font-semibold text-slate-800 mb-2">Evolución de correlaciones por nivel</h3>
+              <p className="text-sm text-slate-500 mb-6">Cada línea representa un nivel (1EEM-4EEM), el eje X muestra los pares de asignaturas</p>
               
               <ResponsiveContainer width="100%" height={400}>
                 <LineChart data={datosEvolucionCorrelaciones} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
@@ -1864,24 +1491,26 @@ const DashboardAcademico = () => {
       {vistaActual === 'evolucion' && (
         <div className="max-w-7xl mx-auto">
           <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
-            <h3 className="text-lg font-semibold text-slate-800 mb-4">{t('evolutionTitle')}</h3>
-
+            <h3 className="text-lg font-semibold text-slate-800 mb-4">Evolución entre trimestres</h3>
+            
             {trimestresDisponibles.length < 2 ? (
               <div className="text-center py-12">
-                <p className="text-slate-500 mb-2">{t('needTwoTrimesters')}</p>
-                <p className="text-sm text-slate-400">{t('trimestersLoaded')}: {trimestresDisponibles.join(', ') || 'Ninguno'}</p>
+                <p className="text-slate-500 mb-2">Necesitas cargar al menos 2 trimestres para ver la evolución.</p>
+                <p className="text-sm text-slate-400">Trimestres cargados: {trimestresDisponibles.join(', ') || 'Ninguno'}</p>
               </div>
             ) : (
               <>
                 <p className="text-sm text-slate-600 mb-6">
-                  {t('evolutionDesc')}
+                  Compara la evolución de una asignatura o nivel a lo largo de los trimestres cargados.
+                  Usa el selector de selecciones en la vista "Estadísticas" para elegir diferentes combinaciones
+                  de trimestre + nivel + asignatura y ver cómo cambian las métricas.
                 </p>
-
+                
                 {/* Gráfico de evolución de nota media */}
                 {(() => {
                   const nivel = selecciones[0]?.nivel || 'GLOBAL';
                   const asignatura = selecciones[0]?.asignatura || 'Todos';
-
+                  
                   const datosEvolucion = trimestresDisponibles.map(trim => {
                     const d = datosCompletos[trim]?.[nivel]?.[asignatura];
                     return {
@@ -1891,23 +1520,23 @@ const DashboardAcademico = () => {
                       suspendidos: d?.stats.suspendidos || null
                     };
                   }).filter(d => d.notaMedia !== null);
-
+                  
                   if (datosEvolucion.length < 2) {
                     return (
                       <p className="text-slate-500 text-center py-8">
-                        {t('notEnoughData').replace('{level}', nivel).replace('{subject}', asignatura)}
+                        No hay datos suficientes para {nivel} - {asignatura} en múltiples trimestres.
                       </p>
                     );
                   }
-
+                  
                   return (
                     <div>
                       <div className="mb-4 p-3 bg-slate-50 rounded-lg">
                         <span className="text-sm font-medium text-slate-700">
-                          {t('showingEvolution')}: <span className="font-bold">{nivel} - {asignatura}</span>
+                          Mostrando evolución de: <span className="font-bold">{nivel} - {asignatura}</span>
                         </span>
                       </div>
-
+                      
                       <ResponsiveContainer width="100%" height={400}>
                         <LineChart data={datosEvolucion}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -1926,7 +1555,7 @@ const DashboardAcademico = () => {
                             yAxisId="left"
                             type="monotone"
                             dataKey="notaMedia"
-                            name={t('average')}
+                            name="Nota Media"
                             stroke="#1a1a2e"
                             strokeWidth={3}
                             dot={{ fill: '#1a1a2e', r: 6 }}
@@ -1935,7 +1564,7 @@ const DashboardAcademico = () => {
                             yAxisId="right"
                             type="monotone"
                             dataKey="aprobados"
-                            name={`% ${t('passed')}`}
+                            name="% Aprobados"
                             stroke="#22c55e"
                             strokeWidth={2}
                             dot={{ fill: '#22c55e', r: 5 }}
@@ -1944,7 +1573,7 @@ const DashboardAcademico = () => {
                             yAxisId="right"
                             type="monotone"
                             dataKey="suspendidos"
-                            name={`% ${t('failed')}`}
+                            name="% Suspendidos"
                             stroke="#ef4444"
                             strokeWidth={2}
                             dot={{ fill: '#ef4444', r: 5 }}
@@ -1963,7 +1592,7 @@ const DashboardAcademico = () => {
       {/* Footer */}
       <footer className="max-w-7xl mx-auto mt-12 py-6 border-t border-slate-200">
         <p className="text-center text-sm text-slate-400">
-          {t('designedBy')} <a href="https://jlmirall.es" target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:text-slate-800 underline">José Luis Miralles Bono</a> {t('withHelpOf')}
+          App diseñada por <a href="https://jlmirall.es" target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:text-slate-800 underline">José Luis Miralles Bono</a> con ayuda de Claude
         </p>
       </footer>
     </div>
