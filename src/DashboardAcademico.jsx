@@ -23,7 +23,7 @@ const DashboardAcademico = () => {
   
   // UI State
   const [trimestreSeleccionado, setTrimestreSeleccionado] = useState(null);
-  const [vistaActual, setVistaActual] = useState('estadisticas'); // 'estadisticas', 'correlaciones', 'evolucion'
+  const [vistaActual, setVistaActual] = useState('estadisticas'); // 'estadisticas', 'correlaciones', 'evolucion', 'dificultad'
   const [selecciones, setSelecciones] = useState([]);
   const [mostrarModalConfirm, setMostrarModalConfirm] = useState(false);
   const [trimestrePendiente, setTrimestrePendiente] = useState(null);
@@ -501,6 +501,11 @@ const DashboardAcademico = () => {
     }));
   }, [getAsignaturas]);
 
+  // Calcular datos de una seleccion
+  const calcularDatosSeleccion = useCallback((sel) => {
+    return datosCompletos[sel.trimestre]?.[sel.nivel]?.[sel.asignatura];
+  }, [datosCompletos]);
+
   // Datos para gráfico de distribución
   const datosDistribucion = useMemo(() => {
     const chartData = [];
@@ -859,6 +864,80 @@ const DashboardAcademico = () => {
     };
   }, [trimestreSeleccionado, datosCompletos, calcularResultado]);
 
+  // Análisis de dificultad de asignaturas
+  const analisisDificultad = useMemo(() => {
+    if (!trimestreSeleccionado || !datosCompletos[trimestreSeleccionado]) return null;
+
+    const datos = datosCompletos[trimestreSeleccionado];
+    const asignaturas = [];
+
+    // Recopilar todas las asignaturas (excluyendo GLOBAL y "Todos")
+    Object.entries(datos).forEach(([nivel, asigs]) => {
+      if (nivel === 'GLOBAL') return;
+      Object.entries(asigs).forEach(([asig, data]) => {
+        if (asig === 'Todos') return;
+
+        const stats = data.stats;
+        const resultado = calcularResultado(stats);
+
+        // Determinar categoría de dificultad
+        let categoria = 'NEUTRAL';
+        let razon = '';
+
+        if (resultado === 'DIFÍCIL') {
+          categoria = 'DIFÍCIL';
+          const motivos = [];
+          if (stats.suspendidos >= umbrales.suspensosAlerta) {
+            motivos.push(`${stats.suspendidos.toFixed(1)}% de suspensos (umbral: ${umbrales.suspensosAlerta}%)`);
+          }
+          if (stats.notaMedia < umbrales.mediaCritica) {
+            motivos.push(`nota media de ${stats.notaMedia.toFixed(2)} (umbral crítico: ${umbrales.mediaCritica})`);
+          }
+          razon = `Esta asignatura tiene ${motivos.join(' y/o ')}`;
+        } else if (resultado === 'FÁCIL') {
+          categoria = 'FÁCIL';
+          const motivos = [];
+          if (stats.aprobados >= umbrales.aprobadosMinimo) {
+            motivos.push(`${stats.aprobados.toFixed(1)}% de aprobados (umbral: ${umbrales.aprobadosMinimo}%)`);
+          }
+          if (stats.notaMedia >= umbrales.mediaFacil) {
+            motivos.push(`nota media de ${stats.notaMedia.toFixed(2)} (umbral fácil: ${umbrales.mediaFacil})`);
+          }
+          razon = `Esta asignatura tiene ${motivos.join(' y/o ')}`;
+        } else {
+          razon = `Esta asignatura se encuentra en un rango equilibrado con ${stats.aprobados.toFixed(1)}% de aprobados y una nota media de ${stats.notaMedia.toFixed(2)}`;
+        }
+
+        asignaturas.push({
+          nivel,
+          asignatura: asig,
+          categoria,
+          razon,
+          notaMedia: stats.notaMedia,
+          aprobados: stats.aprobados,
+          suspendidos: stats.suspendidos
+        });
+      });
+    });
+
+    // Ordenar: DIFÍCIL primero, luego NEUTRAL, luego FÁCIL
+    const ordenCategoria = { 'DIFÍCIL': 0, 'NEUTRAL': 1, 'FÁCIL': 2 };
+    asignaturas.sort((a, b) => {
+      if (ordenCategoria[a.categoria] !== ordenCategoria[b.categoria]) {
+        return ordenCategoria[a.categoria] - ordenCategoria[b.categoria];
+      }
+      // Dentro de cada categoría, ordenar por nota media ascendente
+      return a.notaMedia - b.notaMedia;
+    });
+
+    // Agrupar por categoría
+    const dificiles = asignaturas.filter(a => a.categoria === 'DIFÍCIL');
+    const neutrales = asignaturas.filter(a => a.categoria === 'NEUTRAL');
+    const faciles = asignaturas.filter(a => a.categoria === 'FÁCIL');
+
+    return { dificiles, neutrales, faciles, todas: asignaturas };
+  }, [trimestreSeleccionado, datosCompletos, calcularResultado, umbrales]);
+
   // Si no hay datos, mostrar pantalla de carga
   if (trimestresDisponibles.length === 0) {
     return (
@@ -1067,7 +1146,8 @@ const DashboardAcademico = () => {
           {[
             { id: 'estadisticas', label: t('statistics') },
             { id: 'correlaciones', label: t('correlations') },
-            { id: 'evolucion', label: t('evolution') }
+            { id: 'evolucion', label: t('evolution') },
+            { id: 'dificultad', label: t('difficulty') }
           ].map(vista => (
             <button
               key={vista.id}
@@ -1570,7 +1650,10 @@ const DashboardAcademico = () => {
                         punto[label] = datos.stats.aprobados;
                       } else if (metricaIdx === 2) {
                         // % Excelencia (0-100)
-                        punto[label] = ((datos.distribucion[9] || 0) + (datos.distribucion[10] || 0)) / datos.stats.registros * 100;
+                        const registros = datos.stats.registros || 0;
+                        punto[label] = registros > 0
+                          ? ((datos.distribucion[9] || 0) + (datos.distribucion[10] || 0)) / registros * 100
+                          : 0;
                       } else if (metricaIdx === 3) {
                         // Moda (normalizada 0-100)
                         punto[label] = datos.stats.moda ? (datos.stats.moda / 10) * 100 : 0;
@@ -2142,6 +2225,160 @@ const DashboardAcademico = () => {
                   );
                 })()}
               </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* VISTA: DIFICULTAD */}
+      {vistaActual === 'dificultad' && analisisDificultad && (
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
+            <h3 className="text-lg font-semibold text-slate-800 mb-4">{t('difficulty')}</h3>
+
+            {/* Selector de trimestre */}
+            <div className="mb-6 p-3 bg-slate-50 rounded-lg">
+              <span className="text-sm font-medium text-slate-700">
+                {t('trimester')}: <span className="font-bold">{trimestreSeleccionado}</span>
+              </span>
+            </div>
+
+            {/* Asignaturas Difíciles */}
+            {analisisDificultad.dificiles.length > 0 && (
+              <div className="mb-8">
+                <h4 className="text-md font-semibold text-red-700 mb-4 flex items-center gap-2">
+                  <span className="w-3 h-3 bg-red-500 rounded-full"></span>
+                  {t('difficultSubjects')} ({analisisDificultad.dificiles.length})
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {analisisDificultad.dificiles.map((asig, idx) => (
+                    <div
+                      key={idx}
+                      className="bg-red-50 border-2 border-red-300 rounded-lg p-4 hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <h5 className="font-semibold text-slate-800 text-sm">
+                            {asig.nivel} - {asig.asignatura}
+                          </h5>
+                        </div>
+                        <span className="ml-2 px-2 py-1 bg-red-200 text-red-800 text-xs font-bold rounded">
+                          {t('difficult')}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-600 mb-3 leading-relaxed">
+                        <span className="font-medium">{t('difficultyReason')}:</span> {asig.razon}
+                      </p>
+                      <div className="grid grid-cols-3 gap-2 text-xs">
+                        <div className="bg-white rounded p-2 text-center">
+                          <div className="font-semibold text-slate-800">{asig.notaMedia.toFixed(2)}</div>
+                          <div className="text-slate-500">{t('average')}</div>
+                        </div>
+                        <div className="bg-white rounded p-2 text-center">
+                          <div className="font-semibold text-green-600">{asig.aprobados.toFixed(1)}%</div>
+                          <div className="text-slate-500">{t('passed')}</div>
+                        </div>
+                        <div className="bg-white rounded p-2 text-center">
+                          <div className="font-semibold text-red-600">{asig.suspendidos.toFixed(1)}%</div>
+                          <div className="text-slate-500">{t('failed')}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Asignaturas Neutrales */}
+            {analisisDificultad.neutrales.length > 0 && (
+              <div className="mb-8">
+                <h4 className="text-md font-semibold text-slate-700 mb-4 flex items-center gap-2">
+                  <span className="w-3 h-3 bg-slate-400 rounded-full"></span>
+                  {t('neutralSubjects')} ({analisisDificultad.neutrales.length})
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {analisisDificultad.neutrales.map((asig, idx) => (
+                    <div
+                      key={idx}
+                      className="bg-slate-50 border-2 border-slate-300 rounded-lg p-4 hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <h5 className="font-semibold text-slate-800 text-sm">
+                            {asig.nivel} - {asig.asignatura}
+                          </h5>
+                        </div>
+                        <span className="ml-2 px-2 py-1 bg-slate-200 text-slate-800 text-xs font-bold rounded">
+                          {t('neutral')}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-600 mb-3 leading-relaxed">
+                        <span className="font-medium">{t('difficultyReason')}:</span> {asig.razon}
+                      </p>
+                      <div className="grid grid-cols-3 gap-2 text-xs">
+                        <div className="bg-white rounded p-2 text-center">
+                          <div className="font-semibold text-slate-800">{asig.notaMedia.toFixed(2)}</div>
+                          <div className="text-slate-500">{t('average')}</div>
+                        </div>
+                        <div className="bg-white rounded p-2 text-center">
+                          <div className="font-semibold text-green-600">{asig.aprobados.toFixed(1)}%</div>
+                          <div className="text-slate-500">{t('passed')}</div>
+                        </div>
+                        <div className="bg-white rounded p-2 text-center">
+                          <div className="font-semibold text-red-600">{asig.suspendidos.toFixed(1)}%</div>
+                          <div className="text-slate-500">{t('failed')}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Asignaturas Fáciles */}
+            {analisisDificultad.faciles.length > 0 && (
+              <div>
+                <h4 className="text-md font-semibold text-green-700 mb-4 flex items-center gap-2">
+                  <span className="w-3 h-3 bg-green-500 rounded-full"></span>
+                  {t('easySubjects')} ({analisisDificultad.faciles.length})
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {analisisDificultad.faciles.map((asig, idx) => (
+                    <div
+                      key={idx}
+                      className="bg-green-50 border-2 border-green-300 rounded-lg p-4 hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <h5 className="font-semibold text-slate-800 text-sm">
+                            {asig.nivel} - {asig.asignatura}
+                          </h5>
+                        </div>
+                        <span className="ml-2 px-2 py-1 bg-green-200 text-green-800 text-xs font-bold rounded">
+                          {t('easy')}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-600 mb-3 leading-relaxed">
+                        <span className="font-medium">{t('difficultyReason')}:</span> {asig.razon}
+                      </p>
+                      <div className="grid grid-cols-3 gap-2 text-xs">
+                        <div className="bg-white rounded p-2 text-center">
+                          <div className="font-semibold text-slate-800">{asig.notaMedia.toFixed(2)}</div>
+                          <div className="text-slate-500">{t('average')}</div>
+                        </div>
+                        <div className="bg-white rounded p-2 text-center">
+                          <div className="font-semibold text-green-600">{asig.aprobados.toFixed(1)}%</div>
+                          <div className="text-slate-500">{t('passed')}</div>
+                        </div>
+                        <div className="bg-white rounded p-2 text-center">
+                          <div className="font-semibold text-red-600">{asig.suspendidos.toFixed(1)}%</div>
+                          <div className="text-slate-500">{t('failed')}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
         </div>

@@ -19,6 +19,7 @@ export const translations = {
     statistics: 'Estadísticas',
     correlations: 'Correlaciones',
     evolution: 'Evolución',
+    difficulty: 'Dificultad',
 
     // KPIs
     kpis: 'Indicadores Clave del Centro',
@@ -55,8 +56,13 @@ export const translations = {
     // Etiquetas
     difficult: 'DIFÍCIL',
     easy: 'FÁCIL',
+    neutral: 'NEUTRAL',
     global: 'GLOBAL',
     all: 'Todos',
+    difficultSubjects: 'Asignaturas Difíciles',
+    neutralSubjects: 'Asignaturas Neutrales',
+    easySubjects: 'Asignaturas Fáciles',
+    difficultyReason: 'Motivo',
 
     // Estadísticas
     records: 'Registros',
@@ -139,6 +145,7 @@ export const translations = {
     statistics: 'Estadístiques',
     correlations: 'Correlacions',
     evolution: 'Evolució',
+    difficulty: 'Dificultat',
 
     // KPIs
     kpis: 'Indicadors Clau del Centre',
@@ -175,8 +182,13 @@ export const translations = {
     // Etiquetes
     difficult: 'DIFÍCIL',
     easy: 'FÀCIL',
+    neutral: 'NEUTRAL',
     global: 'GLOBAL',
     all: 'Tots',
+    difficultSubjects: 'Assignatures Difícils',
+    neutralSubjects: 'Assignatures Neutrals',
+    easySubjects: 'Assignatures Fàcils',
+    difficultyReason: 'Motiu',
 
     // Estadístiques
     records: 'Registres',
