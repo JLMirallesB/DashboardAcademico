@@ -18,7 +18,8 @@ const DashboardAcademico = () => {
     suspensosAlerta: 30,
     mediaCritica: 6,
     mediaFacil: 8,
-    aprobadosMinimo: 90
+    aprobadosMinimo: 90,
+    alumnosMinimo: 3
   });
   
   // UI State
@@ -33,7 +34,9 @@ const DashboardAcademico = () => {
   const [compararNiveles, setCompararNiveles] = useState(false);
   const [asignaturaComparada, setAsignaturaComparada] = useState('Lenguaje Musical');
   const [ordenCorrelaciones, setOrdenCorrelaciones] = useState('desc'); // 'desc', 'asc', 'none'
-  const [ejeCorrelaciones, setEjeCorrelaciones] = useState('pares'); // 'pares' o 'niveles'
+  const [ejeCorrelaciones, setEjeCorrelaciones] = useState('niveles'); // 'pares' o 'niveles'
+  const [modoHeatmap, setModoHeatmap] = useState('relativo'); // 'absoluto' o 'relativo'
+  const [modoDistribucion, setModoDistribucion] = useState('porcentaje'); // 'absoluto' o 'porcentaje'
   
   const fileInputRef = useRef(null);
   const jsonInputRef = useRef(null);
@@ -532,13 +535,20 @@ const DashboardAcademico = () => {
         const datos = datosCompletos[sel.trimestre]?.[sel.nivel]?.[sel.asignatura];
         if (datos) {
           const label = `${sel.trimestre} - ${sel.nivel} - ${sel.asignatura}`;
-          punto[label] = datos.distribucion[nota] || 0;
+          const valorAbsoluto = datos.distribucion[nota] || 0;
+
+          if (modoDistribucion === 'porcentaje') {
+            const total = datos.stats.registros || 1;
+            punto[label] = (valorAbsoluto / total * 100);
+          } else {
+            punto[label] = valorAbsoluto;
+          }
         }
       });
       chartData.push(punto);
     }
     return chartData;
-  }, [selecciones, datosCompletos]);
+  }, [selecciones, datosCompletos, modoDistribucion]);
 
   // Correlaciones del trimestre seleccionado (con ordenación)
   const correlacionesTrimestre = useMemo(() => {
@@ -910,6 +920,9 @@ const DashboardAcademico = () => {
       Object.entries(asigs).forEach(([asig, data]) => {
         if (asig === 'Todos' || !data?.stats) return;
 
+        // Filtrar por número mínimo de alumnos
+        if (data.stats.registros < umbrales.alumnosMinimo) return;
+
         const stats = data.stats;
         const resultado = calcularResultado(stats);
 
@@ -1223,14 +1236,15 @@ const DashboardAcademico = () => {
                   suspensosAlerta: 30,
                   mediaCritica: 6,
                   mediaFacil: 8,
-                  aprobadosMinimo: 90
+                  aprobadosMinimo: 90,
+                  alumnosMinimo: 3
                 })}
                 className="text-xs py-1 px-3 bg-slate-100 text-slate-600 rounded hover:bg-slate-200 transition-all"
               >
                 {t('restoreDefaults')}
               </button>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <div>
                 <label className="block text-xs font-medium text-slate-500 mb-1">{t('failedAlert')}</label>
                 <input
@@ -1269,6 +1283,15 @@ const DashboardAcademico = () => {
                   className="w-full py-2 px-3 border border-slate-300 rounded-lg text-sm"
                 />
               </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1">{t('minStudents')}</label>
+                <input
+                  type="number"
+                  value={umbrales.alumnosMinimo}
+                  onChange={(e) => setUmbrales(prev => ({ ...prev, alumnosMinimo: parseInt(e.target.value) || 0 }))}
+                  className="w-full py-2 px-3 border border-slate-300 rounded-lg text-sm"
+                />
+              </div>
             </div>
             <div className="mt-4 text-xs text-slate-500">
               <span className="inline-block px-2 py-0.5 bg-red-100 text-red-700 rounded mr-2">{t('difficult')}</span>
@@ -1276,6 +1299,9 @@ const DashboardAcademico = () => {
               <span className="mx-4">|</span>
               <span className="inline-block px-2 py-0.5 bg-green-100 text-green-700 rounded mr-2">{t('easy')}</span>
               {t('passed')} ≥ {umbrales.aprobadosMinimo}% o {t('average')} ≥ {umbrales.mediaFacil}
+              <span className="mx-4">|</span>
+              <span className="inline-block px-2 py-0.5 bg-slate-100 text-slate-700 rounded mr-2">Filtro</span>
+              Solo asignaturas con ≥ {umbrales.alumnosMinimo} alumnos
             </div>
           </div>
         )}
@@ -1738,12 +1764,44 @@ const DashboardAcademico = () => {
 
           {/* Gráfico de distribución */}
           <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
-            <h3 className="text-lg font-semibold text-slate-800 mb-4">{t('gradeDistribution')}</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-slate-800">{t('gradeDistribution')}</h3>
+              <div className="inline-flex bg-slate-100 rounded-lg p-1">
+                <button
+                  onClick={() => setModoDistribucion('porcentaje')}
+                  className={`px-3 py-1 text-xs font-medium rounded transition-all ${
+                    modoDistribucion === 'porcentaje'
+                      ? 'bg-white text-slate-800 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  {t('distributionPercentage')}
+                </button>
+                <button
+                  onClick={() => setModoDistribucion('absoluto')}
+                  className={`px-3 py-1 text-xs font-medium rounded transition-all ${
+                    modoDistribucion === 'absoluto'
+                      ? 'bg-white text-slate-800 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  {t('distributionAbsolute')}
+                </button>
+              </div>
+            </div>
             <ResponsiveContainer width="100%" height={400}>
               <LineChart data={datosDistribucion}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis dataKey="nota" stroke="#64748b" />
-                <YAxis stroke="#64748b" />
+                <YAxis
+                  stroke="#64748b"
+                  label={{
+                    value: modoDistribucion === 'porcentaje' ? '% Alumnos' : 'Cantidad',
+                    angle: -90,
+                    position: 'insideLeft',
+                    style: { textAnchor: 'middle', fill: '#64748b' }
+                  }}
+                />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: 'white',
@@ -1771,7 +1829,31 @@ const DashboardAcademico = () => {
 
           {/* Tabla de distribución */}
           <div className="bg-white rounded-xl border border-slate-200 p-6">
-            <h3 className="text-lg font-semibold text-slate-800 mb-4">{t('distributionTable')}</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-slate-800">{t('distributionTable')}</h3>
+              <div className="inline-flex bg-slate-100 rounded-lg p-1">
+                <button
+                  onClick={() => setModoHeatmap('relativo')}
+                  className={`px-3 py-1 text-xs font-medium rounded transition-all ${
+                    modoHeatmap === 'relativo'
+                      ? 'bg-white text-slate-800 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  {t('heatmapRelative')}
+                </button>
+                <button
+                  onClick={() => setModoHeatmap('absoluto')}
+                  className={`px-3 py-1 text-xs font-medium rounded transition-all ${
+                    modoHeatmap === 'absoluto'
+                      ? 'bg-white text-slate-800 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  {t('heatmapAbsolute')}
+                </button>
+              </div>
+            </div>
             <div className="overflow-x-auto">
               {(() => {
                 // Calcular totales y máximos para el mapa de calor
@@ -1779,18 +1861,23 @@ const DashboardAcademico = () => {
                   const datos = datosCompletos[sel.trimestre]?.[sel.nivel]?.[sel.asignatura];
                   return datos ? Object.values(datos.distribucion).reduce((a, b) => a + b, 0) : 0;
                 });
-                
-                // Encontrar el máximo valor para el mapa de calor
-                let maxValor = 0;
+
+                // Calcular máximos según el modo
+                let maxValorGlobal = 0;
+                const maxValoresPorColumna = [];
+
                 selecciones.forEach((sel) => {
                   const datos = datosCompletos[sel.trimestre]?.[sel.nivel]?.[sel.asignatura];
+                  let maxColumna = 0;
                   if (datos) {
                     Object.values(datos.distribucion).forEach(v => {
-                      if (v > maxValor) maxValor = v;
+                      if (v > maxValorGlobal) maxValorGlobal = v;
+                      if (v > maxColumna) maxColumna = v;
                     });
                   }
+                  maxValoresPorColumna.push(maxColumna);
                 });
-                
+
                 // Función para color del mapa de calor (rojo = alto, verde = bajo)
                 const getHeatmapColor = (valor, max) => {
                   if (max === 0 || valor === 0) return 'transparent';
@@ -1848,11 +1935,12 @@ const DashboardAcademico = () => {
                               const valor = datos?.distribucion[nota] || 0;
                               const total = totales[idx];
                               const porcentaje = total > 0 ? (valor / total * 100).toFixed(1) : '0.0';
+                              const maxParaColor = modoHeatmap === 'relativo' ? maxValoresPorColumna[idx] : maxValorGlobal;
                               return (
                                 <td
                                   key={sel.id}
                                   className="py-2 px-2 text-center"
-                                  style={{ backgroundColor: getHeatmapColor(valor, maxValor) }}
+                                  style={{ backgroundColor: getHeatmapColor(valor, maxParaColor) }}
                                 >
                                   <span className="font-semibold text-slate-800">{valor}</span>
                                   <span className="text-xs text-slate-700 ml-1">({porcentaje}%)</span>

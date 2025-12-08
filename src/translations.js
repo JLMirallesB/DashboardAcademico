@@ -52,6 +52,7 @@ export const translations = {
     criticalAvg: 'Media crítica',
     easyAvg: 'Media fácil',
     minPassed: '% Aprobados mínimo',
+    minStudents: 'Alumnos mínimos',
 
     // Etiquetas
     difficult: 'DIFÍCIL',
@@ -88,6 +89,10 @@ export const translations = {
     notable: 'Notable',
     excellent: 'Excelente',
     radarChart: 'Gráfico Radar',
+    heatmapAbsolute: 'Absoluto',
+    heatmapRelative: 'Relativo',
+    distributionAbsolute: 'Valores Absolutos',
+    distributionPercentage: 'Porcentajes',
 
     // Correlaciones
     correlationsTitle: 'Correlaciones',
@@ -178,6 +183,7 @@ export const translations = {
     criticalAvg: 'Mitjana crítica',
     easyAvg: 'Mitjana fàcil',
     minPassed: '% Aprovats mínim',
+    minStudents: 'Alumnes mínims',
 
     // Etiquetes
     difficult: 'DIFÍCIL',
@@ -214,6 +220,10 @@ export const translations = {
     notable: 'Notable',
     excellent: 'Excel·lent',
     radarChart: 'Gràfic Radar',
+    heatmapAbsolute: 'Absolut',
+    heatmapRelative: 'Relatiu',
+    distributionAbsolute: 'Valors Absoluts',
+    distributionPercentage: 'Percentatges',
 
     // Correlacions
     correlationsTitle: 'Correlacions',
