@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { LineChart, Line, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import { translations } from './translations.js';
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 
 const DashboardAcademico = () => {
@@ -1015,6 +1015,8 @@ const DashboardAcademico = () => {
 
   // Función para generar informe PDF
   const generarInformePDF = useCallback(() => {
+    console.log('[PDF] Iniciando generación de informe...');
+
     if (!trimestreSeleccionado || !datosCompletos[trimestreSeleccionado]) {
       alert('No hay datos cargados para generar el informe');
       return;
@@ -1022,8 +1024,11 @@ const DashboardAcademico = () => {
 
     setGenerandoInforme(true);
 
-    try {
-      const pdf = new jsPDF('p', 'mm', 'a4');
+    // Usar setTimeout para permitir que el UI se actualice
+    setTimeout(() => {
+      try {
+        console.log('[PDF] Creando documento PDF...');
+        const pdf = new jsPDF('p', 'mm', 'a4');
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
       const margin = 15;
@@ -1047,31 +1052,33 @@ const DashboardAcademico = () => {
         pdf.setTextColor(0);
       };
 
-      // ========== PÁGINA DE PORTADA ==========
-      pdf.setFillColor(30, 58, 138); // Azul oscuro
-      pdf.rect(0, 0, pageWidth, 100, 'F');
+        // ========== PÁGINA DE PORTADA ==========
+        console.log('[PDF] Generando portada...');
+        pdf.setFillColor(30, 58, 138); // Azul oscuro
+        pdf.rect(0, 0, pageWidth, 100, 'F');
 
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(28);
-      pdf.text(configInforme.nombreCentro, pageWidth / 2, 40, { align: 'center' });
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(28);
+        pdf.text(configInforme.nombreCentro, pageWidth / 2, 40, { align: 'center' });
 
-      pdf.setFontSize(20);
-      pdf.text(t('reportTitle'), pageWidth / 2, 55, { align: 'center' });
+        pdf.setFontSize(20);
+        pdf.text(t('reportTitle'), pageWidth / 2, 55, { align: 'center' });
 
-      pdf.setFontSize(14);
-      pdf.text(trimestreSeleccionado, pageWidth / 2, 70, { align: 'center' });
+        pdf.setFontSize(14);
+        pdf.text(trimestreSeleccionado, pageWidth / 2, 70, { align: 'center' });
 
-      pdf.setTextColor(0);
-      pdf.setFontSize(12);
-      pdf.text(`${t('academicYear')}: ${configInforme.cursoAcademico}`, pageWidth / 2, 120, { align: 'center' });
+        pdf.setTextColor(0);
+        pdf.setFontSize(12);
+        pdf.text(`${t('academicYear')}: ${configInforme.cursoAcademico}`, pageWidth / 2, 120, { align: 'center' });
 
-      pdf.setFontSize(10);
-      pdf.setTextColor(100);
-      pdf.text(`${t('reportFor')} ${new Date().toLocaleDateString()}`, pageWidth / 2, 270, { align: 'center' });
-      pdf.setTextColor(0);
+        pdf.setFontSize(10);
+        pdf.setTextColor(100);
+        pdf.text(`${t('reportFor')} ${new Date().toLocaleDateString()}`, pageWidth / 2, 270, { align: 'center' });
+        pdf.setTextColor(0);
 
-      // ========== TABLA DE KPIs ==========
-      if (configInforme.incluirKPIs && kpisGlobales) {
+        // ========== TABLA DE KPIs ==========
+        if (configInforme.incluirKPIs && kpisGlobales) {
+          console.log('[PDF] Generando tabla de KPIs...');
         pdf.addPage();
         currentPage++;
         addHeader(currentPage);
@@ -1109,11 +1116,12 @@ const DashboardAcademico = () => {
           margin: { left: margin, right: margin }
         });
 
-        addFooter(currentPage);
-      }
+          addFooter(currentPage);
+        }
 
-      // ========== TABLA DE CORRELACIONES ==========
-      if (configInforme.incluirCorrelaciones && correlacionesTrimestre.length > 0) {
+        // ========== TABLA DE CORRELACIONES ==========
+        if (configInforme.incluirCorrelaciones && correlacionesTrimestre.length > 0) {
+          console.log('[PDF] Generando tabla de correlaciones...');
         pdf.addPage();
         currentPage++;
         addHeader(currentPage);
@@ -1152,12 +1160,13 @@ const DashboardAcademico = () => {
               addHeader(currentPage);
             }
             addFooter(data.pageNumber);
-          }
-        });
-      }
+            }
+          });
+        }
 
-      // ========== TABLA DE TODAS LAS ASIGNATURAS CON ANÁLISIS ==========
-      if (configInforme.incluirDificultad && analisisDificultad) {
+        // ========== TABLA DE TODAS LAS ASIGNATURAS CON ANÁLISIS ==========
+        if (configInforme.incluirDificultad && analisisDificultad) {
+          console.log('[PDF] Generando tabla de asignaturas...');
         pdf.addPage();
         currentPage++;
         addHeader(currentPage);
@@ -1314,17 +1323,21 @@ const DashboardAcademico = () => {
         addFooter(currentPage);
       }
 
-      // Guardar PDF
-      const nombreArchivo = `Informe_${configInforme.nombreCentro.replace(/\s+/g, '_')}_${trimestreSeleccionado}_${new Date().toISOString().split('T')[0]}.pdf`;
-      pdf.save(nombreArchivo);
+        // Guardar PDF
+        console.log('[PDF] Guardando archivo PDF...');
+        const nombreArchivo = `Informe_${configInforme.nombreCentro.replace(/\s+/g, '_')}_${trimestreSeleccionado}_${new Date().toISOString().split('T')[0]}.pdf`;
+        pdf.save(nombreArchivo);
+        console.log('[PDF] PDF generado exitosamente:', nombreArchivo);
 
-      setMostrarModalInforme(false);
-    } catch (error) {
-      console.error('Error al generar PDF:', error);
-      alert('Error al generar el informe PDF');
-    } finally {
-      setGenerandoInforme(false);
-    }
+        setMostrarModalInforme(false);
+        setGenerandoInforme(false);
+      } catch (error) {
+        console.error('[PDF] Error al generar PDF:', error);
+        console.error('[PDF] Stack trace:', error.stack);
+        alert(`Error al generar el informe PDF: ${error.message}`);
+        setGenerandoInforme(false);
+      }
+    }, 100);
   }, [trimestreSeleccionado, datosCompletos, configInforme, kpisGlobales, correlacionesTrimestre, analisisDificultad, t]);
 
   // Si no hay datos, mostrar pantalla de carga
