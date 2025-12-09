@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { LineChart, Line, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import { translations } from './translations.js';
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import 'jspdf-autotable';
 
 const DashboardAcademico = () => {
   // Estado de idioma
@@ -61,8 +61,6 @@ const DashboardAcademico = () => {
 
   const fileInputRef = useRef(null);
   const jsonInputRef = useRef(null);
-  const kpisRef = useRef(null);
-  const dificultadRef = useRef(null);
 
   // Colores para comparaciones
   const colores = [
@@ -1016,7 +1014,7 @@ const DashboardAcademico = () => {
   }, [trimestreSeleccionado, datosCompletos, calcularResultado, umbrales, vistaDificultad]);
 
   // Función para generar informe PDF
-  const generarInformePDF = useCallback(async () => {
+  const generarInformePDF = useCallback(() => {
     if (!trimestreSeleccionado || !datosCompletos[trimestreSeleccionado]) {
       alert('No hay datos cargados para generar el informe');
       return;
@@ -1028,123 +1026,292 @@ const DashboardAcademico = () => {
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
-      let yPosition = 20;
+      const margin = 15;
+      let currentPage = 1;
 
-      // Página de portada
-      pdf.setFontSize(24);
-      pdf.text(configInforme.nombreCentro, pageWidth / 2, 60, { align: 'center' });
+      // Función auxiliar para añadir encabezado
+      const addHeader = (pageNum) => {
+        pdf.setFontSize(8);
+        pdf.setTextColor(150);
+        pdf.text(configInforme.nombreCentro, margin, 10);
+        pdf.text(`${t('reportTitle')} - ${trimestreSeleccionado}`, pageWidth - margin, 10, { align: 'right' });
+        pdf.setTextColor(0);
+      };
 
-      pdf.setFontSize(18);
-      pdf.text(t('reportTitle'), pageWidth / 2, 80, { align: 'center' });
+      // Función auxiliar para añadir pie de página
+      const addFooter = (pageNum) => {
+        pdf.setFontSize(8);
+        pdf.setTextColor(150);
+        pdf.text(`Página ${pageNum}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+        pdf.text(new Date().toLocaleDateString(), pageWidth - margin, pageHeight - 10, { align: 'right' });
+        pdf.setTextColor(0);
+      };
+
+      // ========== PÁGINA DE PORTADA ==========
+      pdf.setFillColor(30, 58, 138); // Azul oscuro
+      pdf.rect(0, 0, pageWidth, 100, 'F');
+
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(28);
+      pdf.text(configInforme.nombreCentro, pageWidth / 2, 40, { align: 'center' });
+
+      pdf.setFontSize(20);
+      pdf.text(t('reportTitle'), pageWidth / 2, 55, { align: 'center' });
 
       pdf.setFontSize(14);
-      pdf.text(`${t('academicYear')}: ${configInforme.cursoAcademico}`, pageWidth / 2, 100, { align: 'center' });
-      pdf.text(`${t('trimester')}: ${trimestreSeleccionado}`, pageWidth / 2, 110, { align: 'center' });
+      pdf.text(trimestreSeleccionado, pageWidth / 2, 70, { align: 'center' });
+
+      pdf.setTextColor(0);
+      pdf.setFontSize(12);
+      pdf.text(`${t('academicYear')}: ${configInforme.cursoAcademico}`, pageWidth / 2, 120, { align: 'center' });
 
       pdf.setFontSize(10);
-      pdf.text(`${t('reportFor')} ${new Date().toLocaleDateString()}`, pageWidth / 2, 130, { align: 'center' });
+      pdf.setTextColor(100);
+      pdf.text(`${t('reportFor')} ${new Date().toLocaleDateString()}`, pageWidth / 2, 270, { align: 'center' });
+      pdf.setTextColor(0);
 
-      // KPIs (si está habilitado)
-      if (configInforme.incluirKPIs && kpisRef.current) {
+      // ========== TABLA DE KPIs ==========
+      if (configInforme.incluirKPIs && kpisGlobales) {
         pdf.addPage();
-        yPosition = 20;
+        currentPage++;
+        addHeader(currentPage);
 
         pdf.setFontSize(16);
-        pdf.text(t('kpis'), 20, yPosition);
-        yPosition += 10;
+        pdf.setTextColor(30, 58, 138);
+        pdf.text(t('kpis'), margin, 25);
+        pdf.setTextColor(0);
 
-        const canvas = await html2canvas(kpisRef.current, {
-          scale: 2,
-          logging: false,
-          useCORS: true
+        const kpisData = [
+          [t('kpiCenterAvg'), (kpisGlobales.notaMediaCentro || 0).toFixed(2)],
+          [t('kpiLMAvg'), (kpisGlobales.notaMediaLM || 0).toFixed(2)],
+          [t('kpiInstrAvg'), (kpisGlobales.notaMediaEsp || 0).toFixed(2)],
+          [t('kpiDifficult'), kpisGlobales.countDificiles.toString()],
+          [t('kpiEasy'), kpisGlobales.countFaciles.toString()],
+          [t('kpiPassedAvg'), `${(kpisGlobales.aprobadosCentro || 0).toFixed(1)}%`],
+          [t('kpiPassedLM'), `${(kpisGlobales.aprobadosLM || 0).toFixed(1)}%`],
+          [t('kpiPassedInstr'), `${(kpisGlobales.aprobadosEsp || 0).toFixed(1)}%`],
+          [t('kpiFailedAvg'), `${(kpisGlobales.suspendidosCentro || 0).toFixed(1)}%`],
+          [t('kpiFailedLM'), `${(kpisGlobales.suspendidosLM || 0).toFixed(1)}%`],
+          [t('kpiFailedInstr'), `${(kpisGlobales.suspendidosEsp || 0).toFixed(1)}%`],
+        ];
+
+        pdf.autoTable({
+          startY: 35,
+          head: [['Indicador', 'Valor']],
+          body: kpisData,
+          theme: 'striped',
+          headStyles: { fillColor: [30, 58, 138], fontSize: 11, fontStyle: 'bold' },
+          styles: { fontSize: 10, cellPadding: 5 },
+          columnStyles: {
+            0: { cellWidth: 120 },
+            1: { cellWidth: 40, halign: 'right', fontStyle: 'bold' }
+          },
+          margin: { left: margin, right: margin }
         });
 
-        const imgData = canvas.toDataURL('image/png');
-        const imgWidth = pageWidth - 40;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-        if (yPosition + imgHeight > pageHeight - 20) {
-          pdf.addPage();
-          yPosition = 20;
-        }
-
-        pdf.addImage(imgData, 'PNG', 20, yPosition, imgWidth, imgHeight);
-        yPosition += imgHeight + 10;
+        addFooter(currentPage);
       }
 
-      // Análisis de Dificultad (si está habilitado)
-      if (configInforme.incluirDificultad && dificultadRef.current) {
-        pdf.addPage();
-        yPosition = 20;
-
-        pdf.setFontSize(16);
-        pdf.text(t('difficulty'), 20, yPosition);
-        yPosition += 10;
-
-        const canvas = await html2canvas(dificultadRef.current, {
-          scale: 2,
-          logging: false,
-          useCORS: true,
-          height: dificultadRef.current.scrollHeight
-        });
-
-        const imgData = canvas.toDataURL('image/png');
-        const imgWidth = pageWidth - 40;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-        // Si la imagen es muy alta, dividirla en múltiples páginas
-        let remainingHeight = imgHeight;
-        let sourceY = 0;
-
-        while (remainingHeight > 0) {
-          const availableHeight = pageHeight - yPosition - 20;
-          const sliceHeight = Math.min(remainingHeight, availableHeight);
-          const sourceHeight = (sliceHeight * canvas.width) / imgWidth;
-
-          pdf.addImage(
-            imgData,
-            'PNG',
-            20,
-            yPosition,
-            imgWidth,
-            sliceHeight,
-            '',
-            'FAST',
-            0
-          );
-
-          remainingHeight -= sliceHeight;
-          sourceY += sourceHeight;
-
-          if (remainingHeight > 0) {
-            pdf.addPage();
-            yPosition = 20;
-          }
-        }
-      }
-
-      // Información de correlaciones (si está habilitado y hay datos)
+      // ========== TABLA DE CORRELACIONES ==========
       if (configInforme.incluirCorrelaciones && correlacionesTrimestre.length > 0) {
         pdf.addPage();
-        yPosition = 20;
+        currentPage++;
+        addHeader(currentPage);
 
         pdf.setFontSize(16);
-        pdf.text(t('correlationsTitle'), 20, yPosition);
-        yPosition += 10;
+        pdf.setTextColor(30, 58, 138);
+        pdf.text(t('correlationsTitle'), margin, 25);
+        pdf.setTextColor(0);
 
-        pdf.setFontSize(10);
-        const top10 = correlacionesTrimestre.slice(0, 10);
+        const correlacionesData = correlacionesTrimestre.map((corr, idx) => [
+          (idx + 1).toString(),
+          corr.Nivel,
+          corr.Asignatura1,
+          corr.Asignatura2,
+          (corr.Correlacion || 0).toFixed(3)
+        ]);
 
-        top10.forEach((corr, idx) => {
-          if (yPosition > pageHeight - 30) {
+        pdf.autoTable({
+          startY: 35,
+          head: [['#', 'Nivel', 'Asignatura 1', 'Asignatura 2', 'Corr.']],
+          body: correlacionesData,
+          theme: 'grid',
+          headStyles: { fillColor: [30, 58, 138], fontSize: 10, fontStyle: 'bold' },
+          styles: { fontSize: 9, cellPadding: 3 },
+          columnStyles: {
+            0: { cellWidth: 12, halign: 'center' },
+            1: { cellWidth: 22, halign: 'center' },
+            2: { cellWidth: 60 },
+            3: { cellWidth: 60 },
+            4: { cellWidth: 20, halign: 'right', fontStyle: 'bold' }
+          },
+          margin: { left: margin, right: margin },
+          didDrawPage: (data) => {
+            if (data.pageNumber > currentPage) {
+              currentPage = data.pageNumber;
+              addHeader(currentPage);
+            }
+            addFooter(data.pageNumber);
+          }
+        });
+      }
+
+      // ========== TABLA DE TODAS LAS ASIGNATURAS CON ANÁLISIS ==========
+      if (configInforme.incluirDificultad && analisisDificultad) {
+        pdf.addPage();
+        currentPage++;
+        addHeader(currentPage);
+
+        pdf.setFontSize(16);
+        pdf.setTextColor(30, 58, 138);
+        pdf.text(t('subjectsData'), margin, 25);
+        pdf.setTextColor(0);
+
+        // Función para obtener color según categoría
+        const getCategoryColor = (categoria) => {
+          switch (categoria) {
+            case 'DIFÍCIL': return [220, 38, 38]; // Rojo
+            case 'FÁCIL': return [34, 197, 94]; // Verde
+            default: return [148, 163, 184]; // Gris
+          }
+        };
+
+        // Preparar datos de todas las asignaturas
+        const asignaturasData = analisisDificultad.todas.map(asig => ({
+          nivel: asig.nivel,
+          asignatura: asig.asignatura,
+          categoria: asig.categoria,
+          notaMedia: (asig.notaMedia || 0).toFixed(2),
+          aprobados: `${(asig.aprobados || 0).toFixed(1)}%`,
+          suspendidos: `${(asig.suspendidos || 0).toFixed(1)}%`,
+          razon: asig.razon
+        }));
+
+        // Generar tabla con todas las asignaturas
+        pdf.autoTable({
+          startY: 35,
+          head: [['Nivel', 'Asignatura', 'Cat.', 'Media', 'Apr.', 'Susp.']],
+          body: asignaturasData.map(asig => [
+            asig.nivel,
+            asig.asignatura,
+            asig.categoria,
+            asig.notaMedia,
+            asig.aprobados,
+            asig.suspendidos
+          ]),
+          theme: 'striped',
+          headStyles: { fillColor: [30, 58, 138], fontSize: 9, fontStyle: 'bold' },
+          styles: { fontSize: 8, cellPadding: 2.5 },
+          columnStyles: {
+            0: { cellWidth: 20, halign: 'center' },
+            1: { cellWidth: 70 },
+            2: { cellWidth: 22, halign: 'center', fontStyle: 'bold' },
+            3: { cellWidth: 18, halign: 'right' },
+            4: { cellWidth: 18, halign: 'right' },
+            5: { cellWidth: 18, halign: 'right' }
+          },
+          margin: { left: margin, right: margin },
+          didParseCell: (data) => {
+            // Colorear la celda de categoría
+            if (data.column.index === 2 && data.section === 'body') {
+              const categoria = data.cell.raw;
+              const color = getCategoryColor(categoria);
+              data.cell.styles.textColor = color;
+            }
+          },
+          didDrawPage: (data) => {
+            if (data.pageNumber > currentPage) {
+              currentPage = data.pageNumber;
+              addHeader(currentPage);
+            }
+            addFooter(data.pageNumber);
+          }
+        });
+
+        // Añadir sección de análisis detallado por categoría
+        pdf.addPage();
+        currentPage++;
+        addHeader(currentPage);
+
+        pdf.setFontSize(16);
+        pdf.setTextColor(30, 58, 138);
+        pdf.text(t('difficulty') + ' - ' + t('difficultyReason'), margin, 25);
+        pdf.setTextColor(0);
+
+        let yPos = 35;
+
+        // Asignaturas Difíciles
+        if (analisisDificultad.dificiles.length > 0) {
+          pdf.setFontSize(12);
+          pdf.setTextColor(220, 38, 38);
+          pdf.text(`${t('difficultSubjects')} (${analisisDificultad.dificiles.length})`, margin, yPos);
+          pdf.setTextColor(0);
+          yPos += 8;
+
+          analisisDificultad.dificiles.forEach(asig => {
+            if (yPos > pageHeight - 40) {
+              pdf.addPage();
+              currentPage++;
+              addHeader(currentPage);
+              yPos = 25;
+            }
+
+            pdf.setFontSize(10);
+            pdf.setFont(undefined, 'bold');
+            pdf.text(`${asig.nivel} - ${asig.asignatura}`, margin + 5, yPos);
+            pdf.setFont(undefined, 'normal');
+            yPos += 5;
+
+            pdf.setFontSize(9);
+            pdf.setTextColor(80);
+            const razonLines = pdf.splitTextToSize(asig.razon, pageWidth - 2 * margin - 10);
+            pdf.text(razonLines, margin + 5, yPos);
+            yPos += razonLines.length * 4 + 4;
+            pdf.setTextColor(0);
+          });
+
+          yPos += 5;
+        }
+
+        // Asignaturas Fáciles
+        if (analisisDificultad.faciles.length > 0) {
+          if (yPos > pageHeight - 60) {
             pdf.addPage();
-            yPosition = 20;
+            currentPage++;
+            addHeader(currentPage);
+            yPos = 25;
           }
 
-          const texto = `${idx + 1}. ${corr.Asignatura1} - ${corr.Asignatura2} (${corr.Nivel}): ${(corr.Correlacion || 0).toFixed(3)}`;
-          pdf.text(texto, 25, yPosition);
-          yPosition += 7;
-        });
+          pdf.setFontSize(12);
+          pdf.setTextColor(34, 197, 94);
+          pdf.text(`${t('easySubjects')} (${analisisDificultad.faciles.length})`, margin, yPos);
+          pdf.setTextColor(0);
+          yPos += 8;
+
+          analisisDificultad.faciles.forEach(asig => {
+            if (yPos > pageHeight - 40) {
+              pdf.addPage();
+              currentPage++;
+              addHeader(currentPage);
+              yPos = 25;
+            }
+
+            pdf.setFontSize(10);
+            pdf.setFont(undefined, 'bold');
+            pdf.text(`${asig.nivel} - ${asig.asignatura}`, margin + 5, yPos);
+            pdf.setFont(undefined, 'normal');
+            yPos += 5;
+
+            pdf.setFontSize(9);
+            pdf.setTextColor(80);
+            const razonLines = pdf.splitTextToSize(asig.razon, pageWidth - 2 * margin - 10);
+            pdf.text(razonLines, margin + 5, yPos);
+            yPos += razonLines.length * 4 + 4;
+            pdf.setTextColor(0);
+          });
+        }
+
+        addFooter(currentPage);
       }
 
       // Guardar PDF
@@ -1158,7 +1325,7 @@ const DashboardAcademico = () => {
     } finally {
       setGenerandoInforme(false);
     }
-  }, [trimestreSeleccionado, datosCompletos, configInforme, kpisGlobales, correlacionesTrimestre, t]);
+  }, [trimestreSeleccionado, datosCompletos, configInforme, kpisGlobales, correlacionesTrimestre, analisisDificultad, t]);
 
   // Si no hay datos, mostrar pantalla de carga
   if (trimestresDisponibles.length === 0) {
@@ -1493,7 +1660,7 @@ const DashboardAcademico = () => {
         <div className="max-w-7xl mx-auto">
           {/* Panel de KPIs Globales */}
           {kpisGlobales && (
-            <div className="mb-6" ref={kpisRef}>
+            <div className="mb-6">
               <h3 className="text-lg font-semibold text-slate-800 mb-4">{t('kpis')}</h3>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                 {/* Nota Media del Centro */}
@@ -2540,7 +2707,7 @@ const DashboardAcademico = () => {
       {/* VISTA: DIFICULTAD */}
       {vistaActual === 'dificultad' && analisisDificultad && (
         <div className="max-w-7xl mx-auto">
-          <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6" ref={dificultadRef}>
+          <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-slate-800">{t('difficulty')}</h3>
               {/* Toggle Por Niveles / Global */}

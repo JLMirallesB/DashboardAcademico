@@ -149,6 +149,8 @@ export const translations = {
     centerName: 'Nombre del Centro',
     academicYear: 'Curso Académico',
     reportFor: 'Informe para',
+    difficultyReason: 'Análisis Detallado',
+    easySubjects: 'Asignaturas Fáciles',
 
     // Footer
     designedBy: 'App diseñada por',
@@ -304,6 +306,8 @@ export const translations = {
     centerName: 'Nom del Centre',
     academicYear: 'Curs Acadèmic',
     reportFor: 'Informe per a',
+    difficultyReason: 'Anàlisi Detallada',
+    easySubjects: 'Assignatures Fàcils',
 
     // Footer
     designedBy: 'App dissenyada per',
