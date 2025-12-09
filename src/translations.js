@@ -54,6 +54,12 @@ export const translations = {
     trendDecreasing: 'Decreciente',
     trendStable: 'Estable',
     notEnoughData: 'Datos insuficientes',
+    sortByTrend: 'Ordenar por tendencia',
+    avgIncreasing: 'Media ↑ Creciente',
+    avgDecreasing: 'Media ↓ Decreciente',
+    failedIncreasing: 'Suspensos ↑ Creciente',
+    failedDecreasing: 'Suspensos ↓ Decreciente',
+    noSortLabel: 'Sin ordenar',
 
     // Umbrales
     configureThresholds: 'Configurar umbrales',
@@ -221,6 +227,12 @@ export const translations = {
     trendDecreasing: 'Decreixent',
     trendStable: 'Estable',
     notEnoughData: 'Dades insuficients',
+    sortByTrend: 'Ordenar per tendència',
+    avgIncreasing: 'Mitjana ↑ Creixent',
+    avgDecreasing: 'Mitjana ↓ Decreixent',
+    failedIncreasing: 'Suspesos ↑ Creixent',
+    failedDecreasing: 'Suspesos ↓ Decreixent',
+    noSortLabel: 'Sense ordenar',
 
     // Llindars
     configureThresholds: 'Configurar llindars',
