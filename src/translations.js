@@ -21,6 +21,7 @@ export const translations = {
     evolution: 'Evolución',
     difficulty: 'Dificultad',
     subjectsData: 'Datos de Asignaturas',
+    allSubjects: 'Todas las Asignaturas',
 
     // KPIs
     kpis: 'Indicadores Clave del Centro',
@@ -44,6 +45,15 @@ export const translations = {
     subject: 'Asignatura',
     compareLevels: 'Comparar misma asignatura en todos los niveles (1EEM - 4EEM)',
     subjectToCompare: 'Asignatura a comparar',
+    longitudinalComparison: 'Comparativa Longitudinal',
+    transversalComparison: 'Comparativa Transversal',
+    averageEvolution: 'Evolución de la Nota Media',
+    failedEvolution: 'Evolución del % de Suspensos',
+    trend: 'Tendencia',
+    trendIncreasing: 'Creciente',
+    trendDecreasing: 'Decreciente',
+    trendStable: 'Estable',
+    notEnoughData: 'Datos insuficientes',
 
     // Umbrales
     configureThresholds: 'Configurar umbrales',
@@ -178,6 +188,7 @@ export const translations = {
     evolution: 'Evolució',
     difficulty: 'Dificultat',
     subjectsData: 'Dades d\'Assignatures',
+    allSubjects: 'Totes les Assignatures',
 
     // KPIs
     kpis: 'Indicadors Clau del Centre',
@@ -201,6 +212,15 @@ export const translations = {
     subject: 'Assignatura',
     compareLevels: 'Comparar mateixa assignatura en tots els nivells (1EEM - 4EEM)',
     subjectToCompare: 'Assignatura a comparar',
+    longitudinalComparison: 'Comparativa Longitudinal',
+    transversalComparison: 'Comparativa Transversal',
+    averageEvolution: 'Evolució de la Nota Mitjana',
+    failedEvolution: 'Evolució del % de Suspesos',
+    trend: 'Tendència',
+    trendIncreasing: 'Creixent',
+    trendDecreasing: 'Decreixent',
+    trendStable: 'Estable',
+    notEnoughData: 'Dades insuficients',
 
     // Llindars
     configureThresholds: 'Configurar llindars',

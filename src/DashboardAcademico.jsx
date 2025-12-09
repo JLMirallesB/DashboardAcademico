@@ -38,6 +38,7 @@ const DashboardAcademico = () => {
   const [mostrarPanelCarga, setMostrarPanelCarga] = useState(true);
   const [compararNiveles, setCompararNiveles] = useState(false);
   const [asignaturaComparada, setAsignaturaComparada] = useState('Lenguaje Musical');
+  const [tipoComparativa, setTipoComparativa] = useState('longitudinal'); // 'longitudinal' o 'transversal'
   const [ordenCorrelaciones, setOrdenCorrelaciones] = useState('desc'); // 'desc', 'asc', 'none'
   const [ejeCorrelaciones, setEjeCorrelaciones] = useState('niveles'); // 'pares' o 'niveles'
   const [modoHeatmap, setModoHeatmap] = useState('relativo'); // 'absoluto' o 'relativo'
@@ -434,6 +435,33 @@ const DashboardAcademico = () => {
     if (esFacil) return 'FÁCIL';
     return null;
   }, [umbrales]);
+
+  // Calcular tendencia a partir de una serie de valores
+  const calcularTendencia = useCallback((valores) => {
+    if (!valores || valores.length < 2) return 'notEnoughData';
+
+    // Filtrar valores nulos/undefined
+    const valoresValidos = valores.filter(v => v !== null && v !== undefined && !isNaN(v));
+    if (valoresValidos.length < 2) return 'notEnoughData';
+
+    // Calcular pendiente usando regresión lineal simple
+    const n = valoresValidos.length;
+    let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+
+    valoresValidos.forEach((y, x) => {
+      sumX += x;
+      sumY += y;
+      sumXY += x * y;
+      sumX2 += x * x;
+    });
+
+    const pendiente = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+
+    // Determinar tendencia basada en la pendiente
+    // Umbral de ±0.1 para considerar estable
+    if (Math.abs(pendiente) < 0.1) return 'stable';
+    return pendiente > 0 ? 'increasing' : 'decreasing';
+  }, []);
 
   // Obtener niveles disponibles
   const nivelesDisponibles = useMemo(() => {
@@ -1850,17 +1878,46 @@ const DashboardAcademico = () => {
                   </div>
                 </div>
                 {compararNiveles && (
-                  <div>
-                    <label className="block text-xs font-medium text-slate-500 mb-2 uppercase">{t('subjectToCompare')}</label>
-                    <select
-                      value={asignaturaComparada}
-                      onChange={(e) => cambiarAsignaturaComparada(e.target.value)}
-                      className="w-full md:w-64 py-2 px-3 bg-white border border-slate-300 rounded-lg text-sm"
-                    >
-                      {todasLasAsignaturas.map(asig => (
-                        <option key={asig} value={asig}>{asig}</option>
-                      ))}
-                    </select>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-2 uppercase">{t('subjectToCompare')}</label>
+                      <select
+                        value={asignaturaComparada}
+                        onChange={(e) => cambiarAsignaturaComparada(e.target.value)}
+                        className="w-full md:w-64 py-2 px-3 bg-white border border-slate-300 rounded-lg text-sm"
+                      >
+                        {todasLasAsignaturas.map(asig => (
+                          <option key={asig} value={asig}>{asig}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Toggle Longitudinal vs Transversal */}
+                    <div className="flex items-center gap-3 pt-2 border-t border-slate-200">
+                      <span className="text-xs font-medium text-slate-500 uppercase">Tipo de Comparativa:</span>
+                      <div className="inline-flex bg-slate-100 rounded-lg p-1">
+                        <button
+                          onClick={() => setTipoComparativa('longitudinal')}
+                          className={`px-3 py-1 text-xs font-medium rounded transition-all ${
+                            tipoComparativa === 'longitudinal'
+                              ? 'bg-white text-slate-800 shadow-sm'
+                              : 'text-slate-500 hover:text-slate-700'
+                          }`}
+                        >
+                          {t('longitudinalComparison')}
+                        </button>
+                        <button
+                          onClick={() => setTipoComparativa('transversal')}
+                          className={`px-3 py-1 text-xs font-medium rounded transition-all ${
+                            tipoComparativa === 'transversal'
+                              ? 'bg-white text-slate-800 shadow-sm'
+                              : 'text-slate-500 hover:text-slate-700'
+                          }`}
+                        >
+                          {t('transversalComparison')}
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -2369,6 +2426,267 @@ const DashboardAcademico = () => {
               })()}
             </div>
           </div>
+
+          {/* Vista de Comparativa Transversal */}
+          {compararNiveles && tipoComparativa === 'transversal' && (
+            <div className="mt-6">
+              <h2 className="text-2xl font-bold text-slate-800 mb-6">{t('transversalComparison')} - {t('allSubjects')}</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {todasLasAsignaturas.map(asignatura => {
+                  // Calcular datos de evolución para esta asignatura
+                  const datosNotaMedia = nivelesSinGlobal.map(nivel => {
+                    const datos = datosCompletos[trimestreSeleccionado]?.[nivel]?.[asignatura];
+                    return datos?.stats?.notaMedia || null;
+                  }).filter(v => v !== null);
+
+                  const datosSuspensos = nivelesSinGlobal.map(nivel => {
+                    const datos = datosCompletos[trimestreSeleccionado]?.[nivel]?.[asignatura];
+                    return datos?.stats?.suspendidos || null;
+                  }).filter(v => v !== null);
+
+                  // Calcular tendencias
+                  const tendenciaMedia = calcularTendencia(datosNotaMedia);
+                  const tendenciaSuspensos = calcularTendencia(datosSuspensos);
+
+                  // Etiquetas de tendencia
+                  const labelMedia = tendenciaMedia === 'increasing' ? t('trendIncreasing') :
+                                    tendenciaMedia === 'decreasing' ? t('trendDecreasing') :
+                                    tendenciaMedia === 'stable' ? t('trendStable') : t('notEnoughData');
+                  const labelSuspensos = tendenciaSuspensos === 'increasing' ? t('trendIncreasing') :
+                                        tendenciaSuspensos === 'decreasing' ? t('trendDecreasing') :
+                                        tendenciaSuspensos === 'stable' ? t('trendStable') : t('notEnoughData');
+
+                  const colorMedia = tendenciaMedia === 'increasing' ? 'bg-green-100 text-green-700' :
+                                    tendenciaMedia === 'decreasing' ? 'bg-red-100 text-red-700' :
+                                    tendenciaMedia === 'stable' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700';
+                  const colorSuspensos = tendenciaSuspensos === 'increasing' ? 'bg-red-100 text-red-700' :
+                                        tendenciaSuspensos === 'decreasing' ? 'bg-green-100 text-green-700' :
+                                        tendenciaSuspensos === 'stable' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700';
+
+                  // Datos para los mini gráficos
+                  const datosGraficoMedia = nivelesSinGlobal.map(nivel => {
+                    const datos = datosCompletos[trimestreSeleccionado]?.[nivel]?.[asignatura];
+                    return {
+                      nivel,
+                      valor: datos?.stats?.notaMedia || null
+                    };
+                  }).filter(d => d.valor !== null);
+
+                  const datosGraficoSuspensos = nivelesSinGlobal.map(nivel => {
+                    const datos = datosCompletos[trimestreSeleccionado]?.[nivel]?.[asignatura];
+                    return {
+                      nivel,
+                      valor: datos?.stats?.suspendidos || null
+                    };
+                  }).filter(d => d.valor !== null);
+
+                  if (datosNotaMedia.length === 0 && datosSuspensos.length === 0) return null;
+
+                  return (
+                    <div key={asignatura} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow">
+                      <h3 className="text-lg font-semibold text-slate-800 mb-4">{asignatura}</h3>
+
+                      {/* Nota Media */}
+                      <div className="mb-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-slate-600">{t('averageEvolution')}</span>
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded ${colorMedia}`}>
+                            {labelMedia}
+                          </span>
+                        </div>
+                        <ResponsiveContainer width="100%" height={120}>
+                          <LineChart data={datosGraficoMedia}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                            <XAxis dataKey="nivel" stroke="#64748b" tick={{ fontSize: 10 }} />
+                            <YAxis stroke="#64748b" domain={[0, 10]} tick={{ fontSize: 10 }} />
+                            <Tooltip
+                              contentStyle={{
+                                backgroundColor: 'white',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '6px',
+                                fontSize: '12px'
+                              }}
+                            />
+                            <Line
+                              type="monotone"
+                              dataKey="valor"
+                              stroke="#2563eb"
+                              strokeWidth={2}
+                              dot={{ fill: '#2563eb', r: 3 }}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+
+                      {/* % Suspensos */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-slate-600">{t('failedEvolution')}</span>
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded ${colorSuspensos}`}>
+                            {labelSuspensos}
+                          </span>
+                        </div>
+                        <ResponsiveContainer width="100%" height={120}>
+                          <LineChart data={datosGraficoSuspensos}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                            <XAxis dataKey="nivel" stroke="#64748b" tick={{ fontSize: 10 }} />
+                            <YAxis stroke="#64748b" domain={[0, 100]} tick={{ fontSize: 10 }} />
+                            <Tooltip
+                              contentStyle={{
+                                backgroundColor: 'white',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '6px',
+                                fontSize: '12px'
+                              }}
+                            />
+                            <Line
+                              type="monotone"
+                              dataKey="valor"
+                              stroke="#dc2626"
+                              strokeWidth={2}
+                              dot={{ fill: '#dc2626', r: 3 }}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Gráficas de evolución para comparativa longitudinal */}
+          {compararNiveles && tipoComparativa === 'longitudinal' && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+              {/* Evolución de la Nota Media */}
+              <div className="bg-white rounded-xl border border-slate-200 p-6">
+                <h3 className="text-lg font-semibold text-slate-800 mb-4">{t('averageEvolution')}</h3>
+                {(() => {
+                  const datosEvolucion = nivelesSinGlobal.map(nivel => {
+                    const datos = datosCompletos[trimestreSeleccionado]?.[nivel]?.[asignaturaComparada];
+                    return {
+                      nivel,
+                      notaMedia: datos?.stats?.notaMedia || null
+                    };
+                  }).filter(d => d.notaMedia !== null);
+
+                  const tendencia = calcularTendencia(datosEvolucion.map(d => d.notaMedia));
+                  const tendenciaLabel = tendencia === 'increasing' ? t('trendIncreasing') :
+                                        tendencia === 'decreasing' ? t('trendDecreasing') :
+                                        tendencia === 'stable' ? t('trendStable') : t('notEnoughData');
+                  const tendenciaColor = tendencia === 'increasing' ? 'bg-green-100 text-green-700' :
+                                        tendencia === 'decreasing' ? 'bg-red-100 text-red-700' :
+                                        tendencia === 'stable' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700';
+
+                  return (
+                    <>
+                      <div className="mb-4 flex items-center gap-2">
+                        <span className="text-sm text-slate-600">{t('trend')}:</span>
+                        <span className={`text-xs font-semibold px-2 py-1 rounded ${tendenciaColor}`}>
+                          {tendenciaLabel}
+                        </span>
+                      </div>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <LineChart data={datosEvolucion}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                          <XAxis dataKey="nivel" stroke="#64748b" />
+                          <YAxis
+                            stroke="#64748b"
+                            domain={[0, 10]}
+                            label={{
+                              value: t('average'),
+                              angle: -90,
+                              position: 'insideLeft',
+                              style: { textAnchor: 'middle', fill: '#64748b' }
+                            }}
+                          />
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: 'white',
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '8px'
+                            }}
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="notaMedia"
+                            stroke="#2563eb"
+                            strokeWidth={3}
+                            dot={{ fill: '#2563eb', r: 6 }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </>
+                  );
+                })()}
+              </div>
+
+              {/* Evolución del % de Suspensos */}
+              <div className="bg-white rounded-xl border border-slate-200 p-6">
+                <h3 className="text-lg font-semibold text-slate-800 mb-4">{t('failedEvolution')}</h3>
+                {(() => {
+                  const datosEvolucion = nivelesSinGlobal.map(nivel => {
+                    const datos = datosCompletos[trimestreSeleccionado]?.[nivel]?.[asignaturaComparada];
+                    return {
+                      nivel,
+                      suspendidos: datos?.stats?.suspendidos || null
+                    };
+                  }).filter(d => d.suspendidos !== null);
+
+                  const tendencia = calcularTendencia(datosEvolucion.map(d => d.suspendidos));
+                  // Para suspensos, invertir la lógica: increasing es malo (rojo), decreasing es bueno (verde)
+                  const tendenciaLabel = tendencia === 'increasing' ? t('trendIncreasing') :
+                                        tendencia === 'decreasing' ? t('trendDecreasing') :
+                                        tendencia === 'stable' ? t('trendStable') : t('notEnoughData');
+                  const tendenciaColor = tendencia === 'increasing' ? 'bg-red-100 text-red-700' :
+                                        tendencia === 'decreasing' ? 'bg-green-100 text-green-700' :
+                                        tendencia === 'stable' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700';
+
+                  return (
+                    <>
+                      <div className="mb-4 flex items-center gap-2">
+                        <span className="text-sm text-slate-600">{t('trend')}:</span>
+                        <span className={`text-xs font-semibold px-2 py-1 rounded ${tendenciaColor}`}>
+                          {tendenciaLabel}
+                        </span>
+                      </div>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <LineChart data={datosEvolucion}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                          <XAxis dataKey="nivel" stroke="#64748b" />
+                          <YAxis
+                            stroke="#64748b"
+                            domain={[0, 100]}
+                            label={{
+                              value: '% Suspensos',
+                              angle: -90,
+                              position: 'insideLeft',
+                              style: { textAnchor: 'middle', fill: '#64748b' }
+                            }}
+                          />
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: 'white',
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '8px'
+                            }}
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="suspendidos"
+                            stroke="#dc2626"
+                            strokeWidth={3}
+                            dot={{ fill: '#dc2626', r: 6 }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
