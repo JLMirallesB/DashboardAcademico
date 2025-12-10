@@ -181,22 +181,22 @@ const DashboardAcademico = () => {
 
   // Procesar datos parseados
   const procesarDatos = useCallback((parsed) => {
-    const trimestre = parsed.metadata.Trimestre;
-    if (!trimestre) {
+    const trimestreBase = parsed.metadata.Trimestre;
+    if (!trimestreBase) {
       alert('Error: El CSV no contiene información de trimestre en METADATA');
       return null;
     }
-    
+
     // Estructurar datos
     const datosEstructurados = {};
     parsed.estadisticas.forEach(fila => {
       const nivel = fila.Nivel;
       const asignatura = fila.Asignatura;
-      
+
       if (!datosEstructurados[nivel]) {
         datosEstructurados[nivel] = {};
       }
-      
+
       datosEstructurados[nivel][asignatura] = {
         stats: {
           registros: fila.Registros,
@@ -222,9 +222,26 @@ const DashboardAcademico = () => {
         }
       };
     });
-    
+
+    // Detectar etapa del dataset basándose en los niveles
+    let etapaDetectada = null;
+    const niveles = Object.keys(datosEstructurados).filter(n => n !== 'GLOBAL');
+    if (niveles.length > 0) {
+      const primerNivel = niveles[0];
+      if (primerNivel.includes('EEM')) {
+        etapaDetectada = 'EEM';
+      } else if (primerNivel.includes('EPM')) {
+        etapaDetectada = 'EPM';
+      }
+    }
+
+    // Crear clave compuesta: trimestre + etapa (ej: "1T-EEM", "1T-EPM")
+    const trimestreCompleto = etapaDetectada ? `${trimestreBase}-${etapaDetectada}` : trimestreBase;
+
     return {
-      trimestre,
+      trimestre: trimestreCompleto,
+      trimestreBase,
+      etapa: etapaDetectada,
       metadata: parsed.metadata,
       datos: datosEstructurados,
       correlaciones: parsed.correlaciones
@@ -258,8 +275,25 @@ const DashboardAcademico = () => {
     setTrimestresDisponibles(prev => {
       const nuevos = prev.includes(trimestre) ? prev : [...prev, trimestre];
       return nuevos.sort((a, b) => {
+        // Extraer trimestre base y etapa
+        const [trimA, etapaA] = a.split('-');
+        const [trimB, etapaB] = b.split('-');
+
         const orden = { '1EV': 1, '2EV': 2, '3EV': 3, 'FINAL': 4 };
-        return (orden[a] || 99) - (orden[b] || 99);
+        const ordenTrimA = orden[trimA] || 99;
+        const ordenTrimB = orden[trimB] || 99;
+
+        // Primero ordenar por trimestre
+        if (ordenTrimA !== ordenTrimB) {
+          return ordenTrimA - ordenTrimB;
+        }
+
+        // Si el trimestre es igual, ordenar por etapa (EEM antes que EPM)
+        if (etapaA && etapaB) {
+          return etapaA.localeCompare(etapaB);
+        }
+
+        return 0;
       });
     });
 
@@ -500,17 +534,27 @@ const DashboardAcademico = () => {
     return null;
   }, []);
 
+  // Formatear nombre de trimestre para mostrar (ej: "1EV-EEM" → "1EV (EEM)")
+  const formatearNombreTrimestre = useCallback((trimestreCompleto) => {
+    const partes = trimestreCompleto.split('-');
+    if (partes.length > 1) {
+      return `${partes[0]} (${partes[1]})`;
+    }
+    return trimestreCompleto;
+  }, []);
+
   // Obtener etapas disponibles en todos los datos cargados
   const etapasDisponibles = useMemo(() => {
     const etapas = new Set();
-    Object.values(datosCompletos).forEach(trimestre => {
-      Object.keys(trimestre).forEach(nivel => {
-        const etapa = detectarEtapa(nivel);
-        if (etapa) etapas.add(etapa);
-      });
+    // Extraer etapas desde las claves de trimestres (formato: "1EV-EEM", "2EV-EPM")
+    trimestresDisponibles.forEach(trimCompleto => {
+      const partes = trimCompleto.split('-');
+      if (partes.length > 1) {
+        etapas.add(partes[1]); // La etapa es la segunda parte
+      }
     });
     return Array.from(etapas).sort();
-  }, [datosCompletos, detectarEtapa]);
+  }, [trimestresDisponibles]);
 
   // Filtrar niveles por etapa seleccionada
   const nivelesDeEtapa = useMemo(() => {
@@ -1515,7 +1559,7 @@ const DashboardAcademico = () => {
           <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
             <h3 className="text-2xl text-slate-800 mb-4">{t('trimesterAlreadyLoaded')}</h3>
             <p className="text-slate-600 mb-6">
-              {t('replaceConfirm').replace('{trimester}', trimestrePendiente)}
+              {t('replaceConfirm').replace('{trimester}', formatearNombreTrimestre(trimestrePendiente))}
             </p>
             <div className="flex gap-3">
               <button
@@ -1641,7 +1685,7 @@ const DashboardAcademico = () => {
               }`}
             >
               <button onClick={() => setTrimestreSeleccionado(trim)}>
-                {trim}
+                {formatearNombreTrimestre(trim)}
               </button>
               {trimestresDisponibles.length > 1 && (
                 <button
@@ -2031,7 +2075,7 @@ const DashboardAcademico = () => {
                         className="w-full py-2 px-3 bg-white border border-slate-300 rounded-lg text-sm disabled:bg-slate-100 disabled:cursor-not-allowed"
                       >
                         {trimestresDisponibles.map(t => (
-                          <option key={t} value={t}>{t}</option>
+                          <option key={t} value={t}>{formatearNombreTrimestre(t)}</option>
                         ))}
                       </select>
                     </div>
@@ -2771,7 +2815,7 @@ const DashboardAcademico = () => {
           <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
               <h3 className="text-lg font-semibold text-slate-800">
-                {t('correlationsTitle')} · {trimestreSeleccionado}
+                {t('correlationsTitle')} · {formatearNombreTrimestre(trimestreSeleccionado)}
               </h3>
               <div className="flex flex-wrap items-center gap-3">
                 <select
@@ -2780,7 +2824,7 @@ const DashboardAcademico = () => {
                   className="py-2 px-4 border border-slate-300 rounded-lg text-sm"
                 >
                   {trimestresDisponibles.map(t => (
-                    <option key={t} value={t}>{t}</option>
+                    <option key={t} value={t}>{formatearNombreTrimestre(t)}</option>
                   ))}
                 </select>
                 <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
@@ -3491,7 +3535,7 @@ const DashboardAcademico = () => {
                 >
                   <option value="ALL">{t('allTrimesters')}</option>
                   {trimestresDisponibles.map(trim => (
-                    <option key={trim} value={trim}>{trim}</option>
+                    <option key={trim} value={trim}>{formatearNombreTrimestre(trim)}</option>
                   ))}
                 </select>
               </div>
