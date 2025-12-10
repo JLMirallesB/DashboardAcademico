@@ -71,6 +71,13 @@ export const translations = {
     minPassed: '% Aprobados mínimo',
     minStudents: 'Alumnos mínimos',
 
+    // Etapas educativas
+    stage: 'Etapa',
+    elementaryStage: 'Enseñanzas Elementales (EEM)',
+    professionalStage: 'Enseñanzas Profesionales (EPM)',
+    eemShort: 'EEM',
+    epmShort: 'EPM',
+
     // Etiquetas
     difficult: 'DIFÍCIL',
     easy: 'FÁCIL',
@@ -243,6 +250,13 @@ export const translations = {
     easyAvg: 'Mitjana fàcil',
     minPassed: '% Aprovats mínim',
     minStudents: 'Alumnes mínims',
+
+    // Etapes educatives
+    stage: 'Etapa',
+    elementaryStage: 'Ensenyances Elementals (EEM)',
+    professionalStage: 'Ensenyances Professionals (EPM)',
+    eemShort: 'EEM',
+    epmShort: 'EPM',
 
     // Etiquetes
     difficult: 'DIFÍCIL',
