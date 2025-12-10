@@ -14,6 +14,10 @@ export const translations = {
     cancel: 'Cancelar',
     replace: 'Reemplazar',
     delete: 'Eliminar',
+    manageData: 'Gestionar datos cargados',
+    loadedData: 'Datos cargados',
+    noDataYet: 'Aún no hay datos cargados',
+    loadFirstDataset: 'Carga tu primer conjunto de datos usando el botón superior',
 
     // Navegación
     statistics: 'Estadísticas',
@@ -194,6 +198,10 @@ export const translations = {
     cancel: 'Cancel·lar',
     replace: 'Reemplaçar',
     delete: 'Eliminar',
+    manageData: 'Gestionar dades carregades',
+    loadedData: 'Dades carregades',
+    noDataYet: 'Encara no hi ha dades carregades',
+    loadFirstDataset: 'Carrega el teu primer conjunt de dades usant el botó superior',
 
     // Navegació
     statistics: 'Estadístiques',
