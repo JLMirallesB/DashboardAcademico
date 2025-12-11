@@ -504,6 +504,14 @@ const DashboardAcademico = () => {
     return pendiente > 0 ? 'increasing' : 'decreasing';
   }, []);
 
+  // Detectar etapa de un nivel (EEM: 1EEM-4EEM, EPM: 1EPM-6EPM)
+  const detectarEtapa = useCallback((nivel) => {
+    if (nivel === 'GLOBAL') return null;
+    if (nivel.includes('EEM')) return 'EEM';
+    if (nivel.includes('EPM')) return 'EPM';
+    return null;
+  }, []);
+
   // Obtener niveles disponibles
   const nivelesDisponibles = useMemo(() => {
     if (!trimestreSeleccionado || !datosCompletos[trimestreSeleccionado]) return [];
@@ -526,14 +534,6 @@ const DashboardAcademico = () => {
   const nivelesSinGlobal = useMemo(() => {
     return nivelesDisponibles.filter(n => n !== 'GLOBAL');
   }, [nivelesDisponibles]);
-
-  // Detectar etapa de un nivel (EEM: 1EEM-4EEM, EPM: 1EPM-6EPM)
-  const detectarEtapa = useCallback((nivel) => {
-    if (nivel === 'GLOBAL') return null;
-    if (nivel.includes('EEM')) return 'EEM';
-    if (nivel.includes('EPM')) return 'EPM';
-    return null;
-  }, []);
 
   // Formatear nombre de trimestre para mostrar (ej: "1EV-EEM" → "1EV (EEM)")
   const formatearNombreTrimestre = useCallback((trimestreCompleto) => {
