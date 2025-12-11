@@ -3447,16 +3447,25 @@ const DashboardAcademico = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {/* Gráficas de evolución transversal por asignatura */}
+                  <div className="space-y-8">
                     {asignaturasOrdenadas.map(({ asignatura, datosPorNivel, tendenciaMedia, tendenciaSuspensos }) => (
-                      <div key={asignatura} className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-lg transition-shadow">
-                        <h3 className="text-lg font-bold text-slate-800 mb-4 break-words">{asignatura}</h3>
+                      <div key={asignatura} className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+                        <div className="mb-6">
+                          <h3 className="text-2xl font-bold text-slate-800 mb-2">{asignatura}</h3>
+                          <p className="text-sm text-slate-600">
+                            {idioma === 'es'
+                              ? `Evolución de ${asignatura} a través de los niveles de ${etapaEvolucion}`
+                              : `Evolució de ${asignatura} a través dels nivells de ${etapaEvolucion}`
+                            }
+                          </p>
+                        </div>
 
-                        {/* Evolución Nota Media */}
-                        <div className="mb-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <h4 className="text-sm font-semibold text-slate-700">{t('average')}</h4>
-                            <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                        {/* Gráfica de Nota Media */}
+                        <div className="mb-8">
+                          <div className="flex items-center justify-between mb-4">
+                            <h4 className="text-lg font-semibold text-slate-700">{t('averageEvolution')}</h4>
+                            <span className={`px-3 py-1.5 rounded-lg text-sm font-semibold ${
                               tendenciaMedia.tipo === 'creciente'
                                 ? 'bg-green-100 text-green-800'
                                 : tendenciaMedia.tipo === 'decreciente'
@@ -3467,44 +3476,48 @@ const DashboardAcademico = () => {
                               {t(`trend${tendenciaMedia.tipo.charAt(0).toUpperCase() + tendenciaMedia.tipo.slice(1)}`)}
                             </span>
                           </div>
-                          <ResponsiveContainer width="100%" height={100}>
-                            <LineChart data={datosPorNivel} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                          <ResponsiveContainer width="100%" height={300}>
+                            <LineChart data={datosPorNivel} margin={{ top: 10, right: 30, left: 10, bottom: 20 }}>
                               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                               <XAxis
                                 dataKey="nivel"
-                                tick={{ fontSize: 10 }}
                                 stroke="#64748b"
+                                style={{ fontSize: '14px', fontWeight: 500 }}
                               />
                               <YAxis
                                 domain={[0, 10]}
-                                tick={{ fontSize: 10 }}
                                 stroke="#64748b"
+                                style={{ fontSize: '14px' }}
+                                label={{ value: t('average'), angle: -90, position: 'insideLeft', style: { fill: '#64748b' } }}
                               />
                               <Tooltip
                                 contentStyle={{
                                   backgroundColor: 'white',
-                                  border: '1px solid #e2e8f0',
-                                  borderRadius: '8px',
-                                  fontSize: '12px'
+                                  border: '2px solid #e2e8f0',
+                                  borderRadius: '12px',
+                                  padding: '12px',
+                                  fontSize: '14px'
                                 }}
-                                formatter={(value) => value?.toFixed(2)}
+                                formatter={(value) => [value?.toFixed(2), t('average')]}
+                                labelStyle={{ fontWeight: 'bold', marginBottom: '8px' }}
                               />
                               <Line
                                 type="monotone"
                                 dataKey="notaMedia"
                                 stroke="#1a1a2e"
-                                strokeWidth={2}
-                                dot={{ fill: '#1a1a2e', r: 4 }}
+                                strokeWidth={4}
+                                dot={{ fill: '#1a1a2e', r: 6, strokeWidth: 2, stroke: '#fff' }}
+                                activeDot={{ r: 8 }}
                               />
                             </LineChart>
                           </ResponsiveContainer>
                         </div>
 
-                        {/* Evolución % Suspensos */}
+                        {/* Gráfica de % Suspendidos */}
                         <div>
-                          <div className="flex items-center justify-between mb-2">
-                            <h4 className="text-sm font-semibold text-slate-700">% {t('failed')}</h4>
-                            <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                          <div className="flex items-center justify-between mb-4">
+                            <h4 className="text-lg font-semibold text-slate-700">{t('failedEvolution')}</h4>
+                            <span className={`px-3 py-1.5 rounded-lg text-sm font-semibold ${
                               tendenciaSuspensos.tipo === 'creciente'
                                 ? 'bg-red-100 text-red-800'
                                 : tendenciaSuspensos.tipo === 'decreciente'
@@ -3515,34 +3528,38 @@ const DashboardAcademico = () => {
                               {t(`trend${tendenciaSuspensos.tipo.charAt(0).toUpperCase() + tendenciaSuspensos.tipo.slice(1)}`)}
                             </span>
                           </div>
-                          <ResponsiveContainer width="100%" height={100}>
-                            <LineChart data={datosPorNivel} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                          <ResponsiveContainer width="100%" height={300}>
+                            <LineChart data={datosPorNivel} margin={{ top: 10, right: 30, left: 10, bottom: 20 }}>
                               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                               <XAxis
                                 dataKey="nivel"
-                                tick={{ fontSize: 10 }}
                                 stroke="#64748b"
+                                style={{ fontSize: '14px', fontWeight: 500 }}
                               />
                               <YAxis
                                 domain={[0, 100]}
-                                tick={{ fontSize: 10 }}
                                 stroke="#64748b"
+                                style={{ fontSize: '14px' }}
+                                label={{ value: '% ' + t('failed'), angle: -90, position: 'insideLeft', style: { fill: '#64748b' } }}
                               />
                               <Tooltip
                                 contentStyle={{
                                   backgroundColor: 'white',
-                                  border: '1px solid #e2e8f0',
-                                  borderRadius: '8px',
-                                  fontSize: '12px'
+                                  border: '2px solid #e2e8f0',
+                                  borderRadius: '12px',
+                                  padding: '12px',
+                                  fontSize: '14px'
                                 }}
-                                formatter={(value) => `${value?.toFixed(1)}%`}
+                                formatter={(value) => [`${value?.toFixed(1)}%`, '% ' + t('failed')]}
+                                labelStyle={{ fontWeight: 'bold', marginBottom: '8px' }}
                               />
                               <Line
                                 type="monotone"
                                 dataKey="suspendidos"
                                 stroke="#ef4444"
-                                strokeWidth={2}
-                                dot={{ fill: '#ef4444', r: 4 }}
+                                strokeWidth={4}
+                                dot={{ fill: '#ef4444', r: 6, strokeWidth: 2, stroke: '#fff' }}
+                                activeDot={{ r: 8 }}
                               />
                             </LineChart>
                           </ResponsiveContainer>
