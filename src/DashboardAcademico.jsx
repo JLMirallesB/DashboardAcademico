@@ -60,6 +60,7 @@ const DashboardAcademico = () => {
     { nivel: 'GLOBAL', asignatura: 'Todos' }
   ]);
   const [etapaEvolucion, setEtapaEvolucion] = useState('EEM'); // 'EEM' o 'EPM' - para comparativa transversal
+  const [asignaturasTransversal, setAsignaturasTransversal] = useState([]); // Asignaturas seleccionadas para comparativa transversal
 
   // Gestión de etapas educativas (EEM / EPM)
   const [etapaSeleccionada, setEtapaSeleccionada] = useState('EEM'); // 'EEM' o 'EPM'
@@ -921,89 +922,36 @@ const DashboardAcademico = () => {
     // Definir asignaturas de referencia según etapa
     const asignaturaReferencia = etapaSeleccionada === 'EPM' ? 'Teórica Troncal' : 'Lenguaje Musical';
 
+    // KPI 1: Nota media del centro (GLOBAL/Todos)
+    const notaMediaCentro = global['Todos']?.stats?.notaMedia || 0;
+
+    // KPI 2: Nota media de asignatura de referencia (LM o Teórica Troncal) - usar datos de GLOBAL
+    const notaMediaRef = global[asignaturaReferencia]?.stats?.notaMedia || 0;
+
+    // KPI 3: Nota media de Especialidades Instrumentales
     // Lista de asignaturas instrumentales según etapa
     const instrumentalesEPM = new Set(['Arpa', 'Bajo Eléctrico', 'Canto', 'Clarinete', 'Contrabajo',
       'Dolçaina', 'Fagot', 'Flauta', 'Guitarra', 'Guitarra Eléctrica', 'Oboe', 'Percusión',
       'Piano', 'Saxofón', 'Trombón', 'Trompa', 'Trompeta', 'Viola', 'Violín', 'Violoncello']);
 
-    const asignaturasInstrumentales = new Set();
-    const asignaturasRef = new Set();
-
-    // Recopilar todas las asignaturas de todos los niveles (filtrar por etapa)
-    Object.entries(datos).forEach(([nivel, asigs]) => {
-      if (nivel === 'GLOBAL') return;
-      if (detectarEtapa(nivel) !== etapaSeleccionada) return; // Filtrar por etapa
-      Object.keys(asigs).forEach(asig => {
-        if (asig === asignaturaReferencia) {
-          asignaturasRef.add(`${nivel}-${asig}`);
-        } else if (etapaSeleccionada === 'EPM') {
-          // Para EPM: solo las instrumentales especificadas
-          if (instrumentalesEPM.has(asig)) {
-            asignaturasInstrumentales.add(`${nivel}-${asig}`);
-          }
-        } else {
-          // Para EEM: todas excepto LM, Coro, Conjunto, Todos
-          if (!['Coro', 'Conjunto', 'Todos'].includes(asig)) {
-            asignaturasInstrumentales.add(`${nivel}-${asig}`);
-          }
+    // Calcular media ponderada de especialidades desde GLOBAL
+    let sumaNotasEsp = 0, sumaPesosEsp = 0;
+    Object.entries(global).forEach(([asig, data]) => {
+      if (etapaSeleccionada === 'EPM') {
+        // Para EPM: solo instrumentales específicas
+        if (instrumentalesEPM.has(asig) && data?.stats) {
+          sumaNotasEsp += data.stats.notaMedia * data.stats.registros;
+          sumaPesosEsp += data.stats.registros;
         }
-      });
-    });
-
-    // Función helper para calcular media ponderada
-    const calcularMediaPonderada = (lista) => {
-      let sumaPonderada = 0;
-      let sumaPesos = 0;
-      lista.forEach(({ valor, peso }) => {
-        if (valor !== null && valor !== undefined && peso > 0) {
-          sumaPonderada += valor * peso;
-          sumaPesos += peso;
+      } else {
+        // Para EEM: todas excepto LM, Coro, Conjunto, Todos
+        if (!['Lenguaje Musical', 'Coro', 'Conjunto', 'Todos'].includes(asig) && data?.stats) {
+          sumaNotasEsp += data.stats.notaMedia * data.stats.registros;
+          sumaPesosEsp += data.stats.registros;
         }
-      });
-      return sumaPesos > 0 ? sumaPonderada / sumaPesos : null;
-    };
-
-    // KPI 1: Nota media del centro (GLOBAL/Todos)
-    const notaMediaCentro = global['Todos']?.stats?.notaMedia || 0;
-
-    // KPI 2: Nota media de asignatura de referencia (LM o Teórica Troncal) (filtrar por etapa)
-    const datosRef = [];
-    Object.entries(datos).forEach(([nivel, asigs]) => {
-      if (nivel !== 'GLOBAL' && detectarEtapa(nivel) === etapaSeleccionada && asigs[asignaturaReferencia]?.stats) {
-        datosRef.push({
-          valor: asigs[asignaturaReferencia].stats.notaMedia,
-          peso: asigs[asignaturaReferencia].stats.registros
-        });
       }
     });
-    const notaMediaRef = calcularMediaPonderada(datosRef) || 0;
-
-    // KPI 3: Nota media de Especialidades Instrumentales (filtrar por etapa)
-    const datosEsp = [];
-    Object.entries(datos).forEach(([nivel, asigs]) => {
-      if (nivel !== 'GLOBAL' && detectarEtapa(nivel) === etapaSeleccionada) {
-        Object.entries(asigs).forEach(([asig, data]) => {
-          if (etapaSeleccionada === 'EPM') {
-            // Solo instrumentales específicas para EPM
-            if (instrumentalesEPM.has(asig) && data?.stats) {
-              datosEsp.push({
-                valor: data.stats.notaMedia,
-                peso: data.stats.registros
-              });
-            }
-          } else {
-            // Para EEM: todas excepto LM, Coro, Conjunto, Todos
-            if (!['Lenguaje Musical', 'Coro', 'Conjunto', 'Todos'].includes(asig) && data?.stats) {
-              datosEsp.push({
-                valor: data.stats.notaMedia,
-                peso: data.stats.registros
-              });
-            }
-          }
-        });
-      }
-    });
-    const notaMediaEsp = calcularMediaPonderada(datosEsp) || 0;
+    const notaMediaEsp = sumaPesosEsp > 0 ? sumaNotasEsp / sumaPesosEsp : 0;
 
     // KPI 4: Contador de asignaturas difíciles/fáciles (filtrar por etapa)
     let countDificiles = 0;
@@ -1019,81 +967,47 @@ const DashboardAcademico = () => {
       });
     });
 
-    // KPI 5-7: % Aprobados (total, referencia, especialidades) (filtrar por etapa)
+    // KPI 5-7: % Aprobados (total, referencia, especialidades) - usar datos de GLOBAL
     const aprobadosCentro = global['Todos']?.stats?.aprobados || 0;
+    const aprobadosRef = global[asignaturaReferencia]?.stats?.aprobados || 0;
 
-    const datosAprobadosRef = [];
-    Object.entries(datos).forEach(([nivel, asigs]) => {
-      if (nivel !== 'GLOBAL' && detectarEtapa(nivel) === etapaSeleccionada && asigs[asignaturaReferencia]?.stats) {
-        datosAprobadosRef.push({
-          valor: asigs[asignaturaReferencia].stats.aprobados,
-          peso: asigs[asignaturaReferencia].stats.registros
-        });
+    // Calcular % aprobados de especialidades desde GLOBAL
+    let sumaAprobadosEsp = 0, sumaPesosAprobadosEsp = 0;
+    Object.entries(global).forEach(([asig, data]) => {
+      if (etapaSeleccionada === 'EPM') {
+        if (instrumentalesEPM.has(asig) && data?.stats) {
+          sumaAprobadosEsp += data.stats.aprobados * data.stats.registros;
+          sumaPesosAprobadosEsp += data.stats.registros;
+        }
+      } else {
+        if (!['Lenguaje Musical', 'Coro', 'Conjunto', 'Todos'].includes(asig) && data?.stats) {
+          sumaAprobadosEsp += data.stats.aprobados * data.stats.registros;
+          sumaPesosAprobadosEsp += data.stats.registros;
+        }
       }
     });
-    const aprobadosRef = calcularMediaPonderada(datosAprobadosRef) || 0;
+    const aprobadosEsp = sumaPesosAprobadosEsp > 0 ? sumaAprobadosEsp / sumaPesosAprobadosEsp : 0;
 
-    const datosAprobadosEsp = [];
-    Object.entries(datos).forEach(([nivel, asigs]) => {
-      if (nivel !== 'GLOBAL' && detectarEtapa(nivel) === etapaSeleccionada) {
-        Object.entries(asigs).forEach(([asig, data]) => {
-          if (etapaSeleccionada === 'EPM') {
-            if (instrumentalesEPM.has(asig) && data?.stats) {
-              datosAprobadosEsp.push({
-                valor: data.stats.aprobados,
-                peso: data.stats.registros
-              });
-            }
-          } else {
-            if (!['Lenguaje Musical', 'Coro', 'Conjunto', 'Todos'].includes(asig) && data?.stats) {
-              datosAprobadosEsp.push({
-                valor: data.stats.aprobados,
-                peso: data.stats.registros
-              });
-            }
-          }
-        });
-      }
-    });
-    const aprobadosEsp = calcularMediaPonderada(datosAprobadosEsp) || 0;
-
-    // KPI 8-10: % Suspendidos (total, referencia, especialidades) (filtrar por etapa)
+    // KPI 8-10: % Suspendidos (total, referencia, especialidades) - usar datos de GLOBAL
     const suspendidosCentro = global['Todos']?.stats?.suspendidos || 0;
+    const suspendidosRef = global[asignaturaReferencia]?.stats?.suspendidos || 0;
 
-    const datosSuspendidosRef = [];
-    Object.entries(datos).forEach(([nivel, asigs]) => {
-      if (nivel !== 'GLOBAL' && detectarEtapa(nivel) === etapaSeleccionada && asigs[asignaturaReferencia]?.stats) {
-        datosSuspendidosRef.push({
-          valor: asigs[asignaturaReferencia].stats.suspendidos,
-          peso: asigs[asignaturaReferencia].stats.registros
-        });
+    // Calcular % suspendidos de especialidades desde GLOBAL
+    let sumaSuspendidosEsp = 0, sumaPesosSuspendidosEsp = 0;
+    Object.entries(global).forEach(([asig, data]) => {
+      if (etapaSeleccionada === 'EPM') {
+        if (instrumentalesEPM.has(asig) && data?.stats) {
+          sumaSuspendidosEsp += data.stats.suspendidos * data.stats.registros;
+          sumaPesosSuspendidosEsp += data.stats.registros;
+        }
+      } else {
+        if (!['Lenguaje Musical', 'Coro', 'Conjunto', 'Todos'].includes(asig) && data?.stats) {
+          sumaSuspendidosEsp += data.stats.suspendidos * data.stats.registros;
+          sumaPesosSuspendidosEsp += data.stats.registros;
+        }
       }
     });
-    const suspendidosRef = calcularMediaPonderada(datosSuspendidosRef) || 0;
-
-    const datosSuspendidosEsp = [];
-    Object.entries(datos).forEach(([nivel, asigs]) => {
-      if (nivel !== 'GLOBAL' && detectarEtapa(nivel) === etapaSeleccionada) {
-        Object.entries(asigs).forEach(([asig, data]) => {
-          if (etapaSeleccionada === 'EPM') {
-            if (instrumentalesEPM.has(asig) && data?.stats) {
-              datosSuspendidosEsp.push({
-                valor: data.stats.suspendidos,
-                peso: data.stats.registros
-              });
-            }
-          } else {
-            if (!['Lenguaje Musical', 'Coro', 'Conjunto', 'Todos'].includes(asig) && data?.stats) {
-              datosSuspendidosEsp.push({
-                valor: data.stats.suspendidos,
-                peso: data.stats.registros
-              });
-            }
-          }
-        });
-      }
-    });
-    const suspendidosEsp = calcularMediaPonderada(datosSuspendidosEsp) || 0;
+    const suspendidosEsp = sumaPesosSuspendidosEsp > 0 ? sumaSuspendidosEsp / sumaPesosSuspendidosEsp : 0;
 
     const result = {
       notaMediaCentro,
@@ -2157,7 +2071,10 @@ const DashboardAcademico = () => {
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-medium text-slate-700">
-                      {t('compareLevels')}
+                      {idioma === 'es'
+                        ? `Comparar misma asignatura en todos los niveles (${etapaSeleccionada === 'EPM' ? '1EPM - 6EPM' : '1EEM - 4EEM'})`
+                        : `Comparar mateixa assignatura en tots els nivells (${etapaSeleccionada === 'EPM' ? '1EPM - 6EPM' : '1EEM - 4EEM'})`
+                      }
                     </span>
                     <button
                       onClick={() => compararNiveles ? desactivarCompararNiveles() : activarCompararNiveles()}
@@ -3411,8 +3328,13 @@ const DashboardAcademico = () => {
                 };
               }).filter(Boolean);
 
+              // Filtrar asignaturas según selección
+              let asignaturasFiltradas = asignaturasTransversal.length > 0
+                ? asignaturasConDatos.filter(item => asignaturasTransversal.includes(item.asignatura))
+                : asignaturasConDatos;
+
               // Ordenar según el criterio seleccionado
-              let asignaturasOrdenadas = [...asignaturasConDatos];
+              let asignaturasOrdenadas = [...asignaturasFiltradas];
               if (ordenEvolucion === 'avgIncreasing') {
                 asignaturasOrdenadas.sort((a, b) => {
                   const aVal = a.tendenciaMedia.tipo === 'creciente' ? a.tendenciaMedia.pendiente : -Infinity;
@@ -3441,46 +3363,86 @@ const DashboardAcademico = () => {
 
               return (
                 <div className="mt-8">
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-bold text-slate-800">
-                      {t('transversalComparison')} - {t('allSubjects')}
-                    </h2>
-                    <div className="flex items-center gap-4">
-                      {/* Selector de etapa para comparativa transversal */}
-                      {etapasDisponibles.length > 1 && (
-                        <div className="flex items-center gap-2">
-                          <label className="text-sm font-medium text-slate-700">{t('stage')}:</label>
-                          <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
-                            {etapasDisponibles.map(etapa => (
-                              <button
-                                key={etapa}
-                                onClick={() => setEtapaEvolucion(etapa)}
-                                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                                  etapaEvolucion === etapa
-                                    ? 'bg-blue-600 text-white'
-                                    : 'text-slate-700 hover:bg-slate-200'
-                                }`}
-                              >
-                                {etapa}
-                              </button>
-                            ))}
+                  <div className="mb-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-2xl font-bold text-slate-800">
+                        {t('transversalComparison')} - {t('allSubjects')}
+                      </h2>
+                      <div className="flex items-center gap-4">
+                        {/* Selector de etapa para comparativa transversal */}
+                        {etapasDisponibles.length > 1 && (
+                          <div className="flex items-center gap-2">
+                            <label className="text-sm font-medium text-slate-700">{t('stage')}:</label>
+                            <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
+                              {etapasDisponibles.map(etapa => (
+                                <button
+                                  key={etapa}
+                                  onClick={() => setEtapaEvolucion(etapa)}
+                                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                                    etapaEvolucion === etapa
+                                      ? 'bg-blue-600 text-white'
+                                      : 'text-slate-700 hover:bg-slate-200'
+                                  }`}
+                                >
+                                  {etapa}
+                                </button>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
 
-                      <div className="flex items-center gap-2">
-                        <label className="text-sm font-medium text-slate-700">{t('sortByTrend')}:</label>
-                        <select
-                          value={ordenEvolucion}
-                          onChange={(e) => setOrdenEvolucion(e.target.value)}
-                          className="px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        <div className="flex items-center gap-2">
+                          <label className="text-sm font-medium text-slate-700">{t('sortByTrend')}:</label>
+                          <select
+                            value={ordenEvolucion}
+                            onChange={(e) => setOrdenEvolucion(e.target.value)}
+                            className="px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          >
+                            <option value="none">{t('noSortLabel')}</option>
+                            <option value="avgIncreasing">{t('avgIncreasing')}</option>
+                            <option value="avgDecreasing">{t('avgDecreasing')}</option>
+                            <option value="failedIncreasing">{t('failedIncreasing')}</option>
+                            <option value="failedDecreasing">{t('failedDecreasing')}</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Selector de asignaturas para filtrar */}
+                    <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        {idioma === 'es' ? 'Seleccionar asignaturas a mostrar:' : 'Seleccionar assignatures a mostrar:'}
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          onClick={() => setAsignaturasTransversal([])}
+                          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                            asignaturasTransversal.length === 0
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-100'
+                          }`}
                         >
-                          <option value="none">{t('noSortLabel')}</option>
-                          <option value="avgIncreasing">{t('avgIncreasing')}</option>
-                          <option value="avgDecreasing">{t('avgDecreasing')}</option>
-                          <option value="failedIncreasing">{t('failedIncreasing')}</option>
-                          <option value="failedDecreasing">{t('failedDecreasing')}</option>
-                        </select>
+                          {t('allSubjects')}
+                        </button>
+                        {todasLasAsignaturas.map(asig => (
+                          <button
+                            key={asig}
+                            onClick={() => {
+                              if (asignaturasTransversal.includes(asig)) {
+                                setAsignaturasTransversal(asignaturasTransversal.filter(a => a !== asig));
+                              } else {
+                                setAsignaturasTransversal([...asignaturasTransversal, asig]);
+                              }
+                            }}
+                            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                              asignaturasTransversal.includes(asig)
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-100'
+                            }`}
+                          >
+                            {asig}
+                          </button>
+                        ))}
                       </div>
                     </div>
                   </div>
