@@ -617,6 +617,26 @@ const DashboardAcademico = () => {
     }
   }, [modoEtapa, todasLasAsignaturas, asignaturaComparada]);
 
+  // Sincronizar trimestre seleccionado con modo de etapa
+  useEffect(() => {
+    if (trimestresDisponibles.length === 0) return;
+
+    // Si el trimestre actual no corresponde al modo seleccionado, buscar uno apropiado
+    const etapaTrimActual = trimestreSeleccionado ? trimestreSeleccionado.split('-')[1] : null;
+
+    if (modoEtapa !== 'TODOS' && etapaTrimActual && etapaTrimActual !== modoEtapa) {
+      // Buscar un trimestre del modo actual
+      const trimestreDelModo = trimestresDisponibles.find(t => {
+        const partes = t.split('-');
+        return partes.length > 1 && partes[1] === modoEtapa;
+      });
+
+      if (trimestreDelModo) {
+        setTrimestreSeleccionado(trimestreDelModo);
+      }
+    }
+  }, [modoEtapa, trimestresDisponibles, trimestreSeleccionado]);
+
   // Activar comparación de niveles
   const activarCompararNiveles = useCallback(() => {
     if (!trimestreSeleccionado) return;
