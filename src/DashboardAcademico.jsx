@@ -677,11 +677,24 @@ const DashboardAcademico = () => {
       nivel,
       asignatura: asignaturaComparada
     })).filter(sel => {
+      // En modo TODOS, buscar el trimestre apropiado para cada nivel
+      let trimestreParaNivel = sel.trimestre;
+      if (modoEtapa === 'TODOS') {
+        const etapaNivel = detectarEtapa(sel.nivel);
+        const trimestreBase = sel.trimestre.split('-')[0]; // Ej: "1EV"
+        const trimestreConEtapa = trimestresDisponibles.find(t => {
+          const partes = t.split('-');
+          return partes[0] === trimestreBase && partes[1] === etapaNivel;
+        });
+        if (trimestreConEtapa) {
+          trimestreParaNivel = trimestreConEtapa;
+        }
+      }
       // Solo incluir si el nivel tiene esa asignatura
-      return datosCompletos[sel.trimestre]?.[sel.nivel]?.[sel.asignatura];
+      return datosCompletos[trimestreParaNivel]?.[sel.nivel]?.[sel.asignatura];
     });
     setSelecciones(nuevasSelecciones);
-  }, [trimestreSeleccionado, nivelesSinGlobalEtapa, asignaturaComparada, datosCompletos]);
+  }, [trimestreSeleccionado, nivelesSinGlobalEtapa, asignaturaComparada, datosCompletos, modoEtapa, detectarEtapa, trimestresDisponibles]);
 
   // Desactivar comparación de niveles
   const desactivarCompararNiveles = useCallback(() => {
