@@ -588,6 +588,35 @@ const DashboardAcademico = () => {
     }
   }, [etapasDisponibles, modoEtapa]);
 
+  // Actualizar asignatura comparada cuando cambia el modo de etapa
+  useEffect(() => {
+    if (todasLasAsignaturas.length === 0) return;
+
+    // Verificar si la asignatura actual existe en el modo actual
+    const asignaturaActualExiste = todasLasAsignaturas.includes(asignaturaComparada);
+
+    if (!asignaturaActualExiste) {
+      // Seleccionar una asignatura apropiada según el modo
+      let nuevaAsignatura;
+      if (modoEtapa === 'EPM') {
+        // En EPM, preferir Teórica Troncal, Piano, o la primera disponible
+        nuevaAsignatura = todasLasAsignaturas.find(a => a === 'Teórica Troncal') ||
+                          todasLasAsignaturas.find(a => a === 'Piano') ||
+                          todasLasAsignaturas[0];
+      } else if (modoEtapa === 'EEM') {
+        // En EEM, preferir Lenguaje Musical, Piano, o la primera disponible
+        nuevaAsignatura = todasLasAsignaturas.find(a => a === 'Lenguaje Musical') ||
+                          todasLasAsignaturas.find(a => a === 'Piano') ||
+                          todasLasAsignaturas[0];
+      } else {
+        // En TODOS, preferir Piano (existe en ambos) o la primera disponible
+        nuevaAsignatura = todasLasAsignaturas.find(a => a === 'Piano') ||
+                          todasLasAsignaturas[0];
+      }
+      setAsignaturaComparada(nuevaAsignatura);
+    }
+  }, [modoEtapa, todasLasAsignaturas, asignaturaComparada]);
+
   // Activar comparación de niveles
   const activarCompararNiveles = useCallback(() => {
     if (!trimestreSeleccionado) return;
