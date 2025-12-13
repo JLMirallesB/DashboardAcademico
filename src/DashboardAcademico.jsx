@@ -732,13 +732,14 @@ const DashboardAcademico = () => {
   // Datos para gráfico de evolución de correlaciones
   const datosEvolucionCorrelaciones = useMemo(() => {
     if (tiposCorrelacion.length === 0) return [];
-    
+
     // Función para abreviar nombres de asignaturas
     const abreviar = (nombre) => {
       const abreviaturas = {
         'Lenguaje Musical': 'LM',
         'Coro': 'Cor',
         'Conjunto': 'Con',
+        'Orquesta/Banda/Conjunto': 'Orq/Ban/Con',
         'Especialidad': 'Esp',
         'Arpa': 'Arp',
         'Clarinete': 'Cla',
@@ -759,15 +760,15 @@ const DashboardAcademico = () => {
       };
       return abreviaturas[nombre] || nombre.substring(0, 3);
     };
-    
+
     return tiposCorrelacion.map(tipo => {
       const [asig1, asig2] = tipo.split('-');
-      const punto = { 
-        par: `${abreviar(asig1)}-${abreviar(asig2)}`, 
-        parCompleto: `${asig1} ↔ ${asig2}` 
+      const punto = {
+        par: `${abreviar(asig1)}-${abreviar(asig2)}`,
+        parCompleto: `${asig1} ↔ ${asig2}`
       };
-      
-      ['1EEM', '2EEM', '3EEM', '4EEM'].forEach(nivel => {
+
+      nivelesSinGlobalEtapa.forEach(nivel => {
         // Buscar en todos los trimestres
         Object.entries(correlacionesCompletas).forEach(([trim, corrs]) => {
           const corr = corrs.find(c => 
@@ -779,10 +780,10 @@ const DashboardAcademico = () => {
           }
         });
       });
-      
+
       return punto;
     });
-  }, [tiposCorrelacion, correlacionesCompletas]);
+  }, [tiposCorrelacion, correlacionesCompletas, nivelesSinGlobalEtapa]);
 
   // Datos alternativos para gráfico de evolución de correlaciones (eje X = niveles, líneas = pares)
   const datosEvolucionCorrelacionesAlt = useMemo(() => {
@@ -794,6 +795,7 @@ const DashboardAcademico = () => {
         'Lenguaje Musical': 'LM',
         'Coro': 'Cor',
         'Conjunto': 'Con',
+        'Orquesta/Banda/Conjunto': 'Orq/Ban/Con',
         'Especialidad': 'Esp',
         'Arpa': 'Arp',
         'Clarinete': 'Cla',
@@ -822,7 +824,7 @@ const DashboardAcademico = () => {
       let suma = 0;
       let count = 0;
 
-      ['1EEM', '2EEM', '3EEM', '4EEM'].forEach(nivel => {
+      nivelesSinGlobalEtapa.forEach(nivel => {
         Object.entries(correlacionesCompletas).forEach(([trim, corrs]) => {
           const corr = corrs.find(c =>
             c.Asignatura1 === asig1 && c.Asignatura2 === asig2 && c.Nivel === nivel
@@ -844,7 +846,7 @@ const DashboardAcademico = () => {
       .map(([tipo]) => tipo);
 
     // Crear estructura de datos con eje X = niveles
-    return ['1EEM', '2EEM', '3EEM', '4EEM'].map(nivel => {
+    return nivelesSinGlobalEtapa.map(nivel => {
       const punto = { nivel };
 
       paresOrdenados.forEach(tipo => {
@@ -864,7 +866,7 @@ const DashboardAcademico = () => {
 
       return punto;
     });
-  }, [tiposCorrelacion, correlacionesCompletas]);
+  }, [tiposCorrelacion, correlacionesCompletas, nivelesSinGlobalEtapa]);
 
   // Obtener pares de asignaturas para el modo alternativo
   const paresCorrelacionesAlt = useMemo(() => {
@@ -2729,14 +2731,14 @@ const DashboardAcademico = () => {
                       </thead>
                       <tbody>
                         {[
-                          { key: 'insuficiente', label: t('insufficient'), notas: '1-4', color: '#ef4444' },
-                          { key: 'suficiente', label: t('sufficient'), notas: '5', color: '#f97316' },
-                          { key: 'bien', label: t('good'), notas: '6', color: '#fbbf24' },
-                          { key: 'notable', label: t('notable'), notas: '7-8', color: '#22c55e' },
-                          { key: 'excelente', label: t('excellent'), notas: '9-10', color: '#059669' }
-                        ].map(({ key, label, notas, color }) => (
+                          { key: 'insuficiente', label: t('insufficient'), notas: '1-4' },
+                          { key: 'suficiente', label: t('sufficient'), notas: '5' },
+                          { key: 'bien', label: t('good'), notas: '6' },
+                          { key: 'notable', label: t('notable'), notas: '7-8' },
+                          { key: 'excelente', label: t('excellent'), notas: '9-10' }
+                        ].map(({ key, label, notas }) => (
                           <tr key={key} className="border-b border-slate-100">
-                            <td className="py-2 px-3 font-medium" style={{ color }}>{label}</td>
+                            <td className="py-2 px-3 font-medium text-slate-700">{label}</td>
                             <td className="py-2 px-3 text-xs text-slate-500">{notas}</td>
                             {selecciones.map((sel, idx) => {
                               const datos = datosCompletos[sel.trimestre]?.[sel.nivel]?.[sel.asignatura];
@@ -3748,7 +3750,7 @@ const DashboardAcademico = () => {
                 >
                   <option value="ALL">{t('allLevels')}</option>
                   <option value="GLOBAL">{t('global')}</option>
-                  {['1EEM', '2EEM', '3EEM', '4EEM'].map(nivel => (
+                  {['1EEM', '2EEM', '3EEM', '4EEM', '1EPM', '2EPM', '3EPM', '4EPM', '5EPM', '6EPM'].map(nivel => (
                     <option key={nivel} value={nivel}>{nivel}</option>
                   ))}
                 </select>
@@ -3817,6 +3819,16 @@ const DashboardAcademico = () => {
                         badgeText = 'text-slate-700';
                       }
 
+                      // Formatear header sin redundancia
+                      let headerText;
+                      if (nivel === 'GLOBAL') {
+                        headerText = `${trimestre} · ${nivel}`;
+                      } else {
+                        // Eliminar redundancia: 1EV-EEM 1EEM → 1EV 1EEM
+                        const trimestreBase = trimestre.split('-')[0]; // 1EV, 2EV, etc.
+                        headerText = `${trimestreBase} · ${nivel}`;
+                      }
+
                       return (
                         <div
                           key={`${trimestre}-${nivel}-${asignatura}-${idx}`}
@@ -3825,8 +3837,8 @@ const DashboardAcademico = () => {
                           {/* Header con badge */}
                           <div className="flex items-start justify-between mb-3">
                             <div className="flex-1">
-                              <div className="text-xs font-medium text-slate-500 mb-1">{trimestre} · {nivel}</div>
-                              <h4 className="text-sm font-semibold text-slate-800 leading-tight">{asignatura}</h4>
+                              <div className="text-xs font-semibold text-slate-600 mb-1">{headerText}</div>
+                              <h4 className="text-sm font-bold text-slate-900 leading-tight">{asignatura}</h4>
                             </div>
                             <span className={`${badgeBg} ${badgeText} text-xs px-2 py-0.5 rounded font-medium ml-2`}>
                               {t(resultado === 'DIFÍCIL' ? 'difficult' : resultado === 'FÁCIL' ? 'easy' : 'neutral')}
