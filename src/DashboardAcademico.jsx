@@ -59,11 +59,10 @@ const DashboardAcademico = () => {
   const [seleccionesEvolucion, setSeleccionesEvolucion] = useState([
     { nivel: 'GLOBAL', asignatura: 'Todos' }
   ]);
-  const [etapaEvolucion, setEtapaEvolucion] = useState('EEM'); // 'EEM' o 'EPM' - para comparativa transversal
   const [asignaturasTransversal, setAsignaturasTransversal] = useState([]); // Asignaturas seleccionadas para comparativa transversal
 
-  // Gestión de etapas educativas (EEM / EPM)
-  const [etapaSeleccionada, setEtapaSeleccionada] = useState('EEM'); // 'EEM' o 'EPM'
+  // Gestión de etapas educativas (EEM / EPM / TODOS)
+  const [modoEtapa, setModoEtapa] = useState('EEM'); // 'EEM' | 'EPM' | 'TODOS'
 
   // Estado para generación de informes
   const [mostrarModalInforme, setMostrarModalInforme] = useState(false);
@@ -258,12 +257,7 @@ const DashboardAcademico = () => {
 
   // Aplicar datos
   const aplicarDatos = useCallback((procesado) => {
-    console.log('[DEBUG] Aplicando datos:', procesado);
     const { trimestre, metadata: meta, datos, correlaciones } = procesado;
-
-    console.log('[DEBUG] Trimestre:', trimestre);
-    console.log('[DEBUG] Datos:', Object.keys(datos));
-    console.log('[DEBUG] Correlaciones:', correlaciones?.length);
 
     setDatosCompletos(prev => ({
       ...prev,
@@ -306,13 +300,11 @@ const DashboardAcademico = () => {
     });
 
     if (!trimestreSeleccionado) {
-      console.log('[DEBUG] Estableciendo trimestre seleccionado:', trimestre);
       setTrimestreSeleccionado(trimestre);
     }
 
     // Inicializar selección por defecto
     if (selecciones.length === 0 && datos['GLOBAL']) {
-      console.log('[DEBUG] Inicializando selección por defecto');
       setSelecciones([{
         id: 0,
         trimestre: trimestre,
@@ -321,7 +313,6 @@ const DashboardAcademico = () => {
       }]);
     }
 
-    console.log('[DEBUG] Datos aplicados correctamente');
     setMostrarPanelCarga(false);
   }, [trimestreSeleccionado, selecciones.length]);
 
@@ -330,29 +321,22 @@ const DashboardAcademico = () => {
     const file = event.target.files[0];
     if (!file) return;
 
-    console.log('[DEBUG] Cargando archivo CSV:', file.name);
     const reader = new FileReader();
     reader.onload = (e) => {
       const texto = e.target.result;
-      console.log('[DEBUG] CSV leído, longitud:', texto.length);
       const parsed = parseCSV(texto);
-      console.log('[DEBUG] CSV parseado:', parsed);
       const procesado = procesarDatos(parsed);
-      console.log('[DEBUG] Datos procesados:', procesado);
 
       if (!procesado) {
-        console.error('[DEBUG] Error: procesarDatos devolvió null');
         return;
       }
 
       // Verificar si el trimestre ya existe
       if (trimestresDisponibles.includes(procesado.trimestre)) {
-        console.log('[DEBUG] Trimestre ya existe, mostrando modal de confirmación');
         setTrimestrePendiente(procesado.trimestre);
         setDatosPendientes(procesado);
         setMostrarModalConfirm(true);
       } else {
-        console.log('[DEBUG] Aplicando datos de nuevo trimestre:', procesado.trimestre);
         aplicarDatos(procesado);
       }
     };
@@ -530,12 +514,15 @@ const DashboardAcademico = () => {
     if (!trimestreSeleccionado || !datosCompletos[trimestreSeleccionado]) return [];
     const asignaturas = new Set();
     Object.entries(datosCompletos[trimestreSeleccionado]).forEach(([nivel, asigs]) => {
-      if (nivel !== 'GLOBAL' && detectarEtapa(nivel) === etapaSeleccionada) {
-        Object.keys(asigs).forEach(asig => asignaturas.add(asig));
+      if (nivel !== 'GLOBAL') {
+        // En modo TODOS, incluir todas las asignaturas; en otros modos, filtrar por etapa
+        if (modoEtapa === 'TODOS' || detectarEtapa(nivel) === modoEtapa) {
+          Object.keys(asigs).forEach(asig => asignaturas.add(asig));
+        }
       }
     });
     return Array.from(asignaturas).sort();
-  }, [trimestreSeleccionado, datosCompletos, etapaSeleccionada, detectarEtapa]);
+  }, [trimestreSeleccionado, datosCompletos, modoEtapa, detectarEtapa]);
 
   // Niveles sin GLOBAL para comparación
   const nivelesSinGlobal = useMemo(() => {
@@ -561,42 +548,45 @@ const DashboardAcademico = () => {
         etapas.add(partes[1]); // La etapa es la segunda parte
       }
     });
-    return Array.from(etapas).sort();
+    const opciones = Array.from(etapas).sort();
+    // Si hay más de una etapa, agregar opción TODOS
+    if (opciones.length > 1) {
+      opciones.push('TODOS');
+    }
+    return opciones;
   }, [trimestresDisponibles]);
 
-  // Filtrar niveles por etapa seleccionada
+  // Filtrar niveles por modo de etapa
   const nivelesDeEtapa = useMemo(() => {
     return nivelesDisponibles.filter(n => {
       if (n === 'GLOBAL') return true; // GLOBAL siempre disponible
-      return detectarEtapa(n) === etapaSeleccionada;
+      if (modoEtapa === 'TODOS') return true; // En modo TODOS, incluir todos los niveles
+      return detectarEtapa(n) === modoEtapa;
     });
-  }, [nivelesDisponibles, etapaSeleccionada, detectarEtapa]);
+  }, [nivelesDisponibles, modoEtapa, detectarEtapa]);
 
-  // Niveles sin GLOBAL de la etapa actual
+  // Niveles sin GLOBAL de la etapa actual, con ordenamiento especial para modo TODOS
   const nivelesSinGlobalEtapa = useMemo(() => {
-    return nivelesDeEtapa.filter(n => n !== 'GLOBAL');
-  }, [nivelesDeEtapa]);
+    const nivelesNoGlobal = nivelesDeEtapa.filter(n => n !== 'GLOBAL');
 
-  // Filtrar niveles por etapa de evolución (independiente)
-  const nivelesDeEtapaEvolucion = useMemo(() => {
-    return nivelesDisponibles.filter(n => {
-      if (n === 'GLOBAL') return true;
-      return detectarEtapa(n) === etapaEvolucion;
-    });
-  }, [nivelesDisponibles, etapaEvolucion, detectarEtapa]);
-
-  const nivelesSinGlobalEtapaEvolucion = useMemo(() => {
-    return nivelesDeEtapaEvolucion.filter(n => n !== 'GLOBAL');
-  }, [nivelesDeEtapaEvolucion]);
-
-  // Actualizar etapa seleccionada automáticamente si solo hay una disponible
-  useMemo(() => {
-    if (etapasDisponibles.length === 1 && etapasDisponibles[0] !== etapaSeleccionada) {
-      setEtapaSeleccionada(etapasDisponibles[0]);
-    } else if (etapasDisponibles.length > 0 && !etapasDisponibles.includes(etapaSeleccionada)) {
-      setEtapaSeleccionada(etapasDisponibles[0]);
+    // En modo TODOS, ordenar: primero todos EEM, luego todos EPM
+    if (modoEtapa === 'TODOS') {
+      const nivelesEEM = nivelesNoGlobal.filter(n => detectarEtapa(n) === 'EEM').sort();
+      const nivelesEPM = nivelesNoGlobal.filter(n => detectarEtapa(n) === 'EPM').sort();
+      return [...nivelesEEM, ...nivelesEPM];
     }
-  }, [etapasDisponibles, etapaSeleccionada]);
+
+    return nivelesNoGlobal;
+  }, [nivelesDeEtapa, modoEtapa, detectarEtapa]);
+
+  // Actualizar modo de etapa automáticamente si solo hay una disponible (y no es TODOS)
+  useEffect(() => {
+    if (etapasDisponibles.length === 1 && etapasDisponibles[0] !== 'TODOS' && etapasDisponibles[0] !== modoEtapa) {
+      setModoEtapa(etapasDisponibles[0]);
+    } else if (etapasDisponibles.length > 0 && !etapasDisponibles.includes(modoEtapa)) {
+      setModoEtapa(etapasDisponibles[0]);
+    }
+  }, [etapasDisponibles, modoEtapa]);
 
   // Activar comparación de niveles
   const activarCompararNiveles = useCallback(() => {
@@ -903,65 +893,71 @@ const DashboardAcademico = () => {
     return { nivel: t('veryWeak'), color: '#ef4444', textColor: 'white' };
   }, [idioma]);
 
+  // Función auxiliar para determinar si una asignatura es de especialidades
+  const esAsignaturaEspecialidad = useCallback((asignatura, modo) => {
+    const instrumentalesEPM = new Set(['Arpa', 'Bajo Eléctrico', 'Canto', 'Clarinete',
+      'Contrabajo', 'Dolçaina', 'Fagot', 'Flauta', 'Guitarra', 'Guitarra Eléctrica',
+      'Oboe', 'Percusión', 'Piano', 'Saxofón', 'Trombón', 'Trompa', 'Trompeta',
+      'Viola', 'Violín', 'Violoncello', 'Voz']);
+
+    if (modo === 'EPM') {
+      return instrumentalesEPM.has(asignatura);
+    } else if (modo === 'EEM') {
+      return !['Lenguaje Musical', 'Coro', 'Conjunto', 'Todos'].includes(asignatura);
+    } else {
+      // Modo TODOS: incluir especialidades de ambas etapas
+      return instrumentalesEPM.has(asignatura) ||
+             !['Lenguaje Musical', 'Coro', 'Conjunto', 'Todos', 'Teórica Troncal'].includes(asignatura);
+    }
+  }, []);
+
   // Calcular KPIs globales del centro
   const kpisGlobales = useMemo(() => {
-    console.log('[DEBUG] Calculando kpisGlobales...');
     if (!trimestreSeleccionado || !datosCompletos[trimestreSeleccionado]) {
-      console.log('[DEBUG] No hay trimestre seleccionado o datos completos');
       return null;
     }
 
     const datos = datosCompletos[trimestreSeleccionado];
     const global = datos['GLOBAL'];
     if (!global || !global['Todos']) {
-      console.log('[DEBUG] No hay datos GLOBAL o GLOBAL/Todos');
       return null;
     }
-    console.log('[DEBUG] Datos GLOBAL encontrados:', Object.keys(global));
 
-    // Definir asignaturas de referencia según etapa
-    const asignaturaReferencia = etapaSeleccionada === 'EPM' ? 'Teórica Troncal' : 'Lenguaje Musical';
-    console.log('[DEBUG] Etapa seleccionada:', etapaSeleccionada, '- Asignatura referencia:', asignaturaReferencia);
-    console.log('[DEBUG] Datos de asignatura referencia:', global[asignaturaReferencia]);
+    // Asignaturas de referencia según modo (en TODOS: ambas)
+    const asignaturasReferencia = modoEtapa === 'EPM' ? ['Teórica Troncal'] :
+                                   modoEtapa === 'EEM' ? ['Lenguaje Musical'] :
+                                   ['Lenguaje Musical', 'Teórica Troncal']; // TODOS: ambas
 
     // KPI 1: Nota media del centro (GLOBAL/Todos)
     const notaMediaCentro = global['Todos']?.stats?.notaMedia || 0;
 
-    // KPI 2: Nota media de asignatura de referencia (LM o Teórica Troncal) - usar datos de GLOBAL
-    const notaMediaRef = global[asignaturaReferencia]?.stats?.notaMedia || 0;
-    console.log('[DEBUG] notaMediaRef calculada:', notaMediaRef);
+    // KPI 2: Notas medias de asignaturas de referencia
+    const notasMediasRef = asignaturasReferencia.map(asig => ({
+      asignatura: asig,
+      notaMedia: global[asig]?.stats?.notaMedia || 0,
+      aprobados: global[asig]?.stats?.aprobados || 0,
+      suspendidos: global[asig]?.stats?.suspendidos || 0
+    }));
 
-    // KPI 3: Nota media de Especialidades Instrumentales
-    // Lista de asignaturas instrumentales según etapa
-    // EPM: Todos los instrumentos + Voz (excepto Tabalet)
-    const instrumentalesEPM = new Set(['Arpa', 'Bajo Eléctrico', 'Canto', 'Clarinete', 'Contrabajo',
-      'Dolçaina', 'Fagot', 'Flauta', 'Guitarra', 'Guitarra Eléctrica', 'Oboe', 'Percusión',
-      'Piano', 'Saxofón', 'Trombón', 'Trompa', 'Trompeta', 'Viola', 'Violín', 'Violoncello', 'Voz']);
-
-    // Calcular media ponderada de especialidades desde GLOBAL
+    // KPI 3: Nota media de Especialidades - usar función auxiliar
     let sumaNotasEsp = 0, sumaPesosEsp = 0;
     Object.entries(global).forEach(([asig, data]) => {
-      if (etapaSeleccionada === 'EPM') {
-        // Para EPM: solo instrumentales específicas
-        if (instrumentalesEPM.has(asig) && data?.stats) {
-          sumaNotasEsp += data.stats.notaMedia * data.stats.registros;
-          sumaPesosEsp += data.stats.registros;
-        }
-      } else {
-        // Para EEM: todas excepto LM, Coro, Conjunto, Todos
-        if (!['Lenguaje Musical', 'Coro', 'Conjunto', 'Todos'].includes(asig) && data?.stats) {
-          sumaNotasEsp += data.stats.notaMedia * data.stats.registros;
-          sumaPesosEsp += data.stats.registros;
-        }
+      if (esAsignaturaEspecialidad(asig, modoEtapa) && data?.stats) {
+        sumaNotasEsp += data.stats.notaMedia * data.stats.registros;
+        sumaPesosEsp += data.stats.registros;
       }
     });
     const notaMediaEsp = sumaPesosEsp > 0 ? sumaNotasEsp / sumaPesosEsp : 0;
 
-    // KPI 4: Contador de asignaturas difíciles/fáciles (filtrar por etapa y umbrales)
+    // KPI 4: Contador de asignaturas difíciles/fáciles
+    // En modo TODOS, itera por TODOS los niveles (Piano EEM ≠ Piano EPM)
     let countDificiles = 0;
     let countFaciles = 0;
     Object.entries(datos).forEach(([nivel, asigs]) => {
-      if (nivel === 'GLOBAL' || detectarEtapa(nivel) !== etapaSeleccionada) return;
+      if (nivel === 'GLOBAL') return;
+      // En modo TODOS no filtrar por etapa, en otros sí
+      if (modoEtapa !== 'TODOS' && detectarEtapa(nivel) !== modoEtapa) return;
+
       Object.entries(asigs).forEach(([, data]) => {
         if (data?.stats && data.stats.registros >= umbrales.alumnosMinimo) {
           const resultado = calcularResultado(data.stats);
@@ -971,83 +967,61 @@ const DashboardAcademico = () => {
       });
     });
 
-    // KPI 5-7: % Aprobados (total, referencia, especialidades) - usar datos de GLOBAL
+    // KPI 5-6: % Aprobados (total y especialidades) - usar función auxiliar
     const aprobadosCentro = global['Todos']?.stats?.aprobados || 0;
-    const aprobadosRef = global[asignaturaReferencia]?.stats?.aprobados || 0;
 
-    // Calcular % aprobados de especialidades desde GLOBAL
     let sumaAprobadosEsp = 0, sumaPesosAprobadosEsp = 0;
     Object.entries(global).forEach(([asig, data]) => {
-      if (etapaSeleccionada === 'EPM') {
-        if (instrumentalesEPM.has(asig) && data?.stats) {
-          sumaAprobadosEsp += data.stats.aprobados * data.stats.registros;
-          sumaPesosAprobadosEsp += data.stats.registros;
-        }
-      } else {
-        if (!['Lenguaje Musical', 'Coro', 'Conjunto', 'Todos'].includes(asig) && data?.stats) {
-          sumaAprobadosEsp += data.stats.aprobados * data.stats.registros;
-          sumaPesosAprobadosEsp += data.stats.registros;
-        }
+      if (esAsignaturaEspecialidad(asig, modoEtapa) && data?.stats) {
+        sumaAprobadosEsp += data.stats.aprobados * data.stats.registros;
+        sumaPesosAprobadosEsp += data.stats.registros;
       }
     });
     const aprobadosEsp = sumaPesosAprobadosEsp > 0 ? sumaAprobadosEsp / sumaPesosAprobadosEsp : 0;
 
-    // KPI 8-10: % Suspendidos (total, referencia, especialidades) - usar datos de GLOBAL
+    // KPI 7-8: % Suspendidos (total y especialidades) - usar función auxiliar
     const suspendidosCentro = global['Todos']?.stats?.suspendidos || 0;
-    const suspendidosRef = global[asignaturaReferencia]?.stats?.suspendidos || 0;
 
-    // Calcular % suspendidos de especialidades desde GLOBAL
     let sumaSuspendidosEsp = 0, sumaPesosSuspendidosEsp = 0;
     Object.entries(global).forEach(([asig, data]) => {
-      if (etapaSeleccionada === 'EPM') {
-        if (instrumentalesEPM.has(asig) && data?.stats) {
-          sumaSuspendidosEsp += data.stats.suspendidos * data.stats.registros;
-          sumaPesosSuspendidosEsp += data.stats.registros;
-        }
-      } else {
-        if (!['Lenguaje Musical', 'Coro', 'Conjunto', 'Todos'].includes(asig) && data?.stats) {
-          sumaSuspendidosEsp += data.stats.suspendidos * data.stats.registros;
-          sumaPesosSuspendidosEsp += data.stats.registros;
-        }
+      if (esAsignaturaEspecialidad(asig, modoEtapa) && data?.stats) {
+        sumaSuspendidosEsp += data.stats.suspendidos * data.stats.registros;
+        sumaPesosSuspendidosEsp += data.stats.registros;
       }
     });
     const suspendidosEsp = sumaPesosSuspendidosEsp > 0 ? sumaSuspendidosEsp / sumaPesosSuspendidosEsp : 0;
 
     const result = {
       notaMediaCentro,
-      notaMediaRef,
+      notasMediasRef, // Array de objetos {asignatura, notaMedia, aprobados, suspendidos}
       notaMediaEsp,
       countDificiles,
       countFaciles,
       aprobadosCentro,
-      aprobadosRef,
       aprobadosEsp,
       suspendidosCentro,
-      suspendidosRef,
-      suspendidosEsp
+      suspendidosEsp,
+      modoEtapa // Incluir para usar en UI
     };
-    console.log('[DEBUG] KPIs globales calculados:', result);
     return result;
-  }, [trimestreSeleccionado, datosCompletos, calcularResultado, etapaSeleccionada, detectarEtapa, umbrales]);
+  }, [trimestreSeleccionado, datosCompletos, calcularResultado, modoEtapa, detectarEtapa, umbrales, esAsignaturaEspecialidad]);
 
   // Análisis de dificultad de asignaturas
   const analisisDificultad = useMemo(() => {
-    console.log('[DEBUG] Calculando analisisDificultad...');
     if (!trimestreSeleccionado || !datosCompletos[trimestreSeleccionado]) {
-      console.log('[DEBUG] No hay trimestre seleccionado o datos completos para análisis');
       return null;
     }
 
     const datos = datosCompletos[trimestreSeleccionado];
     const asignaturas = [];
 
-    // Recopilar todas las asignaturas según vista (filtrar por etapa)
+    // Recopilar todas las asignaturas según vista (filtrar por modo de etapa)
     Object.entries(datos).forEach(([nivel, asigs]) => {
       // Si vista es 'niveles', excluir GLOBAL. Si es 'global', solo incluir GLOBAL
       if (vistaDificultad === 'niveles' && nivel === 'GLOBAL') return;
       if (vistaDificultad === 'global' && nivel !== 'GLOBAL') return;
-      // Filtrar por etapa si no es GLOBAL
-      if (nivel !== 'GLOBAL' && detectarEtapa(nivel) !== etapaSeleccionada) return;
+      // Filtrar por etapa si no es GLOBAL (en modo TODOS no filtrar)
+      if (nivel !== 'GLOBAL' && modoEtapa !== 'TODOS' && detectarEtapa(nivel) !== modoEtapa) return;
 
       Object.entries(asigs).forEach(([asig, data]) => {
         if (asig === 'Todos' || !data?.stats) return;
@@ -1113,13 +1087,8 @@ const DashboardAcademico = () => {
     const neutrales = asignaturas.filter(a => a.categoria === 'NEUTRAL');
     const faciles = asignaturas.filter(a => a.categoria === 'FÁCIL');
 
-    console.log('[DEBUG] Análisis de dificultad completado:', {
-      dificiles: dificiles.length,
-      neutrales: neutrales.length,
-      faciles: faciles.length
-    });
     return { dificiles, neutrales, faciles, todas: asignaturas };
-  }, [trimestreSeleccionado, datosCompletos, calcularResultado, umbrales, vistaDificultad, etapaSeleccionada, detectarEtapa]);
+  }, [trimestreSeleccionado, datosCompletos, calcularResultado, umbrales, vistaDificultad, modoEtapa, detectarEtapa]);
 
   // Función para generar informe PDF
   const generarInformePDF = useCallback(() => {
@@ -1196,19 +1165,48 @@ const DashboardAcademico = () => {
         pdf.text(t('kpis'), margin, 25);
         pdf.setTextColor(0);
 
+        // Construir datos de KPIs, incluyendo múltiples filas de referencia si hay
         const kpisData = [
           [t('kpiCenterAvg'), (kpisGlobales.notaMediaCentro || 0).toFixed(2)],
-          [etapaSeleccionada === 'EPM' ? t('kpiTTAvg') : t('kpiLMAvg'), (kpisGlobales.notaMediaRef || 0).toFixed(2)],
+        ];
+
+        // Agregar filas de notas medias de referencia
+        kpisGlobales.notasMediasRef.forEach(ref => {
+          kpisData.push([
+            ref.asignatura === 'Teórica Troncal' ? t('kpiTTAvg') : t('kpiLMAvg'),
+            (ref.notaMedia || 0).toFixed(2)
+          ]);
+        });
+
+        kpisData.push(
           [t('kpiInstrAvg'), (kpisGlobales.notaMediaEsp || 0).toFixed(2)],
           [t('kpiDifficult'), kpisGlobales.countDificiles.toString()],
           [t('kpiEasy'), kpisGlobales.countFaciles.toString()],
-          [t('kpiPassedAvg'), `${(kpisGlobales.aprobadosCentro || 0).toFixed(1)}%`],
-          [etapaSeleccionada === 'EPM' ? t('kpiPassedTT') : t('kpiPassedLM'), `${(kpisGlobales.aprobadosRef || 0).toFixed(1)}%`],
+          [t('kpiPassedAvg'), `${(kpisGlobales.aprobadosCentro || 0).toFixed(1)}%`]
+        );
+
+        // Agregar filas de aprobados de referencia
+        kpisGlobales.notasMediasRef.forEach(ref => {
+          kpisData.push([
+            ref.asignatura === 'Teórica Troncal' ? t('kpiPassedTT') : t('kpiPassedLM'),
+            `${(ref.aprobados || 0).toFixed(1)}%`
+          ]);
+        });
+
+        kpisData.push(
           [t('kpiPassedInstr'), `${(kpisGlobales.aprobadosEsp || 0).toFixed(1)}%`],
-          [t('kpiFailedAvg'), `${(kpisGlobales.suspendidosCentro || 0).toFixed(1)}%`],
-          [etapaSeleccionada === 'EPM' ? t('kpiFailedTT') : t('kpiFailedLM'), `${(kpisGlobales.suspendidosRef || 0).toFixed(1)}%`],
-          [t('kpiFailedInstr'), `${(kpisGlobales.suspendidosEsp || 0).toFixed(1)}%`],
-        ];
+          [t('kpiFailedAvg'), `${(kpisGlobales.suspendidosCentro || 0).toFixed(1)}%`]
+        );
+
+        // Agregar filas de suspendidos de referencia
+        kpisGlobales.notasMediasRef.forEach(ref => {
+          kpisData.push([
+            ref.asignatura === 'Teórica Troncal' ? t('kpiFailedTT') : t('kpiFailedLM'),
+            `${(ref.suspendidos || 0).toFixed(1)}%`
+          ]);
+        });
+
+        kpisData.push([t('kpiFailedInstr'), `${(kpisGlobales.suspendidosEsp || 0).toFixed(1)}%`]);
 
         pdf.autoTable({
           startY: 35,
@@ -1710,25 +1708,20 @@ const DashboardAcademico = () => {
                 </button>
               </div>
 
-              {/* Selector de etapa (EEM/EPM) */}
+              {/* Selector de modo de etapa (EEM/EPM/TODOS) */}
               {etapasDisponibles.length > 1 && (
                 <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
-                  <button
-                    onClick={() => setEtapaSeleccionada('EEM')}
-                    className={`px-3 py-1.5 text-xs font-medium rounded transition-all ${
-                      etapaSeleccionada === 'EEM' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-                    }`}
-                  >
-                    {t('eemShort')}
-                  </button>
-                  <button
-                    onClick={() => setEtapaSeleccionada('EPM')}
-                    className={`px-3 py-1.5 text-xs font-medium rounded transition-all ${
-                      etapaSeleccionada === 'EPM' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-                    }`}
-                  >
-                    {t('epmShort')}
-                  </button>
+                  {etapasDisponibles.map(etapa => (
+                    <button
+                      key={etapa}
+                      onClick={() => setModoEtapa(etapa)}
+                      className={`px-3 py-1.5 text-xs font-medium rounded transition-all ${
+                        modoEtapa === etapa ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      {etapa === 'TODOS' ? t('allStages') : t(`${etapa.toLowerCase()}Short`)}
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
@@ -1902,18 +1895,22 @@ const DashboardAcademico = () => {
                   <div className="text-3xl font-bold text-blue-900">{(kpisGlobales.notaMediaCentro || 0).toFixed(2)}</div>
                 </div>
 
-                {/* Nota Media LM */}
-                <div className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                    </svg>
-                    <span className="text-xs font-medium text-purple-700">{etapaSeleccionada === 'EPM' ? t('kpiTTAvg') : t('kpiLMAvg')}</span>
+                {/* Notas Medias de Referencia (LM y/o TT) */}
+                {kpisGlobales.notasMediasRef.map((ref) => (
+                  <div key={ref.asignatura} className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                      </svg>
+                      <span className="text-xs font-medium text-purple-700">
+                        {ref.asignatura === 'Teórica Troncal' ? t('kpiTTAvg') : t('kpiLMAvg')}
+                      </span>
+                    </div>
+                    <div className="text-3xl font-bold text-purple-900">
+                      {(ref.notaMedia || 0).toFixed(2)}
+                    </div>
                   </div>
-                  <div className="text-3xl font-bold text-purple-900">
-                    {(kpisGlobales.notaMediaRef || 0).toFixed(2)}
-                  </div>
-                </div>
+                ))}
 
                 {/* Nota Media Especialidades */}
                 <div className="bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-200 rounded-xl p-4">
@@ -1961,18 +1958,22 @@ const DashboardAcademico = () => {
                   <div className="text-3xl font-bold text-teal-900">{(kpisGlobales.aprobadosCentro || 0).toFixed(1)}%</div>
                 </div>
 
-                {/* % Aprobados LM */}
-                <div className="bg-gradient-to-br from-cyan-50 to-cyan-100 border border-cyan-200 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <svg className="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                    </svg>
-                    <span className="text-xs font-medium text-cyan-700">{etapaSeleccionada === 'EPM' ? t('kpiPassedTT') : t('kpiPassedLM')}</span>
+                {/* % Aprobados Referencia (LM y/o TT) */}
+                {kpisGlobales.notasMediasRef.map((ref) => (
+                  <div key={ref.asignatura} className="bg-gradient-to-br from-cyan-50 to-cyan-100 border border-cyan-200 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <svg className="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                      </svg>
+                      <span className="text-xs font-medium text-cyan-700">
+                        {ref.asignatura === 'Teórica Troncal' ? t('kpiPassedTT') : t('kpiPassedLM')}
+                      </span>
+                    </div>
+                    <div className="text-3xl font-bold text-cyan-900">
+                      {(ref.aprobados || 0).toFixed(1)}%
+                    </div>
                   </div>
-                  <div className="text-3xl font-bold text-cyan-900">
-                    {(kpisGlobales.aprobadosRef || 0).toFixed(1)}%
-                  </div>
-                </div>
+                ))}
 
                 {/* % Aprobados Especialidades */}
                 <div className="bg-gradient-to-br from-lime-50 to-lime-100 border border-lime-200 rounded-xl p-4">
@@ -1998,18 +1999,22 @@ const DashboardAcademico = () => {
                   <div className="text-3xl font-bold text-rose-900">{(kpisGlobales.suspendidosCentro || 0).toFixed(1)}%</div>
                 </div>
 
-                {/* % Suspendidos LM */}
-                <div className="bg-gradient-to-br from-pink-50 to-pink-100 border border-pink-200 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <svg className="w-5 h-5 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                    </svg>
-                    <span className="text-xs font-medium text-pink-700">{etapaSeleccionada === 'EPM' ? t('kpiFailedTT') : t('kpiFailedLM')}</span>
+                {/* % Suspendidos Referencia (LM y/o TT) */}
+                {kpisGlobales.notasMediasRef.map((ref) => (
+                  <div key={ref.asignatura} className="bg-gradient-to-br from-pink-50 to-pink-100 border border-pink-200 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <svg className="w-5 h-5 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                      </svg>
+                      <span className="text-xs font-medium text-pink-700">
+                        {ref.asignatura === 'Teórica Troncal' ? t('kpiFailedTT') : t('kpiFailedLM')}
+                      </span>
+                    </div>
+                    <div className="text-3xl font-bold text-pink-900">
+                      {(ref.suspendidos || 0).toFixed(1)}%
+                    </div>
                   </div>
-                  <div className="text-3xl font-bold text-pink-900">
-                    {(kpisGlobales.suspendidosRef || 0).toFixed(1)}%
-                  </div>
-                </div>
+                ))}
 
                 {/* % Suspendidos Especialidades */}
                 <div className="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-xl p-4">
@@ -2048,8 +2053,16 @@ const DashboardAcademico = () => {
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-medium text-slate-700">
                       {idioma === 'es'
-                        ? `Comparar misma asignatura en todos los niveles (${etapaSeleccionada === 'EPM' ? '1EPM - 6EPM' : '1EEM - 4EEM'})`
-                        : `Comparar mateixa assignatura en tots els nivells (${etapaSeleccionada === 'EPM' ? '1EPM - 6EPM' : '1EEM - 4EEM'})`
+                        ? `Comparar misma asignatura en todos los niveles (${
+                            modoEtapa === 'EPM' ? '1EPM - 6EPM' :
+                            modoEtapa === 'EEM' ? '1EEM - 4EEM' :
+                            '1EEM - 4EEM, 1EPM - 6EPM'
+                          })`
+                        : `Comparar mateixa assignatura en tots els nivells (${
+                            modoEtapa === 'EPM' ? '1EPM - 6EPM' :
+                            modoEtapa === 'EEM' ? '1EEM - 4EEM' :
+                            '1EEM - 4EEM, 1EPM - 6EPM'
+                          })`
                       }
                     </span>
                     <button
@@ -3281,7 +3294,7 @@ const DashboardAcademico = () => {
             {trimestreSeleccionado && (() => {
               // Obtener todas las asignaturas y calcular sus datos transversales
               const asignaturasConDatos = todasLasAsignaturas.map(asignatura => {
-                const datosPorNivel = nivelesSinGlobalEtapaEvolucion.map(nivel => {
+                const datosPorNivel = nivelesSinGlobalEtapa.map(nivel => {
                   const datos = datosCompletos[trimestreSeleccionado]?.[nivel]?.[asignatura];
                   return datos ? {
                     nivel,
@@ -3293,8 +3306,8 @@ const DashboardAcademico = () => {
                 if (datosPorNivel.length < 2) return null;
 
                 // Calcular tendencias
-                const tendenciaMedia = calcularTendencia(datosPorNivel.map((d, i) => ({ x: i, y: d.notaMedia })));
-                const tendenciaSuspensos = calcularTendencia(datosPorNivel.map((d, i) => ({ x: i, y: d.suspendidos })));
+                const tendenciaMedia = calcularTendencia(datosPorNivel.map(d => d.notaMedia));
+                const tendenciaSuspensos = calcularTendencia(datosPorNivel.map(d => d.suspendidos));
 
                 return {
                   asignatura,
@@ -3345,28 +3358,6 @@ const DashboardAcademico = () => {
                         {t('transversalComparison')} - {t('allSubjects')}
                       </h2>
                       <div className="flex items-center gap-4">
-                        {/* Selector de etapa para comparativa transversal */}
-                        {etapasDisponibles.length > 1 && (
-                          <div className="flex items-center gap-2">
-                            <label className="text-sm font-medium text-slate-700">{t('stage')}:</label>
-                            <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
-                              {etapasDisponibles.map(etapa => (
-                                <button
-                                  key={etapa}
-                                  onClick={() => setEtapaEvolucion(etapa)}
-                                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                                    etapaEvolucion === etapa
-                                      ? 'bg-blue-600 text-white'
-                                      : 'text-slate-700 hover:bg-slate-200'
-                                  }`}
-                                >
-                                  {etapa}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
                         <div className="flex items-center gap-2">
                           <label className="text-sm font-medium text-slate-700">{t('sortByTrend')}:</label>
                           <select
@@ -3431,8 +3422,8 @@ const DashboardAcademico = () => {
                           <h3 className="text-2xl font-bold text-slate-800 mb-2">{asignatura}</h3>
                           <p className="text-sm text-slate-600">
                             {idioma === 'es'
-                              ? `Evolución de ${asignatura} a través de los niveles de ${etapaEvolucion}`
-                              : `Evolució de ${asignatura} a través dels nivells de ${etapaEvolucion}`
+                              ? `Evolución de ${asignatura} a través de los niveles de ${modoEtapa === 'TODOS' ? 'todas las etapas' : modoEtapa}`
+                              : `Evolució de ${asignatura} a través dels nivells de ${modoEtapa === 'TODOS' ? 'totes les etapes' : modoEtapa}`
                             }
                           </p>
                         </div>

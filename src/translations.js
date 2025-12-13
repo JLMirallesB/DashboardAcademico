@@ -84,6 +84,7 @@ export const translations = {
     professionalStage: 'Enseñanzas Profesionales (EPM)',
     eemShort: 'EEM',
     epmShort: 'EPM',
+    allStages: 'TODOS',
 
     // Etiquetas
     difficult: 'DIFÍCIL',
@@ -271,6 +272,7 @@ export const translations = {
     professionalStage: 'Ensenyances Professionals (EPM)',
     eemShort: 'EEM',
     epmShort: 'EPM',
+    allStages: 'TOTS',
 
     // Etiquetes
     difficult: 'DIFÍCIL',
