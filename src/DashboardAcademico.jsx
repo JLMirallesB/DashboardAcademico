@@ -637,6 +637,35 @@ const DashboardAcademico = () => {
     }
   }, [modoEtapa, trimestresDisponibles, trimestreSeleccionado]);
 
+  // Actualizar selecciones cuando cambia modoEtapa y compararNiveles está activo
+  useEffect(() => {
+    if (compararNiveles && trimestreSeleccionado && nivelesSinGlobalEtapa.length > 0) {
+      const nuevasSelecciones = nivelesSinGlobalEtapa.map((nivel, idx) => ({
+        id: idx,
+        trimestre: trimestreSeleccionado,
+        nivel,
+        asignatura: asignaturaComparada
+      })).filter(sel => {
+        // En modo TODOS, buscar el trimestre apropiado para cada nivel
+        let trimestreParaNivel = sel.trimestre;
+        if (modoEtapa === 'TODOS') {
+          const etapaNivel = detectarEtapa(nivel);
+          const trimestreBase = sel.trimestre.split('-')[0];
+          const trimestreConEtapa = trimestresDisponibles.find(t => {
+            const partes = t.split('-');
+            return partes[0] === trimestreBase && partes[1] === etapaNivel;
+          });
+          if (trimestreConEtapa) {
+            trimestreParaNivel = trimestreConEtapa;
+          }
+        }
+        // Solo incluir si el nivel tiene esa asignatura
+        return datosCompletos[trimestreParaNivel]?.[nivel]?.[asignaturaComparada];
+      });
+      setSelecciones(nuevasSelecciones);
+    }
+  }, [modoEtapa, compararNiveles, trimestreSeleccionado, nivelesSinGlobalEtapa, asignaturaComparada, datosCompletos, trimestresDisponibles, detectarEtapa]);
+
   // Activar comparación de niveles
   const activarCompararNiveles = useCallback(() => {
     if (!trimestreSeleccionado) return;
