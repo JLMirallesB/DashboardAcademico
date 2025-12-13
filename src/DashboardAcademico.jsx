@@ -930,9 +930,10 @@ const DashboardAcademico = () => {
 
     // KPI 3: Nota media de Especialidades Instrumentales
     // Lista de asignaturas instrumentales según etapa
+    // EPM: Todos los instrumentos + Voz (excepto Tabalet)
     const instrumentalesEPM = new Set(['Arpa', 'Bajo Eléctrico', 'Canto', 'Clarinete', 'Contrabajo',
       'Dolçaina', 'Fagot', 'Flauta', 'Guitarra', 'Guitarra Eléctrica', 'Oboe', 'Percusión',
-      'Piano', 'Saxofón', 'Trombón', 'Trompa', 'Trompeta', 'Viola', 'Violín', 'Violoncello']);
+      'Piano', 'Saxofón', 'Trombón', 'Trompa', 'Trompeta', 'Viola', 'Violín', 'Violoncello', 'Voz']);
 
     // Calcular media ponderada de especialidades desde GLOBAL
     let sumaNotasEsp = 0, sumaPesosEsp = 0;
@@ -953,13 +954,13 @@ const DashboardAcademico = () => {
     });
     const notaMediaEsp = sumaPesosEsp > 0 ? sumaNotasEsp / sumaPesosEsp : 0;
 
-    // KPI 4: Contador de asignaturas difíciles/fáciles (filtrar por etapa)
+    // KPI 4: Contador de asignaturas difíciles/fáciles (filtrar por etapa y umbrales)
     let countDificiles = 0;
     let countFaciles = 0;
     Object.entries(datos).forEach(([nivel, asigs]) => {
       if (nivel === 'GLOBAL' || detectarEtapa(nivel) !== etapaSeleccionada) return;
-      Object.entries(asigs).forEach(([asig, data]) => {
-        if (data?.stats) {
+      Object.entries(asigs).forEach(([, data]) => {
+        if (data?.stats && data.stats.registros >= umbrales.alumnosMinimo) {
           const resultado = calcularResultado(data.stats);
           if (resultado === 'DIFÍCIL') countDificiles++;
           if (resultado === 'FÁCIL') countFaciles++;
@@ -1024,7 +1025,7 @@ const DashboardAcademico = () => {
     };
     console.log('[DEBUG] KPIs globales calculados:', result);
     return result;
-  }, [trimestreSeleccionado, datosCompletos, calcularResultado, etapaSeleccionada, detectarEtapa]);
+  }, [trimestreSeleccionado, datosCompletos, calcularResultado, etapaSeleccionada, detectarEtapa, umbrales]);
 
   // Análisis de dificultad de asignaturas
   const analisisDificultad = useMemo(() => {
