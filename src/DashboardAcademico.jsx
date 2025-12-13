@@ -3278,6 +3278,7 @@ const DashboardAcademico = () => {
                           }}
                           className="flex-1 px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         >
+                          <option value="Todos">Todos</option>
                           {todasLasAsignaturas.map(a => (
                             <option key={a} value={a}>{a}</option>
                           ))}
@@ -3374,7 +3375,21 @@ const DashboardAcademico = () => {
               // Obtener todas las asignaturas y calcular sus datos transversales
               const asignaturasConDatos = todasLasAsignaturas.map(asignatura => {
                 const datosPorNivel = nivelesSinGlobalEtapa.map(nivel => {
-                  const datos = datosCompletos[trimestreSeleccionado]?.[nivel]?.[asignatura];
+                  // En modo TODOS, buscar el trimestre apropiado para cada nivel
+                  let trimestreParaNivel = trimestreSeleccionado;
+                  if (modoEtapa === 'TODOS') {
+                    const etapaNivel = detectarEtapa(nivel);
+                    const trimestreBase = trimestreSeleccionado.split('-')[0]; // Ej: "1EV"
+                    const trimestreConEtapa = trimestresDisponibles.find(t => {
+                      const partes = t.split('-');
+                      return partes[0] === trimestreBase && partes[1] === etapaNivel;
+                    });
+                    if (trimestreConEtapa) {
+                      trimestreParaNivel = trimestreConEtapa;
+                    }
+                  }
+
+                  const datos = datosCompletos[trimestreParaNivel]?.[nivel]?.[asignatura];
                   return datos ? {
                     nivel,
                     notaMedia: datos.stats?.notaMedia || datos.notaMedia,
