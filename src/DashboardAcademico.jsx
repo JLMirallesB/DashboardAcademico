@@ -1766,35 +1766,6 @@ const DashboardAcademico = () => {
         <input ref={jsonInputRef} type="file" accept=".json" onChange={handleImportarJSON} className="hidden" />
       </div>
 
-      {/* Trimestres cargados */}
-      <div className="max-w-7xl mx-auto mb-6">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm text-slate-500 font-medium">{t('trimestersLoadedLabel')}</span>
-          {trimestresDisponibles.map(trim => (
-            <div
-              key={trim}
-              className={`inline-flex items-center gap-2 py-1.5 px-3 rounded-full text-sm font-medium transition-all ${
-                trim === trimestreSeleccionado
-                  ? 'bg-slate-800 text-white'
-                  : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
-              }`}
-            >
-              <button onClick={() => setTrimestreSeleccionado(trim)}>
-                {formatearNombreTrimestre(trim)}
-              </button>
-              {trimestresDisponibles.length > 1 && (
-                <button
-                  onClick={() => eliminarTrimestre(trim)}
-                  className={`ml-1 hover:text-red-500 ${trim === trimestreSeleccionado ? 'text-white/70' : 'text-slate-400'}`}
-                >
-                  ×
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* Navegación de vistas */}
       <div className="max-w-7xl mx-auto mb-6">
         <div className="flex gap-1 p-1 bg-white rounded-xl border border-slate-200 w-fit">
