@@ -596,21 +596,22 @@ const DashboardAcademico = () => {
     const asignaturaActualExiste = todasLasAsignaturas.includes(asignaturaComparada);
 
     if (!asignaturaActualExiste) {
-      // Seleccionar una asignatura apropiada según el modo
+      // Seleccionar una asignatura apropiada según el modo (case-insensitive)
+      const normalizar = (str) => str.toLowerCase().trim();
       let nuevaAsignatura;
       if (modoEtapa === 'EPM') {
         // En EPM, preferir Teórica Troncal, Piano, o la primera disponible
-        nuevaAsignatura = todasLasAsignaturas.find(a => a === 'Teórica Troncal') ||
-                          todasLasAsignaturas.find(a => a === 'Piano') ||
+        nuevaAsignatura = todasLasAsignaturas.find(a => normalizar(a) === 'teórica troncal') ||
+                          todasLasAsignaturas.find(a => normalizar(a) === 'piano') ||
                           todasLasAsignaturas[0];
       } else if (modoEtapa === 'EEM') {
         // En EEM, preferir Lenguaje Musical, Piano, o la primera disponible
-        nuevaAsignatura = todasLasAsignaturas.find(a => a === 'Lenguaje Musical') ||
-                          todasLasAsignaturas.find(a => a === 'Piano') ||
+        nuevaAsignatura = todasLasAsignaturas.find(a => normalizar(a) === 'lenguaje musical') ||
+                          todasLasAsignaturas.find(a => normalizar(a) === 'piano') ||
                           todasLasAsignaturas[0];
       } else {
         // En TODOS, preferir Piano (existe en ambos) o la primera disponible
-        nuevaAsignatura = todasLasAsignaturas.find(a => a === 'Piano') ||
+        nuevaAsignatura = todasLasAsignaturas.find(a => normalizar(a) === 'piano') ||
                           todasLasAsignaturas[0];
       }
       setAsignaturaComparada(nuevaAsignatura);
@@ -811,32 +812,37 @@ const DashboardAcademico = () => {
   const datosEvolucionCorrelaciones = useMemo(() => {
     if (tiposCorrelacion.length === 0) return [];
 
-    // Función para abreviar nombres de asignaturas
+    // Función para abreviar nombres de asignaturas (case-insensitive)
     const abreviar = (nombre) => {
+      const normalizar = (str) => str.toLowerCase().trim();
       const abreviaturas = {
-        'Lenguaje Musical': 'LM',
-        'Coro': 'Cor',
-        'Conjunto': 'Con',
-        'Orquesta/Banda/Conjunto': 'Orq/Ban/Con',
-        'Especialidad': 'Esp',
-        'Arpa': 'Arp',
-        'Clarinete': 'Cla',
-        'Contrabajo': 'Ctb',
-        'Fagot': 'Fag',
-        'Flauta': 'Fla',
-        'Guitarra': 'Gui',
-        'Oboe': 'Obo',
-        'Percusión': 'Per',
-        'Piano': 'Pia',
-        'Saxofón': 'Sax',
-        'Trombón': 'Trb',
-        'Trompa': 'Trp',
-        'Trompeta': 'Tpt',
-        'Viola': 'Vla',
-        'Violín': 'Vln',
-        'Violoncello': 'Vcl'
+        'lenguaje musical': 'LM',
+        'coro': 'Cor',
+        'conjunto': 'Con',
+        'orquesta/banda/conjunto': 'Orq/Ban/Con',
+        'especialidad': 'Esp',
+        'arpa': 'Arp',
+        'clarinete': 'Cla',
+        'contrabajo': 'Ctb',
+        'fagot': 'Fag',
+        'flauta': 'Fla',
+        'flauta travesera': 'Fla',
+        'guitarra': 'Gui',
+        'guitarra eléctrica': 'GuiE',
+        'guitarra electrica': 'GuiE',
+        'oboe': 'Obo',
+        'percusión': 'Per',
+        'piano': 'Pia',
+        'saxofón': 'Sax',
+        'trombón': 'Trb',
+        'trompa': 'Trp',
+        'trompeta': 'Tpt',
+        'viola': 'Vla',
+        'violín': 'Vln',
+        'violoncello': 'Vcl',
+        'teórica troncal': 'TT'
       };
-      return abreviaturas[nombre] || nombre.substring(0, 3);
+      return abreviaturas[normalizar(nombre)] || nombre.substring(0, 3);
     };
 
     return tiposCorrelacion.map(tipo => {
@@ -867,32 +873,37 @@ const DashboardAcademico = () => {
   const datosEvolucionCorrelacionesAlt = useMemo(() => {
     if (tiposCorrelacion.length === 0) return [];
 
-    // Función para abreviar nombres de asignaturas
+    // Función para abreviar nombres de asignaturas (case-insensitive)
     const abreviar = (nombre) => {
+      const normalizar = (str) => str.toLowerCase().trim();
       const abreviaturas = {
-        'Lenguaje Musical': 'LM',
-        'Coro': 'Cor',
-        'Conjunto': 'Con',
-        'Orquesta/Banda/Conjunto': 'Orq/Ban/Con',
-        'Especialidad': 'Esp',
-        'Arpa': 'Arp',
-        'Clarinete': 'Cla',
-        'Contrabajo': 'Ctb',
-        'Fagot': 'Fag',
-        'Flauta': 'Fla',
-        'Guitarra': 'Gui',
-        'Oboe': 'Obo',
-        'Percusión': 'Per',
-        'Piano': 'Pia',
-        'Saxofón': 'Sax',
-        'Trombón': 'Trb',
-        'Trompa': 'Trp',
-        'Trompeta': 'Tpt',
-        'Viola': 'Vla',
-        'Violín': 'Vln',
-        'Violoncello': 'Vcl'
+        'lenguaje musical': 'LM',
+        'coro': 'Cor',
+        'conjunto': 'Con',
+        'orquesta/banda/conjunto': 'Orq/Ban/Con',
+        'especialidad': 'Esp',
+        'arpa': 'Arp',
+        'clarinete': 'Cla',
+        'contrabajo': 'Ctb',
+        'fagot': 'Fag',
+        'flauta': 'Fla',
+        'flauta travesera': 'Fla',
+        'guitarra': 'Gui',
+        'guitarra eléctrica': 'GuiE',
+        'guitarra electrica': 'GuiE',
+        'oboe': 'Obo',
+        'percusión': 'Per',
+        'piano': 'Pia',
+        'saxofón': 'Sax',
+        'trombón': 'Trb',
+        'trompa': 'Trp',
+        'trompeta': 'Tpt',
+        'viola': 'Vla',
+        'violín': 'Vln',
+        'violoncello': 'Vcl',
+        'teórica troncal': 'TT'
       };
-      return abreviaturas[nombre] || nombre.substring(0, 3);
+      return abreviaturas[normalizar(nombre)] || nombre.substring(0, 3);
     };
 
     // Calcular promedio de correlaciones para cada par de asignaturas
@@ -1021,13 +1032,20 @@ const DashboardAcademico = () => {
     // KPI 1: Nota media del centro (GLOBAL/Todos)
     const notaMediaCentro = global['Todos']?.stats?.notaMedia || 0;
 
-    // KPI 2: Notas medias de asignaturas de referencia
-    const notasMediasRef = asignaturasReferencia.map(asig => ({
-      asignatura: asig,
-      notaMedia: global[asig]?.stats?.notaMedia || 0,
-      aprobados: global[asig]?.stats?.aprobados || 0,
-      suspendidos: global[asig]?.stats?.suspendidos || 0
-    }));
+    // KPI 2: Notas medias de asignaturas de referencia (case-insensitive)
+    const normalizar = (str) => str.toLowerCase().trim();
+    const notasMediasRef = asignaturasReferencia.map(asigBuscada => {
+      // Buscar la asignatura en global de forma case-insensitive
+      const asigEncontrada = Object.keys(global).find(key =>
+        normalizar(key) === normalizar(asigBuscada)
+      );
+      return {
+        asignatura: asigBuscada,
+        notaMedia: asigEncontrada ? (global[asigEncontrada]?.stats?.notaMedia || 0) : 0,
+        aprobados: asigEncontrada ? (global[asigEncontrada]?.stats?.aprobados || 0) : 0,
+        suspendidos: asigEncontrada ? (global[asigEncontrada]?.stats?.suspendidos || 0) : 0
+      };
+    });
 
     // KPI 3: Nota media de Especialidades - usar función auxiliar
     let sumaNotasEsp = 0, sumaPesosEsp = 0;
