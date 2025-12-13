@@ -2442,7 +2442,21 @@ const DashboardAcademico = () => {
                 <h3 className="text-lg font-semibold text-slate-800 mb-4">{t('averageEvolution')}</h3>
                 {(() => {
                   const datosEvolucion = nivelesSinGlobalEtapa.map(nivel => {
-                    const datos = datosCompletos[trimestreSeleccionado]?.[nivel]?.[asignaturaComparada];
+                    // En modo TODOS, buscar el trimestre apropiado para cada nivel
+                    let trimestreParaNivel = trimestreSeleccionado;
+                    if (modoEtapa === 'TODOS') {
+                      const etapaNivel = detectarEtapa(nivel);
+                      const trimestreBase = trimestreSeleccionado.split('-')[0]; // Ej: "1EV"
+                      const trimestreConEtapa = trimestresDisponibles.find(t => {
+                        const partes = t.split('-');
+                        return partes[0] === trimestreBase && partes[1] === etapaNivel;
+                      });
+                      if (trimestreConEtapa) {
+                        trimestreParaNivel = trimestreConEtapa;
+                      }
+                    }
+
+                    const datos = datosCompletos[trimestreParaNivel]?.[nivel]?.[asignaturaComparada];
                     return {
                       nivel,
                       notaMedia: datos?.stats?.notaMedia || null
@@ -2505,7 +2519,21 @@ const DashboardAcademico = () => {
                 <h3 className="text-lg font-semibold text-slate-800 mb-4">{t('failedEvolution')}</h3>
                 {(() => {
                   const datosEvolucion = nivelesSinGlobalEtapa.map(nivel => {
-                    const datos = datosCompletos[trimestreSeleccionado]?.[nivel]?.[asignaturaComparada];
+                    // En modo TODOS, buscar el trimestre apropiado para cada nivel
+                    let trimestreParaNivel = trimestreSeleccionado;
+                    if (modoEtapa === 'TODOS') {
+                      const etapaNivel = detectarEtapa(nivel);
+                      const trimestreBase = trimestreSeleccionado.split('-')[0]; // Ej: "1EV"
+                      const trimestreConEtapa = trimestresDisponibles.find(t => {
+                        const partes = t.split('-');
+                        return partes[0] === trimestreBase && partes[1] === etapaNivel;
+                      });
+                      if (trimestreConEtapa) {
+                        trimestreParaNivel = trimestreConEtapa;
+                      }
+                    }
+
+                    const datos = datosCompletos[trimestreParaNivel]?.[nivel]?.[asignaturaComparada];
                     return {
                       nivel,
                       suspendidos: datos?.stats?.suspendidos || null
