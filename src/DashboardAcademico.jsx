@@ -975,19 +975,29 @@ const DashboardAcademico = () => {
 
   // Función auxiliar para determinar si una asignatura es de especialidades
   const esAsignaturaEspecialidad = useCallback((asignatura, modo) => {
-    const instrumentalesEPM = new Set(['Arpa', 'Bajo Eléctrico', 'Canto', 'Clarinete',
-      'Contrabajo', 'Dolçaina', 'Fagot', 'Flauta', 'Guitarra', 'Guitarra Eléctrica',
-      'Oboe', 'Percusión', 'Piano', 'Saxofón', 'Trombón', 'Trompa', 'Trompeta',
-      'Viola', 'Violín', 'Violoncello', 'Voz']);
+    // Normalizar nombre para comparación (minúsculas y sin espacios extra)
+    const normalizar = (nombre) => nombre.toLowerCase().trim();
+
+    // Lista completa de instrumentos para EPM (especialidades instrumentales) - en minúsculas
+    const instrumentalesEPM = new Set([
+      'arpa', 'acordeón', 'bajo eléctrico', 'canto', 'clarinete', 'clave',
+      'contrabajo', 'dolçaina', 'fagot', 'flauta', 'flauta de pico', 'flauta travesera',
+      'guitarra', 'guitarra eléctrica', 'guitarra electrica', 'oboe', 'órgano', 'percusión',
+      'piano', 'saxofón', 'trombón', 'trompa', 'trompeta',
+      'tuba', 'viola', 'viola da gamba', 'violín', 'violoncello', 'voz'
+    ]);
+
+    const asignaturaNorm = normalizar(asignatura);
 
     if (modo === 'EPM') {
-      return instrumentalesEPM.has(asignatura);
+      return instrumentalesEPM.has(asignaturaNorm);
     } else if (modo === 'EEM') {
-      return !['Lenguaje Musical', 'Coro', 'Conjunto', 'Todos'].includes(asignatura);
+      const excluirEEM = ['lenguaje musical', 'coro', 'conjunto', 'todos'];
+      return !excluirEEM.includes(asignaturaNorm);
     } else {
       // Modo TODOS: incluir especialidades de ambas etapas
-      return instrumentalesEPM.has(asignatura) ||
-             !['Lenguaje Musical', 'Coro', 'Conjunto', 'Todos', 'Teórica Troncal'].includes(asignatura);
+      const excluirTODOS = ['lenguaje musical', 'coro', 'conjunto', 'todos', 'teórica troncal'];
+      return instrumentalesEPM.has(asignaturaNorm) || !excluirTODOS.includes(asignaturaNorm);
     }
   }, []);
 
