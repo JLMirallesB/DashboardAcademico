@@ -651,7 +651,7 @@ const DashboardAcademico = () => {
 
   // Gestión de selecciones
   const agregarSeleccion = useCallback(() => {
-    if (selecciones.length >= 5) return;
+    if (selecciones.length >= 6) return;
     const nuevoId = Math.max(0, ...selecciones.map(s => s.id)) + 1;
     const nivel = nivelesDisponibles.find(n => n !== 'GLOBAL') || 'GLOBAL';
     const asignaturas = getAsignaturas(trimestreSeleccionado, nivel);
@@ -2031,7 +2031,7 @@ const DashboardAcademico = () => {
           <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-slate-800">{t('selections')}</h3>
-              {!compararNiveles && selecciones.length < 5 && (
+              {!compararNiveles && selecciones.length < 6 && (
                 <button
                   onClick={agregarSeleccion}
                   className="py-2 px-4 bg-slate-800 text-white text-sm rounded-lg hover:bg-slate-700 transition-all"
@@ -3146,11 +3146,11 @@ const DashboardAcademico = () => {
                     <div className="flex gap-2">
                       <button
                         onClick={() => {
-                          if (seleccionesEvolucion.length < 5) {
+                          if (seleccionesEvolucion.length < 6) {
                             setSeleccionesEvolucion([...seleccionesEvolucion, { nivel: 'GLOBAL', asignatura: 'Todos' }]);
                           }
                         }}
-                        disabled={seleccionesEvolucion.length >= 5}
+                        disabled={seleccionesEvolucion.length >= 6}
                         className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         + {t('add')}
