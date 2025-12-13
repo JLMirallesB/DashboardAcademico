@@ -511,18 +511,37 @@ const DashboardAcademico = () => {
 
   // Obtener todas las asignaturas disponibles (excluyendo GLOBAL, filtradas por etapa)
   const todasLasAsignaturas = useMemo(() => {
-    if (!trimestreSeleccionado || !datosCompletos[trimestreSeleccionado]) return [];
+    if (!trimestreSeleccionado) return [];
     const asignaturas = new Set();
-    Object.entries(datosCompletos[trimestreSeleccionado]).forEach(([nivel, asigs]) => {
-      if (nivel !== 'GLOBAL') {
-        // En modo TODOS, incluir todas las asignaturas; en otros modos, filtrar por etapa
-        if (modoEtapa === 'TODOS' || detectarEtapa(nivel) === modoEtapa) {
-          Object.keys(asigs).forEach(asig => asignaturas.add(asig));
+
+    // En modo TODOS, buscar en todos los trimestres de la misma evaluación
+    const trimestresABuscar = [];
+    if (modoEtapa === 'TODOS') {
+      const trimestreBase = trimestreSeleccionado.split('-')[0]; // Ej: "1EV"
+      trimestresDisponibles.forEach(t => {
+        if (t.startsWith(trimestreBase)) {
+          trimestresABuscar.push(t);
         }
+      });
+    } else {
+      trimestresABuscar.push(trimestreSeleccionado);
+    }
+
+    // Buscar asignaturas en todos los trimestres correspondientes
+    trimestresABuscar.forEach(trim => {
+      if (datosCompletos[trim]) {
+        Object.entries(datosCompletos[trim]).forEach(([nivel, asigs]) => {
+          if (nivel !== 'GLOBAL') {
+            if (modoEtapa === 'TODOS' || detectarEtapa(nivel) === modoEtapa) {
+              Object.keys(asigs).forEach(asig => asignaturas.add(asig));
+            }
+          }
+        });
       }
     });
+
     return Array.from(asignaturas).sort();
-  }, [trimestreSeleccionado, datosCompletos, modoEtapa, detectarEtapa]);
+  }, [trimestreSeleccionado, datosCompletos, modoEtapa, detectarEtapa, trimestresDisponibles]);
 
   // Niveles sin GLOBAL para comparación
   const nivelesSinGlobal = useMemo(() => {
