@@ -920,7 +920,7 @@ const DashboardAcademico = () => {
     console.log('[DEBUG] Datos GLOBAL encontrados:', Object.keys(global));
 
     // Definir asignaturas de referencia según etapa
-    const asignaturaReferencia = etapaSeleccionada === 'EPM' ? 'Teòrica Troncal' : 'Lenguaje Musical';
+    const asignaturaReferencia = etapaSeleccionada === 'EPM' ? 'Teórica Troncal' : 'Lenguaje Musical';
     console.log('[DEBUG] Etapa seleccionada:', etapaSeleccionada, '- Asignatura referencia:', asignaturaReferencia);
     console.log('[DEBUG] Datos de asignatura referencia:', global[asignaturaReferencia]);
 
@@ -1689,24 +1689,48 @@ const DashboardAcademico = () => {
                 Curso {metadata[trimestresDisponibles[0]]?.CursoAcademico || ''}
               </p>
             </div>
-            {/* Selector de idioma */}
-            <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
-              <button
-                onClick={() => setIdioma('es')}
-                className={`px-2 py-1 text-xs font-medium rounded transition-all ${
-                  idioma === 'es' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                ES
-              </button>
-              <button
-                onClick={() => setIdioma('va')}
-                className={`px-2 py-1 text-xs font-medium rounded transition-all ${
-                  idioma === 'va' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                VA
-              </button>
+            <div className="flex items-center gap-2">
+              {/* Selector de idioma */}
+              <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
+                <button
+                  onClick={() => setIdioma('es')}
+                  className={`px-2 py-1 text-xs font-medium rounded transition-all ${
+                    idioma === 'es' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  ES
+                </button>
+                <button
+                  onClick={() => setIdioma('va')}
+                  className={`px-2 py-1 text-xs font-medium rounded transition-all ${
+                    idioma === 'va' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  VA
+                </button>
+              </div>
+
+              {/* Selector de etapa (EEM/EPM) */}
+              {etapasDisponibles.length > 1 && (
+                <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
+                  <button
+                    onClick={() => setEtapaSeleccionada('EEM')}
+                    className={`px-3 py-1.5 text-xs font-medium rounded transition-all ${
+                      etapaSeleccionada === 'EEM' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    {t('eemShort')}
+                  </button>
+                  <button
+                    onClick={() => setEtapaSeleccionada('EPM')}
+                    className={`px-3 py-1.5 text-xs font-medium rounded transition-all ${
+                      etapaSeleccionada === 'EPM' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    {t('epmShort')}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1894,30 +1918,7 @@ const DashboardAcademico = () => {
           {/* Panel de KPIs Globales */}
           {kpisGlobales && (
             <div className="mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-slate-800">{t('kpis')}</h3>
-                {/* Conmutador de Etapas - Solo visible si hay más de una etapa */}
-                {etapasDisponibles.length > 1 && (
-                  <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
-                    <button
-                      onClick={() => setEtapaSeleccionada('EEM')}
-                      className={`px-3 py-1.5 text-xs font-medium rounded transition-all ${
-                        etapaSeleccionada === 'EEM' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-                      }`}
-                    >
-                      {t('eemShort')}
-                    </button>
-                    <button
-                      onClick={() => setEtapaSeleccionada('EPM')}
-                      className={`px-3 py-1.5 text-xs font-medium rounded transition-all ${
-                        etapaSeleccionada === 'EPM' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-                      }`}
-                    >
-                      {t('epmShort')}
-                    </button>
-                  </div>
-                )}
-              </div>
+              <h3 className="text-lg font-semibold text-slate-800 mb-4">{t('kpis')}</h3>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                 {/* Nota Media del Centro */}
                 <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-4">
