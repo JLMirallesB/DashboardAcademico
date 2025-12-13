@@ -738,11 +738,24 @@ const DashboardAcademico = () => {
         nivel,
         asignatura: nuevaAsignatura
       })).filter(sel => {
-        return datosCompletos[sel.trimestre]?.[sel.nivel]?.[sel.asignatura];
+        // En modo TODOS, buscar el trimestre apropiado para cada nivel
+        let trimestreParaNivel = sel.trimestre;
+        if (modoEtapa === 'TODOS') {
+          const etapaNivel = detectarEtapa(sel.nivel);
+          const trimestreBase = sel.trimestre.split('-')[0]; // Ej: "1EV"
+          const trimestreConEtapa = trimestresDisponibles.find(t => {
+            const partes = t.split('-');
+            return partes[0] === trimestreBase && partes[1] === etapaNivel;
+          });
+          if (trimestreConEtapa) {
+            trimestreParaNivel = trimestreConEtapa;
+          }
+        }
+        return datosCompletos[trimestreParaNivel]?.[sel.nivel]?.[sel.asignatura];
       });
       setSelecciones(nuevasSelecciones);
     }
-  }, [compararNiveles, nivelesSinGlobalEtapa, trimestreSeleccionado, datosCompletos]);
+  }, [compararNiveles, nivelesSinGlobalEtapa, trimestreSeleccionado, datosCompletos, modoEtapa, detectarEtapa, trimestresDisponibles]);
 
   // Obtener asignaturas por nivel
   const getAsignaturas = useCallback((trimestre, nivel) => {
