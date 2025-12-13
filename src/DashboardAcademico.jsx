@@ -920,13 +920,16 @@ const DashboardAcademico = () => {
     console.log('[DEBUG] Datos GLOBAL encontrados:', Object.keys(global));
 
     // Definir asignaturas de referencia según etapa
-    const asignaturaReferencia = etapaSeleccionada === 'EPM' ? 'Teórica Troncal' : 'Lenguaje Musical';
+    const asignaturaReferencia = etapaSeleccionada === 'EPM' ? 'Teòrica Troncal' : 'Lenguaje Musical';
+    console.log('[DEBUG] Etapa seleccionada:', etapaSeleccionada, '- Asignatura referencia:', asignaturaReferencia);
+    console.log('[DEBUG] Datos de asignatura referencia:', global[asignaturaReferencia]);
 
     // KPI 1: Nota media del centro (GLOBAL/Todos)
     const notaMediaCentro = global['Todos']?.stats?.notaMedia || 0;
 
     // KPI 2: Nota media de asignatura de referencia (LM o Teórica Troncal) - usar datos de GLOBAL
     const notaMediaRef = global[asignaturaReferencia]?.stats?.notaMedia || 0;
+    console.log('[DEBUG] notaMediaRef calculada:', notaMediaRef);
 
     // KPI 3: Nota media de Especialidades Instrumentales
     // Lista de asignaturas instrumentales según etapa
