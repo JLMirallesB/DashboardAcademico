@@ -650,7 +650,7 @@ const DashboardAcademico = () => {
         // En modo TODOS, buscar el trimestre apropiado para cada nivel
         let trimestreParaNivel = sel.trimestre;
         if (modoEtapa === 'TODOS') {
-          const etapaNivel = detectarEtapa(nivel);
+          const etapaNivel = detectarEtapa(sel.nivel);
           const trimestreBase = sel.trimestre.split('-')[0];
           const trimestreConEtapa = trimestresDisponibles.find(t => {
             const partes = t.split('-');
@@ -661,7 +661,7 @@ const DashboardAcademico = () => {
           }
         }
         // Solo incluir si el nivel tiene esa asignatura
-        return datosCompletos[trimestreParaNivel]?.[nivel]?.[asignaturaComparada];
+        return datosCompletos[trimestreParaNivel]?.[sel.nivel]?.[asignaturaComparada];
       });
       setSelecciones(nuevasSelecciones);
     }
