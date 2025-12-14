@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { LineChart, Line, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ScatterChart, Scatter, ReferenceLine, Brush } from 'recharts';
+import { LineChart, Line, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ScatterChart, Scatter, ReferenceLine } from 'recharts';
 import { translations } from './translations.js';
 import { normalizar, getBestTrimestre, parseTrimestre, getTrimestreBase, getTrimestreEtapa, tieneAsignatura } from './utils.js';
 import { jsPDF } from 'jspdf';
@@ -66,8 +66,11 @@ const DashboardAcademico = () => {
   // Gestión de etapas educativas (EEM / EPM / TODOS)
   const [modoEtapa, setModoEtapa] = useState('EEM'); // 'EEM' | 'EPM' | 'TODOS'
 
-  // Estado para zoom del mapa de dispersión
-  const [zoomDispersion, setZoomDispersion] = useState({ startIndex: 0, endIndex: 999 });
+  // Estado para zoom del mapa de dispersión (rangos de valores)
+  const [zoomDispersion, setZoomDispersion] = useState({
+    rangoMedia: { min: 0, max: 10 },
+    rangoDesviacion: { min: 0, max: null } // null = automático
+  });
 
   // Estado para generación de informes
   const [mostrarModalInforme, setMostrarModalInforme] = useState(false);
@@ -2531,16 +2534,17 @@ const DashboardAcademico = () => {
 
             if (datosDispersion.length === 0) return null;
 
-            // Ordenar por nota media para que el zoom tenga sentido
-            datosDispersion.sort((a, b) => a.notaMedia - b.notaMedia);
+            // Calcular desviación máxima para el rango automático
+            const maxDesviacion = Math.max(...datosDispersion.map(d => d.desviacion));
+            const desviacionMax = zoomDispersion.rangoDesviacion.max || Math.max(3, Math.ceil(maxDesviacion * 1.2));
 
-            // Calcular índices de zoom basados en el tamaño real de los datos
-            const maxIndex = datosDispersion.length - 1;
-            const startIdx = Math.min(zoomDispersion.startIndex, maxIndex);
-            const endIdx = Math.min(zoomDispersion.endIndex, maxIndex);
-
-            // Filtrar datos según el rango de zoom
-            const datosFiltrados = datosDispersion.slice(startIdx, endIdx + 1);
+            // Filtrar datos según rangos de valores (no índices)
+            const datosFiltrados = datosDispersion.filter(d =>
+              d.notaMedia >= zoomDispersion.rangoMedia.min &&
+              d.notaMedia <= zoomDispersion.rangoMedia.max &&
+              d.desviacion >= zoomDispersion.rangoDesviacion.min &&
+              d.desviacion <= desviacionMax
+            );
 
             // Función para determinar el cuadrante y su interpretación
             const getAnalisis = (notaMedia, desviacion) => {
@@ -2599,21 +2603,69 @@ const DashboardAcademico = () => {
                     </div>
                     <p className="text-xs text-slate-500 mt-2 italic">
                       {idioma === 'es'
-                        ? '* El tamaño del punto indica la cantidad de alumnos. Use la rueda del ratón para hacer zoom.'
-                        : '* La mida del punt indica la quantitat d\'alumnes. Utilitzeu la roda del ratolí per fer zoom.'}
+                        ? '* El tamaño del punto indica la cantidad de alumnos. Use los controles de la derecha para filtrar por rangos.'
+                        : '* La mida del punt indica la quantitat d\'alumnes. Utilitzeu els controls de la dreta per filtrar per rangs.'}
                     </p>
                   </div>
 
-                  {/* Botón de reset zoom */}
-                  <div className="flex items-center">
+                  {/* Controles de zoom */}
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-600 whitespace-nowrap">{t('average')}:</span>
+                      <input
+                        type="range"
+                        min="0"
+                        max="10"
+                        step="0.5"
+                        value={zoomDispersion.rangoMedia.min}
+                        onChange={(e) => setZoomDispersion({
+                          ...zoomDispersion,
+                          rangoMedia: { ...zoomDispersion.rangoMedia, min: parseFloat(e.target.value) }
+                        })}
+                        className="w-24"
+                      />
+                      <span className="text-xs text-slate-700 font-mono">{zoomDispersion.rangoMedia.min.toFixed(1)}</span>
+                      <span className="text-xs text-slate-500">-</span>
+                      <input
+                        type="range"
+                        min="0"
+                        max="10"
+                        step="0.5"
+                        value={zoomDispersion.rangoMedia.max}
+                        onChange={(e) => setZoomDispersion({
+                          ...zoomDispersion,
+                          rangoMedia: { ...zoomDispersion.rangoMedia, max: parseFloat(e.target.value) }
+                        })}
+                        className="w-24"
+                      />
+                      <span className="text-xs text-slate-700 font-mono">{zoomDispersion.rangoMedia.max.toFixed(1)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-600 whitespace-nowrap">{t('standardDeviation')}:</span>
+                      <input
+                        type="range"
+                        min="0"
+                        max={Math.ceil(maxDesviacion)}
+                        step="0.1"
+                        value={zoomDispersion.rangoDesviacion.min}
+                        onChange={(e) => setZoomDispersion({
+                          ...zoomDispersion,
+                          rangoDesviacion: { ...zoomDispersion.rangoDesviacion, min: parseFloat(e.target.value) }
+                        })}
+                        className="w-24"
+                      />
+                      <span className="text-xs text-slate-700 font-mono">{zoomDispersion.rangoDesviacion.min.toFixed(1)}</span>
+                      <span className="text-xs text-slate-500">-</span>
+                      <span className="text-xs text-slate-700 font-mono">{desviacionMax.toFixed(1)}</span>
+                    </div>
                     <button
-                      onClick={() => setZoomDispersion({ startIndex: 0, endIndex: datosDispersion.length - 1 })}
-                      className="px-4 py-2 bg-slate-600 text-white text-sm rounded-lg hover:bg-slate-700 transition-all flex items-center gap-2 whitespace-nowrap"
+                      onClick={() => setZoomDispersion({
+                        rangoMedia: { min: 0, max: 10 },
+                        rangoDesviacion: { min: 0, max: null }
+                      })}
+                      className="px-3 py-1.5 bg-slate-600 text-white text-xs rounded hover:bg-slate-700 transition-all whitespace-nowrap"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" />
-                      </svg>
-                      {idioma === 'es' ? 'Reset Zoom' : 'Reiniciar Zoom'}
+                      {idioma === 'es' ? 'Reiniciar' : 'Reiniciar'}
                     </button>
                   </div>
                 </div>
@@ -2626,7 +2678,7 @@ const DashboardAcademico = () => {
                       type="number"
                       dataKey="notaMedia"
                       name={t('average')}
-                      domain={[0, 10]}
+                      domain={[zoomDispersion.rangoMedia.min, zoomDispersion.rangoMedia.max]}
                       stroke="#64748b"
                       label={{
                         value: t('average'),
@@ -2634,13 +2686,13 @@ const DashboardAcademico = () => {
                         offset: 60,
                         style: { fill: '#475569', fontSize: 14, fontWeight: 600 }
                       }}
-                      allowDataOverflow={true}
+                      allowDataOverflow={false}
                     />
                     <YAxis
                       type="number"
                       dataKey="desviacion"
                       name={t('standardDeviation')}
-                      domain={[0, dataMax => Math.max(3, Math.ceil(dataMax * 1.2))]}
+                      domain={[zoomDispersion.rangoDesviacion.min, desviacionMax]}
                       stroke="#64748b"
                       label={{
                         value: t('standardDeviation'),
@@ -2649,7 +2701,7 @@ const DashboardAcademico = () => {
                         offset: 15,
                         style: { fill: '#475569', fontSize: 14, fontWeight: 600 }
                       }}
-                      allowDataOverflow={true}
+                      allowDataOverflow={false}
                     />
                     <Tooltip content={<CustomTooltip />} />
                     <Scatter
@@ -2694,22 +2746,6 @@ const DashboardAcademico = () => {
                           </g>
                         );
                       }}
-                    />
-                    {/* Brush para zoom */}
-                    <Brush
-                      data={datosDispersion}
-                      dataKey="asignatura"
-                      height={30}
-                      stroke="#64748b"
-                      fill="#f1f5f9"
-                      startIndex={startIdx}
-                      endIndex={endIdx}
-                      onChange={(newIndex) => {
-                        if (newIndex && typeof newIndex.startIndex === 'number' && typeof newIndex.endIndex === 'number') {
-                          setZoomDispersion(newIndex);
-                        }
-                      }}
-                      y={620}
                     />
                     {/* Líneas de referencia */}
                     <ReferenceLine
