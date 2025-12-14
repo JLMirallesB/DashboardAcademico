@@ -626,7 +626,7 @@ const DashboardAcademico = () => {
     }
     // Prioridad 2: Patrones U/∩ (muy relevantes pedagógicamente)
     else if (esRecuperacion) {
-      tipo = 'recuperacion';
+      tipo = 'valle';
       icono = '↗️';
     }
     else if (esPico) {
@@ -636,16 +636,16 @@ const DashboardAcademico = () => {
     // Prioridad 3: Patrones con curvatura significativa
     else if (n >= 3 && Math.abs(curvatura) > umbralCurvatura && r2Cuadratica > r2Lineal + 0.1) {
       if (pendiente > umbralEstable && curvatura > 0) {
-        tipo = 'mejora_acelerada';
+        tipo = 'creciente_acelerado';
         icono = '🚀';
       } else if (pendiente > umbralEstable && curvatura < 0) {
-        tipo = 'mejora_desacelerada';
+        tipo = 'creciente_desacelerado';
         icono = '📈';
       } else if (pendiente < -umbralEstable && curvatura < 0) {
-        tipo = 'empeora_acelerada';
+        tipo = 'decreciente_acelerado';
         icono = '📉';
       } else if (pendiente < -umbralEstable && curvatura > 0) {
-        tipo = 'empeora_desacelerada';
+        tipo = 'decreciente_desacelerado';
         icono = '⬇️';
       } else {
         // Curvatura sin tendencia clara
@@ -688,8 +688,8 @@ const DashboardAcademico = () => {
         sortPriority: 0
       },
       'estable': {
-        label: t('trendStable'),
-        desc: t('trendDescStable'),
+        label: t('trendEstable'),
+        desc: t('trendDescEstable'),
         color: 'bg-blue-100 text-blue-700',
         sortPriority: 5
       },
@@ -705,33 +705,33 @@ const DashboardAcademico = () => {
         color: 'bg-red-100 text-red-700',
         sortPriority: 2
       },
-      'mejora_acelerada': {
-        label: t('trendMejoraAcelerada'),
-        desc: t('trendDescMejoraAcelerada'),
+      'creciente_acelerado': {
+        label: t('trendCrecienteAcelerado'),
+        desc: t('trendDescCrecienteAcelerado'),
         color: 'bg-emerald-100 text-emerald-700',
         sortPriority: 10
       },
-      'mejora_desacelerada': {
-        label: t('trendMejoraDesacelerada'),
-        desc: t('trendDescMejoraDesacelerada'),
+      'creciente_desacelerado': {
+        label: t('trendCrecienteDesacelerado'),
+        desc: t('trendDescCrecienteDesacelerado'),
         color: 'bg-green-100 text-green-600',
         sortPriority: 7
       },
-      'empeora_acelerada': {
-        label: t('trendEmpeoraAcelerada'),
-        desc: t('trendDescEmpeoraAcelerada'),
+      'decreciente_acelerado': {
+        label: t('trendDecrecienteAcelerado'),
+        desc: t('trendDescDecrecienteAcelerado'),
         color: 'bg-rose-100 text-rose-700',
         sortPriority: 1
       },
-      'empeora_desacelerada': {
-        label: t('trendEmpeoraDesacelerada'),
-        desc: t('trendDescEmpeoraDesacelerada'),
+      'decreciente_desacelerado': {
+        label: t('trendDecrecienteDesacelerado'),
+        desc: t('trendDescDecrecienteDesacelerado'),
         color: 'bg-orange-100 text-orange-700',
         sortPriority: 3
       },
-      'recuperacion': {
-        label: t('trendRecuperacion'),
-        desc: t('trendDescRecuperacion'),
+      'valle': {
+        label: t('trendValle'),
+        desc: t('trendDescValle'),
         color: 'bg-teal-100 text-teal-700',
         sortPriority: 9
       },
@@ -2854,18 +2854,11 @@ const DashboardAcademico = () => {
                   const tendencia = calcularTendencia(datosEvolucion.map(d => d.suspendidos));
                   const infoTendencia = getTrendInfo(tendencia.tipo);
 
-                  // Para suspensos, invertir colores (rojo=mejora, verde=empeora)
-                  const colorInvertido = tendencia.tipo.includes('mejora') || tendencia.tipo === 'creciente_sostenido' || tendencia.tipo === 'recuperacion'
-                    ? infoTendencia.color.replace('green', 'TEMP').replace('red', 'green').replace('TEMP', 'red').replace('emerald', 'rose').replace('teal', 'orange')
-                    : tendencia.tipo.includes('empeora') || tendencia.tipo === 'decreciente_sostenido'
-                    ? infoTendencia.color.replace('red', 'TEMP').replace('green', 'red').replace('TEMP', 'green').replace('rose', 'emerald').replace('orange', 'teal')
-                    : infoTendencia.color;
-
                   return (
                     <>
                       <div className="mb-4 flex items-center gap-2">
                         <span className="text-sm text-slate-600">{t('trend')}:</span>
-                        <span className={`text-xs font-semibold px-2 py-1 rounded ${colorInvertido} flex items-center gap-1`} title={infoTendencia.desc}>
+                        <span className={`text-xs font-semibold px-2 py-1 rounded ${infoTendencia.color} flex items-center gap-1`} title={infoTendencia.desc}>
                           <span>{tendencia.icono}</span>
                           <span>{infoTendencia.label}</span>
                         </span>
@@ -3176,13 +3169,6 @@ const DashboardAcademico = () => {
                   const infoMedia = getTrendInfo(tendenciaMedia.tipo);
                   const infoSuspensos = getTrendInfo(tendenciaSuspensos.tipo);
 
-                  // Para suspensos, invertir colores (rojo=mejora, verde=empeora)
-                  const colorSuspensosInvertido = tendenciaSuspensos.tipo.includes('mejora') || tendenciaSuspensos.tipo === 'creciente_sostenido' || tendenciaSuspensos.tipo === 'recuperacion'
-                    ? infoSuspensos.color.replace('green', 'TEMP').replace('red', 'green').replace('TEMP', 'red').replace('emerald', 'rose').replace('teal', 'orange')
-                    : tendenciaSuspensos.tipo.includes('empeora') || tendenciaSuspensos.tipo === 'decreciente_sostenido'
-                    ? infoSuspensos.color.replace('red', 'TEMP').replace('green', 'red').replace('TEMP', 'green').replace('rose', 'emerald').replace('orange', 'teal')
-                    : infoSuspensos.color;
-
                   // Datos para los mini gráficos
                   const datosGraficoMedia = nivelesSinGlobalEtapa.map(nivel => {
                     const datos = datosCompletos[trimestreSeleccionado]?.[nivel]?.[asignatura];
@@ -3243,7 +3229,7 @@ const DashboardAcademico = () => {
                       <div>
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-sm font-medium text-slate-600">{t('failedEvolution')}</span>
-                          <span className={`text-xs font-semibold px-2 py-0.5 rounded ${colorSuspensosInvertido} flex items-center gap-1`} title={infoSuspensos.desc}>
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded ${infoSuspensos.color} flex items-center gap-1`} title={infoSuspensos.desc}>
                             <span>{tendenciaSuspensos.icono}</span>
                             <span>{infoSuspensos.label}</span>
                           </span>
@@ -3743,18 +3729,18 @@ const DashboardAcademico = () => {
                           >
                             <option value="all">{t('allTrends')}</option>
                             <optgroup label={idioma === 'es' ? 'Tendencias lineales' : 'Tendències lineals'}>
-                              <option value="estable">➖ {t('trendStable')}</option>
+                              <option value="estable">➖ {t('trendEstable')}</option>
                               <option value="creciente_sostenido">↗️ {t('trendCrecienteSostenido')}</option>
                               <option value="decreciente_sostenido">↘️ {t('trendDecrecienteSostenido')}</option>
                             </optgroup>
                             <optgroup label={idioma === 'es' ? 'Con curvatura' : 'Amb curvatura'}>
-                              <option value="mejora_acelerada">🚀 {t('trendMejoraAcelerada')}</option>
-                              <option value="mejora_desacelerada">📈 {t('trendMejoraDesacelerada')}</option>
-                              <option value="empeora_acelerada">📉 {t('trendEmpeoraAcelerada')}</option>
-                              <option value="empeora_desacelerada">⬇️ {t('trendEmpeoraDesacelerada')}</option>
+                              <option value="creciente_acelerado">🚀 {t('trendCrecienteAcelerado')}</option>
+                              <option value="creciente_desacelerado">📈 {t('trendCrecienteDesacelerado')}</option>
+                              <option value="decreciente_acelerado">📉 {t('trendDecrecienteAcelerado')}</option>
+                              <option value="decreciente_desacelerado">⬇️ {t('trendDecrecienteDesacelerado')}</option>
                             </optgroup>
                             <optgroup label={idioma === 'es' ? 'Patrones especiales' : 'Patrons especials'}>
-                              <option value="recuperacion">↗️ {t('trendRecuperacion')}</option>
+                              <option value="valle">↗️ {t('trendValle')}</option>
                               <option value="pico">⚠️ {t('trendPico')}</option>
                               <option value="oscilante">〰️ {t('trendOscilante')}</option>
                             </optgroup>
@@ -3875,16 +3861,10 @@ const DashboardAcademico = () => {
                             <h4 className="text-lg font-semibold text-slate-700">{t('failedEvolution')}</h4>
                             {(() => {
                               const infoSuspensos = getTrendInfo(tendenciaSuspensos.tipo);
-                              // Invertir colores para suspensos (rojo=mejora, verde=empeora)
-                              const colorInvertido = tendenciaSuspensos.tipo.includes('mejora') || tendenciaSuspensos.tipo === 'creciente_sostenido' || tendenciaSuspensos.tipo === 'recuperacion'
-                                ? infoSuspensos.color.replace('green', 'TEMP').replace('red', 'green').replace('TEMP', 'red').replace('emerald', 'rose').replace('teal', 'orange')
-                                : tendenciaSuspensos.tipo.includes('empeora') || tendenciaSuspensos.tipo === 'decreciente_sostenido'
-                                ? infoSuspensos.color.replace('red', 'TEMP').replace('green', 'red').replace('TEMP', 'green').replace('rose', 'emerald').replace('orange', 'teal')
-                                : infoSuspensos.color;
 
                               return (
                                 <span
-                                  className={`px-3 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1.5 ${colorInvertido}`}
+                                  className={`px-3 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1.5 ${infoSuspensos.color}`}
                                   title={infoSuspensos.desc}
                                 >
                                   <span className="text-base">{tendenciaSuspensos.icono}</span>
