@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { LineChart, Line, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ScatterChart, Scatter, ReferenceLine } from 'recharts';
+import { LineChart, Line, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ScatterChart, Scatter, ReferenceLine, Brush } from 'recharts';
 import { translations } from './translations.js';
 import { normalizar, getBestTrimestre, parseTrimestre, getTrimestreBase, getTrimestreEtapa, tieneAsignatura } from './utils.js';
 import { jsPDF } from 'jspdf';
@@ -65,6 +65,9 @@ const DashboardAcademico = () => {
 
   // Gestión de etapas educativas (EEM / EPM / TODOS)
   const [modoEtapa, setModoEtapa] = useState('EEM'); // 'EEM' | 'EPM' | 'TODOS'
+
+  // Estado para zoom del mapa de dispersión
+  const [zoomDispersion, setZoomDispersion] = useState({ startIndex: 0, endIndex: 999 });
 
   // Estado para generación de informes
   const [mostrarModalInforme, setMostrarModalInforme] = useState(false);
@@ -2528,6 +2531,17 @@ const DashboardAcademico = () => {
 
             if (datosDispersion.length === 0) return null;
 
+            // Ordenar por nota media para que el zoom tenga sentido
+            datosDispersion.sort((a, b) => a.notaMedia - b.notaMedia);
+
+            // Calcular índices de zoom basados en el tamaño real de los datos
+            const maxIndex = datosDispersion.length - 1;
+            const startIdx = Math.min(zoomDispersion.startIndex, maxIndex);
+            const endIdx = Math.min(zoomDispersion.endIndex, maxIndex);
+
+            // Filtrar datos según el rango de zoom
+            const datosFiltrados = datosDispersion.slice(startIdx, endIdx + 1);
+
             // Función para determinar el cuadrante y su interpretación
             const getAnalisis = (notaMedia, desviacion) => {
               const mediaAlta = notaMedia >= 7;
@@ -2560,37 +2574,53 @@ const DashboardAcademico = () => {
               <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
                 <h3 className="text-lg font-semibold text-slate-800 mb-4">{t('dispersionMap')}</h3>
 
-                {/* Leyenda de cuadrantes */}
-                <div className="mb-4 p-4 bg-slate-50 rounded-lg">
-                  <h4 className="text-sm font-semibold text-slate-700 mb-2">{t('dispersionAnalysis')}</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-                    <div className="flex items-start gap-2">
-                      <div className="w-3 h-3 bg-emerald-500 rounded-full mt-0.5"></div>
-                      <span className="text-slate-600">{t('highAvgLowDev')}</span>
+                {/* Controles y leyenda */}
+                <div className="flex flex-col md:flex-row gap-4 mb-4">
+                  {/* Leyenda de cuadrantes */}
+                  <div className="flex-1 p-4 bg-slate-50 rounded-lg">
+                    <h4 className="text-sm font-semibold text-slate-700 mb-2">{t('dispersionAnalysis')}</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                      <div className="flex items-start gap-2">
+                        <div className="w-3 h-3 bg-emerald-500 rounded-full mt-0.5"></div>
+                        <span className="text-slate-600">{t('highAvgLowDev')}</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <div className="w-3 h-3 bg-blue-500 rounded-full mt-0.5"></div>
+                        <span className="text-slate-600">{t('highAvgHighDev')}</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <div className="w-3 h-3 bg-orange-500 rounded-full mt-0.5"></div>
+                        <span className="text-slate-600">{t('lowAvgLowDev')}</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <div className="w-3 h-3 bg-rose-500 rounded-full mt-0.5"></div>
+                        <span className="text-slate-600">{t('lowAvgHighDev')}</span>
+                      </div>
                     </div>
-                    <div className="flex items-start gap-2">
-                      <div className="w-3 h-3 bg-blue-500 rounded-full mt-0.5"></div>
-                      <span className="text-slate-600">{t('highAvgHighDev')}</span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <div className="w-3 h-3 bg-orange-500 rounded-full mt-0.5"></div>
-                      <span className="text-slate-600">{t('lowAvgLowDev')}</span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <div className="w-3 h-3 bg-rose-500 rounded-full mt-0.5"></div>
-                      <span className="text-slate-600">{t('lowAvgHighDev')}</span>
-                    </div>
+                    <p className="text-xs text-slate-500 mt-2 italic">
+                      {idioma === 'es'
+                        ? '* El tamaño del punto indica la cantidad de alumnos. Use la rueda del ratón para hacer zoom.'
+                        : '* La mida del punt indica la quantitat d\'alumnes. Utilitzeu la roda del ratolí per fer zoom.'}
+                    </p>
                   </div>
-                  <p className="text-xs text-slate-500 mt-2 italic">
-                    {idioma === 'es'
-                      ? '* El tamaño del punto indica la cantidad de alumnos'
-                      : '* La mida del punt indica la quantitat d\'alumnes'}
-                  </p>
+
+                  {/* Botón de reset zoom */}
+                  <div className="flex items-center">
+                    <button
+                      onClick={() => setZoomDispersion({ startIndex: 0, endIndex: datosDispersion.length - 1 })}
+                      className="px-4 py-2 bg-slate-600 text-white text-sm rounded-lg hover:bg-slate-700 transition-all flex items-center gap-2 whitespace-nowrap"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" />
+                      </svg>
+                      {idioma === 'es' ? 'Reset Zoom' : 'Reiniciar Zoom'}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Gráfico de dispersión */}
-                <ResponsiveContainer width="100%" height={500}>
-                  <ScatterChart margin={{ top: 20, right: 30, bottom: 60, left: 60 }}>
+                <ResponsiveContainer width="100%" height={700}>
+                  <ScatterChart margin={{ top: 30, right: 40, bottom: 80, left: 70 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                     <XAxis
                       type="number"
@@ -2601,27 +2631,29 @@ const DashboardAcademico = () => {
                       label={{
                         value: t('average'),
                         position: 'bottom',
-                        offset: 40,
+                        offset: 60,
                         style: { fill: '#475569', fontSize: 14, fontWeight: 600 }
                       }}
+                      allowDataOverflow={true}
                     />
                     <YAxis
                       type="number"
                       dataKey="desviacion"
                       name={t('standardDeviation')}
-                      domain={[0, 'auto']}
+                      domain={[0, dataMax => Math.max(3, Math.ceil(dataMax * 1.2))]}
                       stroke="#64748b"
                       label={{
                         value: t('standardDeviation'),
                         angle: -90,
                         position: 'insideLeft',
-                        offset: 10,
+                        offset: 15,
                         style: { fill: '#475569', fontSize: 14, fontWeight: 600 }
                       }}
+                      allowDataOverflow={true}
                     />
                     <Tooltip content={<CustomTooltip />} />
                     <Scatter
-                      data={datosDispersion}
+                      data={datosFiltrados}
                       shape={(props) => {
                         const { cx, cy, payload } = props;
                         const mediaAlta = payload.notaMedia >= 7;
@@ -2633,8 +2665,8 @@ const DashboardAcademico = () => {
                         else if (!mediaAlta && !desviacionAlta) color = '#f97316'; // orange
                         else color = '#f43f5e'; // rose
 
-                        // Tamaño basado en cantidad de alumnos (min 6, max 20)
-                        const radius = Math.min(20, Math.max(6, payload.alumnos / 10));
+                        // Tamaño basado en cantidad de alumnos (min 8, max 25)
+                        const radius = Math.min(25, Math.max(8, payload.alumnos / 8));
 
                         return (
                           <g>
@@ -2643,25 +2675,41 @@ const DashboardAcademico = () => {
                               cy={cy}
                               r={radius}
                               fill={color}
-                              fillOpacity={0.7}
+                              fillOpacity={0.6}
                               stroke={color}
                               strokeWidth={2}
                             />
                             <text
                               x={cx}
-                              y={cy + radius + 12}
+                              y={cy + radius + 15}
                               textAnchor="middle"
-                              fill="#475569"
-                              fontSize={10}
-                              fontWeight={500}
+                              fill="#1e293b"
+                              fontSize={11}
+                              fontWeight={600}
                             >
-                              {payload.asignatura.length > 15
-                                ? payload.asignatura.substring(0, 15) + '...'
+                              {payload.asignatura.length > 18
+                                ? payload.asignatura.substring(0, 18) + '...'
                                 : payload.asignatura}
                             </text>
                           </g>
                         );
                       }}
+                    />
+                    {/* Brush para zoom */}
+                    <Brush
+                      data={datosDispersion}
+                      dataKey="asignatura"
+                      height={30}
+                      stroke="#64748b"
+                      fill="#f1f5f9"
+                      startIndex={startIdx}
+                      endIndex={endIdx}
+                      onChange={(newIndex) => {
+                        if (newIndex && typeof newIndex.startIndex === 'number' && typeof newIndex.endIndex === 'number') {
+                          setZoomDispersion(newIndex);
+                        }
+                      }}
+                      y={620}
                     />
                     {/* Líneas de referencia */}
                     <ReferenceLine
