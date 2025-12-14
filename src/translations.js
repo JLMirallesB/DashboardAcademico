@@ -63,6 +63,16 @@ export const translations = {
     filterByTrend: 'Filtrar por tendencia',
     allTrends: 'Todas las tendencias',
 
+    // Mapa de dispersión
+    dispersionMap: 'Mapa de Dispersión: Nota Media vs Desviación',
+    standardDeviation: 'Desviación Estándar',
+    students: 'Alumnos',
+    dispersionAnalysis: 'Análisis de Dispersión',
+    highAvgLowDev: 'Nota alta y baja dispersión: Rendimiento excelente y homogéneo',
+    highAvgHighDev: 'Nota alta y alta dispersión: Buenos resultados pero heterogéneos',
+    lowAvgLowDev: 'Nota baja y baja dispersión: Dificultad generalizada',
+    lowAvgHighDev: 'Nota baja y alta dispersión: Resultados muy variables',
+
     // Tipos de tendencia - Lineales
     trendEstable: 'Estable',
     trendCrecienteSostenido: 'Creciente sostenido',
@@ -279,6 +289,16 @@ export const translations = {
     noSortLabel: 'Sense ordenar',
     filterByTrend: 'Filtrar per tendència',
     allTrends: 'Totes les tendències',
+
+    // Mapa de dispersió
+    dispersionMap: 'Mapa de Dispersió: Nota Mitjana vs Desviació',
+    standardDeviation: 'Desviació Estàndard',
+    students: 'Alumnes',
+    dispersionAnalysis: 'Anàlisi de Dispersió',
+    highAvgLowDev: 'Nota alta i baixa dispersió: Rendiment excel·lent i homogeni',
+    highAvgHighDev: 'Nota alta i alta dispersió: Bons resultats però heterogenis',
+    lowAvgLowDev: 'Nota baixa i baixa dispersió: Dificultat generalitzada',
+    lowAvgHighDev: 'Nota baixa i alta dispersió: Resultats molt variables',
 
     // Tipus de tendència - Lineals
     trendEstable: 'Estable',

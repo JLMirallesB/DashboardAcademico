@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { LineChart, Line, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
+import { LineChart, Line, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ScatterChart, Scatter, ReferenceLine } from 'recharts';
 import { translations } from './translations.js';
 import { normalizar, getBestTrimestre, parseTrimestre, getTrimestreBase, getTrimestreEtapa, tieneAsignatura } from './utils.js';
 import { jsPDF } from 'jspdf';
@@ -2435,6 +2435,264 @@ const DashboardAcademico = () => {
               </div>
             </div>
           )}
+
+          {/* Mapa de Dispersión: Nota Media vs Desviación Estándar */}
+          {trimestreSeleccionado && (() => {
+            // Recopilar datos de todas las asignaturas desde GLOBAL
+            const datosDispersion = [];
+
+            if (modoEtapa === 'TODOS') {
+              // En modo TODOS: combinar datos de asignaturas con mismo nombre de ambas etapas
+              const asignaturasCombinadas = new Map();
+
+              // Buscar en todos los trimestres de la misma evaluación
+              const trimestreBase = getTrimestreBase(trimestreSeleccionado);
+              const trimestresABuscar = trimestresDisponibles.filter(t => t.startsWith(trimestreBase));
+
+              trimestresABuscar.forEach(trim => {
+                const datosGlobal = datosCompletos[trim]?.['GLOBAL'];
+                if (datosGlobal) {
+                  Object.entries(datosGlobal).forEach(([asignatura, datos]) => {
+                    if (asignatura !== 'Todos' && datos?.stats) {
+                      if (!asignaturasCombinadas.has(asignatura)) {
+                        asignaturasCombinadas.set(asignatura, {
+                          asignatura,
+                          notasAcumuladas: [],
+                          alumnosTotales: 0
+                        });
+                      }
+                      const asigData = asignaturasCombinadas.get(asignatura);
+
+                      // Agregar las notas individuales si están disponibles
+                      if (datos.stats.notaMedia && datos.stats.alumnos > 0) {
+                        // Aproximar las notas individuales usando media y desviación
+                        const numAlumnos = datos.stats.alumnos || 0;
+                        asigData.notasAcumuladas.push({
+                          media: datos.stats.notaMedia,
+                          desviacion: datos.stats.desviacion || 0,
+                          alumnos: numAlumnos
+                        });
+                        asigData.alumnosTotales += numAlumnos;
+                      }
+                    }
+                  });
+                }
+              });
+
+              // Calcular media y desviación combinadas
+              asignaturasCombinadas.forEach((asigData) => {
+                if (asigData.notasAcumuladas.length > 0 && asigData.alumnosTotales > 0) {
+                  // Media ponderada
+                  const mediaPonderada = asigData.notasAcumuladas.reduce((sum, grupo) =>
+                    sum + (grupo.media * grupo.alumnos), 0) / asigData.alumnosTotales;
+
+                  // Desviación estándar combinada (aproximación conservadora)
+                  const desviacionCombinada = Math.sqrt(
+                    asigData.notasAcumuladas.reduce((sum, grupo) => {
+                      const varianza = Math.pow(grupo.desviacion, 2);
+                      const difMedia = Math.pow(grupo.media - mediaPonderada, 2);
+                      return sum + ((varianza + difMedia) * grupo.alumnos);
+                    }, 0) / asigData.alumnosTotales
+                  );
+
+                  datosDispersion.push({
+                    asignatura: asigData.asignatura,
+                    notaMedia: mediaPonderada,
+                    desviacion: desviacionCombinada,
+                    alumnos: asigData.alumnosTotales
+                  });
+                }
+              });
+            } else {
+              // Modo EEM o EPM: datos del trimestre seleccionado
+              const datosGlobal = datosCompletos[trimestreSeleccionado]?.['GLOBAL'];
+              if (datosGlobal) {
+                Object.entries(datosGlobal).forEach(([asignatura, datos]) => {
+                  if (asignatura !== 'Todos' && datos?.stats) {
+                    const notaMedia = datos.stats.notaMedia;
+                    const desviacion = datos.stats.desviacion || 0;
+                    const alumnos = datos.stats.alumnos || 0;
+
+                    if (notaMedia !== undefined && alumnos > 0) {
+                      datosDispersion.push({
+                        asignatura,
+                        notaMedia,
+                        desviacion,
+                        alumnos
+                      });
+                    }
+                  }
+                });
+              }
+            }
+
+            if (datosDispersion.length === 0) return null;
+
+            // Función para determinar el cuadrante y su interpretación
+            const getAnalisis = (notaMedia, desviacion) => {
+              const mediaAlta = notaMedia >= 7;
+              const desviacionAlta = desviacion >= 1.5;
+
+              if (mediaAlta && !desviacionAlta) return t('highAvgLowDev');
+              if (mediaAlta && desviacionAlta) return t('highAvgHighDev');
+              if (!mediaAlta && !desviacionAlta) return t('lowAvgLowDev');
+              return t('lowAvgHighDev');
+            };
+
+            // Tooltip personalizado
+            const CustomTooltip = ({ active, payload }) => {
+              if (active && payload && payload.length) {
+                const data = payload[0].payload;
+                return (
+                  <div className="bg-white p-3 border-2 border-slate-300 rounded-lg shadow-lg">
+                    <p className="font-bold text-slate-800 mb-2">{data.asignatura}</p>
+                    <p className="text-sm text-slate-600">{t('average')}: <span className="font-semibold">{data.notaMedia.toFixed(2)}</span></p>
+                    <p className="text-sm text-slate-600">{t('standardDeviation')}: <span className="font-semibold">{data.desviacion.toFixed(2)}</span></p>
+                    <p className="text-sm text-slate-600">{t('students')}: <span className="font-semibold">{data.alumnos}</span></p>
+                    <p className="text-xs text-slate-500 mt-2 italic">{getAnalisis(data.notaMedia, data.desviacion)}</p>
+                  </div>
+                );
+              }
+              return null;
+            };
+
+            return (
+              <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
+                <h3 className="text-lg font-semibold text-slate-800 mb-4">{t('dispersionMap')}</h3>
+
+                {/* Leyenda de cuadrantes */}
+                <div className="mb-4 p-4 bg-slate-50 rounded-lg">
+                  <h4 className="text-sm font-semibold text-slate-700 mb-2">{t('dispersionAnalysis')}</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                    <div className="flex items-start gap-2">
+                      <div className="w-3 h-3 bg-emerald-500 rounded-full mt-0.5"></div>
+                      <span className="text-slate-600">{t('highAvgLowDev')}</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <div className="w-3 h-3 bg-blue-500 rounded-full mt-0.5"></div>
+                      <span className="text-slate-600">{t('highAvgHighDev')}</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <div className="w-3 h-3 bg-orange-500 rounded-full mt-0.5"></div>
+                      <span className="text-slate-600">{t('lowAvgLowDev')}</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <div className="w-3 h-3 bg-rose-500 rounded-full mt-0.5"></div>
+                      <span className="text-slate-600">{t('lowAvgHighDev')}</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2 italic">
+                    {idioma === 'es'
+                      ? '* El tamaño del punto indica la cantidad de alumnos'
+                      : '* La mida del punt indica la quantitat d\'alumnes'}
+                  </p>
+                </div>
+
+                {/* Gráfico de dispersión */}
+                <ResponsiveContainer width="100%" height={500}>
+                  <ScatterChart margin={{ top: 20, right: 30, bottom: 60, left: 60 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis
+                      type="number"
+                      dataKey="notaMedia"
+                      name={t('average')}
+                      domain={[0, 10]}
+                      stroke="#64748b"
+                      label={{
+                        value: t('average'),
+                        position: 'bottom',
+                        offset: 40,
+                        style: { fill: '#475569', fontSize: 14, fontWeight: 600 }
+                      }}
+                    />
+                    <YAxis
+                      type="number"
+                      dataKey="desviacion"
+                      name={t('standardDeviation')}
+                      domain={[0, 'auto']}
+                      stroke="#64748b"
+                      label={{
+                        value: t('standardDeviation'),
+                        angle: -90,
+                        position: 'insideLeft',
+                        offset: 10,
+                        style: { fill: '#475569', fontSize: 14, fontWeight: 600 }
+                      }}
+                    />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Scatter
+                      data={datosDispersion}
+                      shape={(props) => {
+                        const { cx, cy, payload } = props;
+                        const mediaAlta = payload.notaMedia >= 7;
+                        const desviacionAlta = payload.desviacion >= 1.5;
+
+                        let color;
+                        if (mediaAlta && !desviacionAlta) color = '#10b981'; // emerald
+                        else if (mediaAlta && desviacionAlta) color = '#3b82f6'; // blue
+                        else if (!mediaAlta && !desviacionAlta) color = '#f97316'; // orange
+                        else color = '#f43f5e'; // rose
+
+                        // Tamaño basado en cantidad de alumnos (min 6, max 20)
+                        const radius = Math.min(20, Math.max(6, payload.alumnos / 10));
+
+                        return (
+                          <g>
+                            <circle
+                              cx={cx}
+                              cy={cy}
+                              r={radius}
+                              fill={color}
+                              fillOpacity={0.7}
+                              stroke={color}
+                              strokeWidth={2}
+                            />
+                            <text
+                              x={cx}
+                              y={cy + radius + 12}
+                              textAnchor="middle"
+                              fill="#475569"
+                              fontSize={10}
+                              fontWeight={500}
+                            >
+                              {payload.asignatura.length > 15
+                                ? payload.asignatura.substring(0, 15) + '...'
+                                : payload.asignatura}
+                            </text>
+                          </g>
+                        );
+                      }}
+                    />
+                    {/* Líneas de referencia */}
+                    <ReferenceLine
+                      x={7}
+                      stroke="#94a3b8"
+                      strokeDasharray="5 5"
+                      strokeWidth={1}
+                      label={{
+                        value: idioma === 'es' ? 'Media alta' : 'Mitjana alta',
+                        position: 'top',
+                        fill: '#64748b',
+                        fontSize: 11
+                      }}
+                    />
+                    <ReferenceLine
+                      y={1.5}
+                      stroke="#94a3b8"
+                      strokeDasharray="5 5"
+                      strokeWidth={1}
+                      label={{
+                        value: idioma === 'es' ? 'Dispersión alta' : 'Dispersió alta',
+                        position: 'right',
+                        fill: '#64748b',
+                        fontSize: 11
+                      }}
+                    />
+                  </ScatterChart>
+                </ResponsiveContainer>
+              </div>
+            );
+          })()}
 
           {/* Selectores */}
           <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
