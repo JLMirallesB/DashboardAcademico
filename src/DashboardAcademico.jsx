@@ -2,6 +2,9 @@ import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { LineChart, Line, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ScatterChart, Scatter, ReferenceLine } from 'recharts';
 import { translations } from './translations.js';
 import { normalizar, getBestTrimestre, parseTrimestre, getTrimestreBase, getTrimestreEtapa, tieneAsignatura } from './utils.js';
+import { UMBRALES_DEFAULT, COLORES_COMPARACION, INSTRUMENTALES_EPM, ASIGNATURAS_EXCLUIR_EEM, ASIGNATURAS_EXCLUIR_TODOS } from './constants.js';
+import { validarEstructuraCSV, parseNumero } from './utils/validators.js';
+import { formatearNombreTrimestre, abreviarAsignatura } from './utils/formatters.js';
 import { jsPDF } from 'jspdf';
 import { applyPlugin } from 'jspdf-autotable';
 
@@ -20,13 +23,7 @@ const DashboardAcademico = () => {
   const [trimestresDisponibles, setTrimestresDisponibles] = useState([]);
   
   // Umbrales configurables
-  const [umbrales, setUmbrales] = useState({
-    suspensosAlerta: 30,
-    mediaCritica: 6,
-    mediaFacil: 8,
-    aprobadosMinimo: 90,
-    alumnosMinimo: 3
-  });
+  const [umbrales, setUmbrales] = useState(UMBRALES_DEFAULT);
   
   // UI State
   const [trimestreSeleccionado, setTrimestreSeleccionado] = useState(null);
@@ -88,30 +85,14 @@ const DashboardAcademico = () => {
   const jsonInputRef = useRef(null);
 
   // Colores para comparaciones
-  const colores = [
-    { line: "#1a1a2e", label: "Principal", bg: "#f8f9fa" },
-    { line: "#e63946", label: "Rojo", bg: "#fff5f5" },
-    { line: "#2a9d8f", label: "Verde", bg: "#f0fdf4" },
-    { line: "#e9c46a", label: "Dorado", bg: "#fefce8" },
-    { line: "#9381ff", label: "Violeta", bg: "#f5f3ff" }
-  ];
+  const colores = COLORES_COMPARACION;
 
   // Parser de CSV - detecta automáticamente el separador
   const parseCSV = useCallback((csvText) => {
+    // Validar estructura del CSV
+    validarEstructuraCSV(csvText);
+
     const lineas = csvText.split('\n').map(l => l.trim()).filter(l => l);
-
-    // Validación básica: archivo no vacío
-    if (lineas.length === 0) {
-      throw new Error('El archivo CSV está vacío');
-    }
-
-    // Validar que tiene al menos las secciones requeridas
-    const tieneMetadata = lineas.some(l => l.startsWith('#METADATA'));
-    const tieneEstadisticas = lineas.some(l => l.startsWith('#ESTADISTICAS'));
-
-    if (!tieneMetadata || !tieneEstadisticas) {
-      throw new Error('El archivo CSV no tiene la estructura esperada. Debe contener #METADATA y #ESTADISTICAS');
-    }
 
     // Detectar separador: si hay más ; que , en las primeras líneas, usar ;
     const primerasLineas = lineas.slice(0, 10).join('\n');
@@ -126,16 +107,7 @@ const DashboardAcademico = () => {
     
     let encabezadosStats = [];
     let encabezadosCorr = [];
-    
-    // Función para convertir número (maneja tanto , como . decimal)
-    const parseNumero = (valor) => {
-      if (valor === '' || valor === null || valor === undefined) return null;
-      // Reemplazar coma decimal por punto
-      let num = valor.toString().replace(',', '.');
-      const parsed = parseFloat(num);
-      return isNaN(parsed) ? null : parsed;
-    };
-    
+
     for (let i = 0; i < lineas.length; i++) {
       const linea = lineas[i];
       
@@ -859,15 +831,6 @@ const DashboardAcademico = () => {
     return nivelesDisponibles.filter(n => n !== 'GLOBAL');
   }, [nivelesDisponibles]);
 
-  // Formatear nombre de trimestre para mostrar (ej: "1EV-EEM" → "1EV (EEM)")
-  const formatearNombreTrimestre = useCallback((trimestreCompleto) => {
-    const parsed = parseTrimestre(trimestreCompleto);
-    if (parsed) {
-      return `${parsed.base} (${parsed.etapa})`;
-    }
-    return trimestreCompleto;
-  }, []);
-
   // Obtener etapas disponibles en todos los datos cargados
   const etapasDisponibles = useMemo(() => {
     const etapas = new Set();
@@ -1141,42 +1104,10 @@ const DashboardAcademico = () => {
   const datosEvolucionCorrelaciones = useMemo(() => {
     if (tiposCorrelacion.length === 0) return [];
 
-    // Función para abreviar nombres de asignaturas (case-insensitive)
-    const abreviar = (nombre) => {
-      const abreviaturas = {
-        'lenguaje musical': 'LM',
-        'coro': 'Cor',
-        'conjunto': 'Con',
-        'orquesta/banda/conjunto': 'Orq/Ban/Con',
-        'especialidad': 'Esp',
-        'arpa': 'Arp',
-        'clarinete': 'Cla',
-        'contrabajo': 'Ctb',
-        'fagot': 'Fag',
-        'flauta': 'Fla',
-        'flauta travesera': 'Fla',
-        'guitarra': 'Gui',
-        'guitarra eléctrica': 'GuiE',
-        'guitarra electrica': 'GuiE',
-        'oboe': 'Obo',
-        'percusión': 'Per',
-        'piano': 'Pia',
-        'saxofón': 'Sax',
-        'trombón': 'Trb',
-        'trompa': 'Trp',
-        'trompeta': 'Tpt',
-        'viola': 'Vla',
-        'violín': 'Vln',
-        'violoncello': 'Vcl',
-        'teórica troncal': 'TT'
-      };
-      return abreviaturas[normalizar(nombre)] || nombre.substring(0, 3);
-    };
-
     return tiposCorrelacion.map(tipo => {
       const [asig1, asig2] = tipo.split('-');
       const punto = {
-        par: `${abreviar(asig1)}-${abreviar(asig2)}`,
+        par: `${abreviarAsignatura(asig1)}-${abreviarAsignatura(asig2)}`,
         parCompleto: `${asig1} ↔ ${asig2}`
       };
 
@@ -1200,38 +1131,6 @@ const DashboardAcademico = () => {
   // Datos alternativos para gráfico de evolución de correlaciones (eje X = niveles, líneas = pares)
   const datosEvolucionCorrelacionesAlt = useMemo(() => {
     if (tiposCorrelacion.length === 0) return [];
-
-    // Función para abreviar nombres de asignaturas (case-insensitive)
-    const abreviar = (nombre) => {
-      const abreviaturas = {
-        'lenguaje musical': 'LM',
-        'coro': 'Cor',
-        'conjunto': 'Con',
-        'orquesta/banda/conjunto': 'Orq/Ban/Con',
-        'especialidad': 'Esp',
-        'arpa': 'Arp',
-        'clarinete': 'Cla',
-        'contrabajo': 'Ctb',
-        'fagot': 'Fag',
-        'flauta': 'Fla',
-        'flauta travesera': 'Fla',
-        'guitarra': 'Gui',
-        'guitarra eléctrica': 'GuiE',
-        'guitarra electrica': 'GuiE',
-        'oboe': 'Obo',
-        'percusión': 'Per',
-        'piano': 'Pia',
-        'saxofón': 'Sax',
-        'trombón': 'Trb',
-        'trompa': 'Trp',
-        'trompeta': 'Tpt',
-        'viola': 'Vla',
-        'violín': 'Vln',
-        'violoncello': 'Vcl',
-        'teórica troncal': 'TT'
-      };
-      return abreviaturas[normalizar(nombre)] || nombre.substring(0, 3);
-    };
 
     // Calcular promedio de correlaciones para cada par de asignaturas
     const promediosPares = {};
@@ -1267,7 +1166,7 @@ const DashboardAcademico = () => {
 
       paresOrdenados.forEach(tipo => {
         const [asig1, asig2] = tipo.split('-');
-        const parAbreviado = `${abreviar(asig1)}-${abreviar(asig2)}`;
+        const parAbreviado = `${abreviarAsignatura(asig1)}-${abreviarAsignatura(asig2)}`;
 
         // Buscar correlación en todos los trimestres para este nivel y par
         Object.entries(correlacionesCompletas).forEach(([trim, corrs]) => {
@@ -1313,26 +1212,15 @@ const DashboardAcademico = () => {
 
   // Función auxiliar para determinar si una asignatura es de especialidades
   const esAsignaturaEspecialidad = useCallback((asignatura, modo) => {
-    // Lista completa de instrumentos para EPM (especialidades instrumentales) - en minúsculas
-    const instrumentalesEPM = new Set([
-      'arpa', 'acordeón', 'bajo eléctrico', 'canto', 'clarinete', 'clave',
-      'contrabajo', 'dolçaina', 'fagot', 'flauta', 'flauta de pico', 'flauta travesera',
-      'guitarra', 'guitarra eléctrica', 'guitarra electrica', 'oboe', 'órgano', 'percusión',
-      'piano', 'saxofón', 'trombón', 'trompa', 'trompeta',
-      'tuba', 'viola', 'viola da gamba', 'violín', 'violoncello', 'voz'
-    ]);
-
     const asignaturaNorm = normalizar(asignatura);
 
     if (modo === 'EPM') {
-      return instrumentalesEPM.has(asignaturaNorm);
+      return INSTRUMENTALES_EPM.has(asignaturaNorm);
     } else if (modo === 'EEM') {
-      const excluirEEM = ['lenguaje musical', 'coro', 'conjunto', 'todos'];
-      return !excluirEEM.includes(asignaturaNorm);
+      return !ASIGNATURAS_EXCLUIR_EEM.includes(asignaturaNorm);
     } else {
       // Modo TODOS: incluir especialidades de ambas etapas
-      const excluirTODOS = ['lenguaje musical', 'coro', 'conjunto', 'todos', 'teórica troncal'];
-      return instrumentalesEPM.has(asignaturaNorm) || !excluirTODOS.includes(asignaturaNorm);
+      return INSTRUMENTALES_EPM.has(asignaturaNorm) || !ASIGNATURAS_EXCLUIR_TODOS.includes(asignaturaNorm);
     }
   }, []);
 
