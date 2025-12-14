@@ -476,11 +476,15 @@ const DashboardAcademico = () => {
 
   // Calcular tendencia a partir de una serie de valores
   const calcularTendencia = useCallback((valores) => {
-    if (!valores || valores.length < 2) return 'notEnoughData';
+    if (!valores || valores.length < 2) {
+      return { tipo: 'insuficiente', pendiente: 0, confianza: 'baja' };
+    }
 
     // Filtrar valores nulos/undefined
     const valoresValidos = valores.filter(v => v !== null && v !== undefined && !isNaN(v));
-    if (valoresValidos.length < 2) return 'notEnoughData';
+    if (valoresValidos.length < 2) {
+      return { tipo: 'insuficiente', pendiente: 0, confianza: 'baja' };
+    }
 
     // Calcular pendiente usando regresión lineal simple
     const n = valoresValidos.length;
@@ -495,10 +499,21 @@ const DashboardAcademico = () => {
 
     const pendiente = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
 
+    // Determinar confianza basada en cantidad de datos
+    const confianza = valoresValidos.length >= 4 ? 'alta' : 'baja';
+
     // Determinar tendencia basada en la pendiente
     // Umbral de ±0.1 para considerar estable
-    if (Math.abs(pendiente) < 0.1) return 'stable';
-    return pendiente > 0 ? 'increasing' : 'decreasing';
+    let tipo;
+    if (Math.abs(pendiente) < 0.1) {
+      tipo = 'estable';
+    } else if (pendiente > 0) {
+      tipo = 'creciente';
+    } else {
+      tipo = 'decreciente';
+    }
+
+    return { tipo, pendiente, confianza };
   }, []);
 
   // Detectar etapa de un nivel (EEM: 1EEM-4EEM, EPM: 1EPM-6EPM)
@@ -2530,12 +2545,12 @@ const DashboardAcademico = () => {
                   }).filter(d => d.notaMedia !== null);
 
                   const tendencia = calcularTendencia(datosEvolucion.map(d => d.notaMedia));
-                  const tendenciaLabel = tendencia === 'increasing' ? t('trendIncreasing') :
-                                        tendencia === 'decreasing' ? t('trendDecreasing') :
-                                        tendencia === 'stable' ? t('trendStable') : t('notEnoughData');
-                  const tendenciaColor = tendencia === 'increasing' ? 'bg-green-100 text-green-700' :
-                                        tendencia === 'decreasing' ? 'bg-red-100 text-red-700' :
-                                        tendencia === 'stable' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700';
+                  const tendenciaLabel = tendencia.tipo === 'creciente' ? t('trendIncreasing') :
+                                        tendencia.tipo === 'decreciente' ? t('trendDecreasing') :
+                                        tendencia.tipo === 'estable' ? t('trendStable') : t('notEnoughData');
+                  const tendenciaColor = tendencia.tipo === 'creciente' ? 'bg-green-100 text-green-700' :
+                                        tendencia.tipo === 'decreciente' ? 'bg-red-100 text-red-700' :
+                                        tendencia.tipo === 'estable' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700';
 
                   return (
                     <>
@@ -2598,13 +2613,13 @@ const DashboardAcademico = () => {
                   }).filter(d => d.suspendidos !== null);
 
                   const tendencia = calcularTendencia(datosEvolucion.map(d => d.suspendidos));
-                  // Para suspensos, invertir la lógica: increasing es malo (rojo), decreasing es bueno (verde)
-                  const tendenciaLabel = tendencia === 'increasing' ? t('trendIncreasing') :
-                                        tendencia === 'decreasing' ? t('trendDecreasing') :
-                                        tendencia === 'stable' ? t('trendStable') : t('notEnoughData');
-                  const tendenciaColor = tendencia === 'increasing' ? 'bg-red-100 text-red-700' :
-                                        tendencia === 'decreasing' ? 'bg-green-100 text-green-700' :
-                                        tendencia === 'stable' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700';
+                  // Para suspensos, invertir la lógica: creciente es malo (rojo), decreciente es bueno (verde)
+                  const tendenciaLabel = tendencia.tipo === 'creciente' ? t('trendIncreasing') :
+                                        tendencia.tipo === 'decreciente' ? t('trendDecreasing') :
+                                        tendencia.tipo === 'estable' ? t('trendStable') : t('notEnoughData');
+                  const tendenciaColor = tendencia.tipo === 'creciente' ? 'bg-red-100 text-red-700' :
+                                        tendencia.tipo === 'decreciente' ? 'bg-green-100 text-green-700' :
+                                        tendencia.tipo === 'estable' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700';
 
                   return (
                     <>
@@ -2917,19 +2932,19 @@ const DashboardAcademico = () => {
                   const tendenciaSuspensos = calcularTendencia(datosSuspensos);
 
                   // Etiquetas de tendencia
-                  const labelMedia = tendenciaMedia === 'increasing' ? t('trendIncreasing') :
-                                    tendenciaMedia === 'decreasing' ? t('trendDecreasing') :
-                                    tendenciaMedia === 'stable' ? t('trendStable') : t('notEnoughData');
-                  const labelSuspensos = tendenciaSuspensos === 'increasing' ? t('trendIncreasing') :
-                                        tendenciaSuspensos === 'decreasing' ? t('trendDecreasing') :
-                                        tendenciaSuspensos === 'stable' ? t('trendStable') : t('notEnoughData');
+                  const labelMedia = tendenciaMedia.tipo === 'creciente' ? t('trendIncreasing') :
+                                    tendenciaMedia.tipo === 'decreciente' ? t('trendDecreasing') :
+                                    tendenciaMedia.tipo === 'estable' ? t('trendStable') : t('notEnoughData');
+                  const labelSuspensos = tendenciaSuspensos.tipo === 'creciente' ? t('trendIncreasing') :
+                                        tendenciaSuspensos.tipo === 'decreciente' ? t('trendDecreasing') :
+                                        tendenciaSuspensos.tipo === 'estable' ? t('trendStable') : t('notEnoughData');
 
-                  const colorMedia = tendenciaMedia === 'increasing' ? 'bg-green-100 text-green-700' :
-                                    tendenciaMedia === 'decreasing' ? 'bg-red-100 text-red-700' :
-                                    tendenciaMedia === 'stable' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700';
-                  const colorSuspensos = tendenciaSuspensos === 'increasing' ? 'bg-red-100 text-red-700' :
-                                        tendenciaSuspensos === 'decreasing' ? 'bg-green-100 text-green-700' :
-                                        tendenciaSuspensos === 'stable' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700';
+                  const colorMedia = tendenciaMedia.tipo === 'creciente' ? 'bg-green-100 text-green-700' :
+                                    tendenciaMedia.tipo === 'decreciente' ? 'bg-red-100 text-red-700' :
+                                    tendenciaMedia.tipo === 'estable' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700';
+                  const colorSuspensos = tendenciaSuspensos.tipo === 'creciente' ? 'bg-red-100 text-red-700' :
+                                        tendenciaSuspensos.tipo === 'decreciente' ? 'bg-green-100 text-green-700' :
+                                        tendenciaSuspensos.tipo === 'estable' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700';
 
                   // Datos para los mini gráficos
                   const datosGraficoMedia = nivelesSinGlobalEtapa.map(nivel => {
