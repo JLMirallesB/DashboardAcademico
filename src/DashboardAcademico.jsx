@@ -293,8 +293,25 @@ const DashboardAcademico = () => {
   // Obtener niveles disponibles
   const nivelesDisponibles = useMemo(() => {
     if (!trimestreSeleccionado || !datosCompletos[trimestreSeleccionado]) return [];
+
+    // En modo TODOS, obtener niveles de todos los trimestres de la misma evaluación
+    if (modoEtapa === 'TODOS') {
+      const nivelesSet = new Set();
+      const trimestreBase = getTrimestreBase(trimestreSeleccionado);
+
+      // Buscar todos los trimestres de la misma evaluación
+      trimestresDisponibles.forEach(trim => {
+        if (trim.startsWith(trimestreBase) && datosCompletos[trim]) {
+          Object.keys(datosCompletos[trim]).forEach(nivel => nivelesSet.add(nivel));
+        }
+      });
+
+      return Array.from(nivelesSet);
+    }
+
+    // En modos EEM/EPM, solo niveles del trimestre seleccionado
     return Object.keys(datosCompletos[trimestreSeleccionado]);
-  }, [trimestreSeleccionado, datosCompletos]);
+  }, [trimestreSeleccionado, datosCompletos, modoEtapa, trimestresDisponibles]);
 
   // Obtener todas las asignaturas disponibles (excluyendo GLOBAL, filtradas por etapa)
   const todasLasAsignaturas = useMemo(() => {
