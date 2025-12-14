@@ -477,44 +477,286 @@ const DashboardAcademico = () => {
   // Calcular tendencia a partir de una serie de valores
   const calcularTendencia = useCallback((valores) => {
     if (!valores || valores.length < 2) {
-      return { tipo: 'insuficiente', pendiente: 0, confianza: 'baja' };
+      return {
+        tipo: 'insuficiente',
+        icono: '📊',
+        pendiente: 0,
+        curvatura: 0,
+        confianza: 'baja',
+        r2: 0
+      };
     }
 
     // Filtrar valores nulos/undefined
     const valoresValidos = valores.filter(v => v !== null && v !== undefined && !isNaN(v));
     if (valoresValidos.length < 2) {
-      return { tipo: 'insuficiente', pendiente: 0, confianza: 'baja' };
+      return {
+        tipo: 'insuficiente',
+        icono: '📊',
+        pendiente: 0,
+        curvatura: 0,
+        confianza: 'baja',
+        r2: 0
+      };
     }
 
-    // Calcular pendiente usando regresión lineal simple
     const n = valoresValidos.length;
-    let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
 
+    // ========== REGRESIÓN LINEAL ==========
+    let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0, sumY2 = 0;
     valoresValidos.forEach((y, x) => {
       sumX += x;
       sumY += y;
       sumXY += x * y;
       sumX2 += x * x;
+      sumY2 += y * y;
     });
 
     const pendiente = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+    const intercepto = (sumY - pendiente * sumX) / n;
 
-    // Determinar confianza basada en cantidad de datos
-    const confianza = valoresValidos.length >= 4 ? 'alta' : 'baja';
+    // Calcular R² para regresión lineal
+    const mediaY = sumY / n;
+    let ssTotal = 0, ssResidual = 0;
+    valoresValidos.forEach((y, x) => {
+      const yPred = pendiente * x + intercepto;
+      ssTotal += (y - mediaY) ** 2;
+      ssResidual += (y - yPred) ** 2;
+    });
+    const r2Lineal = ssTotal > 0 ? 1 - (ssResidual / ssTotal) : 0;
 
-    // Determinar tendencia basada en la pendiente
-    // Umbral de ±0.1 para considerar estable
-    let tipo;
-    if (Math.abs(pendiente) < 0.1) {
-      tipo = 'estable';
-    } else if (pendiente > 0) {
-      tipo = 'creciente';
-    } else {
-      tipo = 'decreciente';
+    // ========== REGRESIÓN CUADRÁTICA (solo si tenemos suficientes datos) ==========
+    let curvatura = 0;
+    let r2Cuadratica = 0;
+
+    if (n >= 3) {
+      // Resolver sistema de ecuaciones para regresión cuadrática: y = ax² + bx + c
+      let sumX3 = 0, sumX4 = 0, sumX2Y = 0;
+      valoresValidos.forEach((y, x) => {
+        sumX3 += x ** 3;
+        sumX4 += x ** 4;
+        sumX2Y += (x ** 2) * y;
+      });
+
+      // Matriz de coeficientes y resolución
+      const denom = (sumX4 * (sumX2 * n - sumX * sumX) - sumX3 * (sumX3 * n - sumX * sumX2) + sumX2 * (sumX3 * sumX - sumX2 * sumX2));
+
+      if (Math.abs(denom) > 1e-10) {
+        curvatura = (
+          (sumX2Y * (sumX2 * n - sumX * sumX) - sumXY * (sumX3 * n - sumX * sumX2) + sumY * (sumX3 * sumX - sumX2 * sumX2))
+        ) / denom;
+
+        // Calcular R² para regresión cuadrática
+        const b = ((sumX2 * sumX2Y - sumX4 * sumXY) + (sumX3 * sumY * sumX - sumX2 * sumY * sumX2)) / denom;
+        const c = (sumY - b * sumX - curvatura * sumX2) / n;
+
+        let ssResidualCuad = 0;
+        valoresValidos.forEach((y, x) => {
+          const yPred = curvatura * x * x + b * x + c;
+          ssResidualCuad += (y - yPred) ** 2;
+        });
+        r2Cuadratica = ssTotal > 0 ? 1 - (ssResidualCuad / ssTotal) : 0;
+      }
     }
 
-    return { tipo, pendiente, confianza };
+    // ========== DETECCIÓN DE PUNTOS DE INFLEXIÓN ==========
+    let puntosInflexion = 0;
+    let esRecuperacion = false;
+    let esPico = false;
+
+    if (n >= 4) {
+      const diferencias = [];
+      for (let i = 1; i < valoresValidos.length; i++) {
+        diferencias.push(valoresValidos[i] - valoresValidos[i - 1]);
+      }
+
+      // Contar cambios de signo en las diferencias
+      for (let i = 1; i < diferencias.length; i++) {
+        if (diferencias[i - 1] * diferencias[i] < 0) {
+          puntosInflexion++;
+        }
+      }
+
+      // Detectar forma de U (recuperación): primero baja, luego sube
+      if (puntosInflexion === 1) {
+        const mitad = Math.floor(diferencias.length / 2);
+        const primerosDiferencias = diferencias.slice(0, mitad);
+        const segundosDiferencias = diferencias.slice(mitad);
+
+        const mediaPrimeros = primerosDiferencias.reduce((a, b) => a + b, 0) / primerosDiferencias.length;
+        const mediaSegundos = segundosDiferencias.reduce((a, b) => a + b, 0) / segundosDiferencias.length;
+
+        if (mediaPrimeros < -0.1 && mediaSegundos > 0.1) {
+          esRecuperacion = true;
+        } else if (mediaPrimeros > 0.1 && mediaSegundos < -0.1) {
+          esPico = true;
+        }
+      }
+    }
+
+    // ========== ANÁLISIS DE OSCILACIONES ==========
+    let varianzaDiferencias = 0;
+    if (n >= 3) {
+      const diferencias = [];
+      for (let i = 1; i < valoresValidos.length; i++) {
+        diferencias.push(valoresValidos[i] - valoresValidos[i - 1]);
+      }
+
+      const mediaDif = diferencias.reduce((a, b) => a + b, 0) / diferencias.length;
+      varianzaDiferencias = diferencias.reduce((sum, d) => sum + (d - mediaDif) ** 2, 0) / diferencias.length;
+    }
+
+    // ========== CLASIFICACIÓN EN CATEGORÍAS ==========
+    const confianza = n >= 4 ? 'alta' : 'baja';
+    const umbralEstable = 0.1;
+    const umbralCurvatura = 0.05;
+    const umbralOscilacion = 0.5;
+
+    let tipo, icono;
+
+    // Prioridad 1: Patrones insuficientes o irregulares
+    if (r2Lineal < 0.3 && n >= 3 && varianzaDiferencias > umbralOscilacion) {
+      if (puntosInflexion >= 2) {
+        tipo = 'oscilante';
+        icono = '〰️';
+      } else {
+        tipo = 'irregular';
+        icono = '❓';
+      }
+    }
+    // Prioridad 2: Patrones U/∩ (muy relevantes pedagógicamente)
+    else if (esRecuperacion) {
+      tipo = 'recuperacion';
+      icono = '↗️';
+    }
+    else if (esPico) {
+      tipo = 'pico';
+      icono = '⚠️';
+    }
+    // Prioridad 3: Patrones con curvatura significativa
+    else if (n >= 3 && Math.abs(curvatura) > umbralCurvatura && r2Cuadratica > r2Lineal + 0.1) {
+      if (pendiente > umbralEstable && curvatura > 0) {
+        tipo = 'mejora_acelerada';
+        icono = '🚀';
+      } else if (pendiente > umbralEstable && curvatura < 0) {
+        tipo = 'mejora_desacelerada';
+        icono = '📈';
+      } else if (pendiente < -umbralEstable && curvatura < 0) {
+        tipo = 'empeora_acelerada';
+        icono = '📉';
+      } else if (pendiente < -umbralEstable && curvatura > 0) {
+        tipo = 'empeora_desacelerada';
+        icono = '⬇️';
+      } else {
+        // Curvatura sin tendencia clara
+        tipo = 'estable';
+        icono = '➖';
+      }
+    }
+    // Prioridad 4: Patrones lineales simples
+    else {
+      if (Math.abs(pendiente) < umbralEstable) {
+        tipo = 'estable';
+        icono = '➖';
+      } else if (pendiente > 0) {
+        tipo = 'creciente_sostenido';
+        icono = '↗️';
+      } else {
+        tipo = 'decreciente_sostenido';
+        icono = '↘️';
+      }
+    }
+
+    return {
+      tipo,
+      icono,
+      pendiente,
+      curvatura,
+      confianza,
+      r2: Math.max(r2Lineal, r2Cuadratica),
+      puntosInflexion
+    };
   }, []);
+
+  // Obtener texto y color para un tipo de tendencia
+  const getTrendInfo = useCallback((tipo) => {
+    const trendMap = {
+      'insuficiente': {
+        label: t('trendInsuficiente'),
+        desc: t('trendDescInsuficiente'),
+        color: 'bg-gray-100 text-gray-700',
+        sortPriority: 0
+      },
+      'estable': {
+        label: t('trendStable'),
+        desc: t('trendDescStable'),
+        color: 'bg-blue-100 text-blue-700',
+        sortPriority: 5
+      },
+      'creciente_sostenido': {
+        label: t('trendCrecienteSostenido'),
+        desc: t('trendDescCrecienteSostenido'),
+        color: 'bg-green-100 text-green-700',
+        sortPriority: 8
+      },
+      'decreciente_sostenido': {
+        label: t('trendDecrecienteSostenido'),
+        desc: t('trendDescDecrecienteSostenido'),
+        color: 'bg-red-100 text-red-700',
+        sortPriority: 2
+      },
+      'mejora_acelerada': {
+        label: t('trendMejoraAcelerada'),
+        desc: t('trendDescMejoraAcelerada'),
+        color: 'bg-emerald-100 text-emerald-700',
+        sortPriority: 10
+      },
+      'mejora_desacelerada': {
+        label: t('trendMejoraDesacelerada'),
+        desc: t('trendDescMejoraDesacelerada'),
+        color: 'bg-green-100 text-green-600',
+        sortPriority: 7
+      },
+      'empeora_acelerada': {
+        label: t('trendEmpeoraAcelerada'),
+        desc: t('trendDescEmpeoraAcelerada'),
+        color: 'bg-rose-100 text-rose-700',
+        sortPriority: 1
+      },
+      'empeora_desacelerada': {
+        label: t('trendEmpeoraDesacelerada'),
+        desc: t('trendDescEmpeoraDesacelerada'),
+        color: 'bg-orange-100 text-orange-700',
+        sortPriority: 3
+      },
+      'recuperacion': {
+        label: t('trendRecuperacion'),
+        desc: t('trendDescRecuperacion'),
+        color: 'bg-teal-100 text-teal-700',
+        sortPriority: 9
+      },
+      'pico': {
+        label: t('trendPico'),
+        desc: t('trendDescPico'),
+        color: 'bg-amber-100 text-amber-700',
+        sortPriority: 4
+      },
+      'oscilante': {
+        label: t('trendOscilante'),
+        desc: t('trendDescOscilante'),
+        color: 'bg-purple-100 text-purple-700',
+        sortPriority: 6
+      },
+      'irregular': {
+        label: t('trendIrregular'),
+        desc: t('trendDescIrregular'),
+        color: 'bg-gray-100 text-gray-600',
+        sortPriority: 0
+      }
+    };
+
+    return trendMap[tipo] || trendMap['insuficiente'];
+  }, [t]);
 
   // Detectar etapa de un nivel (EEM: 1EEM-4EEM, EPM: 1EPM-6EPM)
   const detectarEtapa = useCallback((nivel) => {
@@ -2546,19 +2788,15 @@ const DashboardAcademico = () => {
                   }).filter(d => d.notaMedia !== null);
 
                   const tendencia = calcularTendencia(datosEvolucion.map(d => d.notaMedia));
-                  const tendenciaLabel = tendencia.tipo === 'creciente' ? t('trendIncreasing') :
-                                        tendencia.tipo === 'decreciente' ? t('trendDecreasing') :
-                                        tendencia.tipo === 'estable' ? t('trendStable') : t('notEnoughData');
-                  const tendenciaColor = tendencia.tipo === 'creciente' ? 'bg-green-100 text-green-700' :
-                                        tendencia.tipo === 'decreciente' ? 'bg-red-100 text-red-700' :
-                                        tendencia.tipo === 'estable' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700';
+                  const infoTendencia = getTrendInfo(tendencia.tipo);
 
                   return (
                     <>
                       <div className="mb-4 flex items-center gap-2">
                         <span className="text-sm text-slate-600">{t('trend')}:</span>
-                        <span className={`text-xs font-semibold px-2 py-1 rounded ${tendenciaColor}`}>
-                          {tendenciaLabel}
+                        <span className={`text-xs font-semibold px-2 py-1 rounded ${infoTendencia.color} flex items-center gap-1`} title={infoTendencia.desc}>
+                          <span>{tendencia.icono}</span>
+                          <span>{infoTendencia.label}</span>
                         </span>
                       </div>
                       <ResponsiveContainer width="100%" height={300}>
@@ -2614,20 +2852,22 @@ const DashboardAcademico = () => {
                   }).filter(d => d.suspendidos !== null);
 
                   const tendencia = calcularTendencia(datosEvolucion.map(d => d.suspendidos));
-                  // Para suspensos, invertir la lógica: creciente es malo (rojo), decreciente es bueno (verde)
-                  const tendenciaLabel = tendencia.tipo === 'creciente' ? t('trendIncreasing') :
-                                        tendencia.tipo === 'decreciente' ? t('trendDecreasing') :
-                                        tendencia.tipo === 'estable' ? t('trendStable') : t('notEnoughData');
-                  const tendenciaColor = tendencia.tipo === 'creciente' ? 'bg-red-100 text-red-700' :
-                                        tendencia.tipo === 'decreciente' ? 'bg-green-100 text-green-700' :
-                                        tendencia.tipo === 'estable' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700';
+                  const infoTendencia = getTrendInfo(tendencia.tipo);
+
+                  // Para suspensos, invertir colores (rojo=mejora, verde=empeora)
+                  const colorInvertido = tendencia.tipo.includes('mejora') || tendencia.tipo === 'creciente_sostenido' || tendencia.tipo === 'recuperacion'
+                    ? infoTendencia.color.replace('green', 'TEMP').replace('red', 'green').replace('TEMP', 'red').replace('emerald', 'rose').replace('teal', 'orange')
+                    : tendencia.tipo.includes('empeora') || tendencia.tipo === 'decreciente_sostenido'
+                    ? infoTendencia.color.replace('red', 'TEMP').replace('green', 'red').replace('TEMP', 'green').replace('rose', 'emerald').replace('orange', 'teal')
+                    : infoTendencia.color;
 
                   return (
                     <>
                       <div className="mb-4 flex items-center gap-2">
                         <span className="text-sm text-slate-600">{t('trend')}:</span>
-                        <span className={`text-xs font-semibold px-2 py-1 rounded ${tendenciaColor}`}>
-                          {tendenciaLabel}
+                        <span className={`text-xs font-semibold px-2 py-1 rounded ${colorInvertido} flex items-center gap-1`} title={infoTendencia.desc}>
+                          <span>{tendencia.icono}</span>
+                          <span>{infoTendencia.label}</span>
                         </span>
                       </div>
                       <ResponsiveContainer width="100%" height={300}>
@@ -2932,20 +3172,16 @@ const DashboardAcademico = () => {
                   const tendenciaMedia = calcularTendencia(datosNotaMedia);
                   const tendenciaSuspensos = calcularTendencia(datosSuspensos);
 
-                  // Etiquetas de tendencia
-                  const labelMedia = tendenciaMedia.tipo === 'creciente' ? t('trendIncreasing') :
-                                    tendenciaMedia.tipo === 'decreciente' ? t('trendDecreasing') :
-                                    tendenciaMedia.tipo === 'estable' ? t('trendStable') : t('notEnoughData');
-                  const labelSuspensos = tendenciaSuspensos.tipo === 'creciente' ? t('trendIncreasing') :
-                                        tendenciaSuspensos.tipo === 'decreciente' ? t('trendDecreasing') :
-                                        tendenciaSuspensos.tipo === 'estable' ? t('trendStable') : t('notEnoughData');
+                  // Obtener info de tendencias
+                  const infoMedia = getTrendInfo(tendenciaMedia.tipo);
+                  const infoSuspensos = getTrendInfo(tendenciaSuspensos.tipo);
 
-                  const colorMedia = tendenciaMedia.tipo === 'creciente' ? 'bg-green-100 text-green-700' :
-                                    tendenciaMedia.tipo === 'decreciente' ? 'bg-red-100 text-red-700' :
-                                    tendenciaMedia.tipo === 'estable' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700';
-                  const colorSuspensos = tendenciaSuspensos.tipo === 'creciente' ? 'bg-red-100 text-red-700' :
-                                        tendenciaSuspensos.tipo === 'decreciente' ? 'bg-green-100 text-green-700' :
-                                        tendenciaSuspensos.tipo === 'estable' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700';
+                  // Para suspensos, invertir colores (rojo=mejora, verde=empeora)
+                  const colorSuspensosInvertido = tendenciaSuspensos.tipo.includes('mejora') || tendenciaSuspensos.tipo === 'creciente_sostenido' || tendenciaSuspensos.tipo === 'recuperacion'
+                    ? infoSuspensos.color.replace('green', 'TEMP').replace('red', 'green').replace('TEMP', 'red').replace('emerald', 'rose').replace('teal', 'orange')
+                    : tendenciaSuspensos.tipo.includes('empeora') || tendenciaSuspensos.tipo === 'decreciente_sostenido'
+                    ? infoSuspensos.color.replace('red', 'TEMP').replace('green', 'red').replace('TEMP', 'green').replace('rose', 'emerald').replace('orange', 'teal')
+                    : infoSuspensos.color;
 
                   // Datos para los mini gráficos
                   const datosGraficoMedia = nivelesSinGlobalEtapa.map(nivel => {
@@ -2974,8 +3210,9 @@ const DashboardAcademico = () => {
                       <div className="mb-4">
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-sm font-medium text-slate-600">{t('averageEvolution')}</span>
-                          <span className={`text-xs font-semibold px-2 py-0.5 rounded ${colorMedia}`}>
-                            {labelMedia}
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded ${infoMedia.color} flex items-center gap-1`} title={infoMedia.desc}>
+                            <span>{tendenciaMedia.icono}</span>
+                            <span>{infoMedia.label}</span>
                           </span>
                         </div>
                         <ResponsiveContainer width="100%" height={120}>
@@ -3006,8 +3243,9 @@ const DashboardAcademico = () => {
                       <div>
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-sm font-medium text-slate-600">{t('failedEvolution')}</span>
-                          <span className={`text-xs font-semibold px-2 py-0.5 rounded ${colorSuspensos}`}>
-                            {labelSuspensos}
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded ${colorSuspensosInvertido} flex items-center gap-1`} title={infoSuspensos.desc}>
+                            <span>{tendenciaSuspensos.icono}</span>
+                            <span>{infoSuspensos.label}</span>
                           </span>
                         </div>
                         <ResponsiveContainer width="100%" height={120}>
@@ -3484,27 +3722,43 @@ const DashboardAcademico = () => {
               let asignaturasOrdenadas = [...asignaturasFiltradas];
               if (ordenEvolucion === 'avgIncreasing') {
                 asignaturasOrdenadas.sort((a, b) => {
-                  const aVal = a.tendenciaMedia.tipo === 'creciente' ? a.tendenciaMedia.pendiente : -Infinity;
-                  const bVal = b.tendenciaMedia.tipo === 'creciente' ? b.tendenciaMedia.pendiente : -Infinity;
-                  return bVal - aVal;
+                  const aInfo = getTrendInfo(a.tendenciaMedia.tipo);
+                  const bInfo = getTrendInfo(b.tendenciaMedia.tipo);
+                  // Ordenar por prioridad (mayor es mejor), luego por pendiente
+                  if (bInfo.sortPriority !== aInfo.sortPriority) {
+                    return bInfo.sortPriority - aInfo.sortPriority;
+                  }
+                  return (b.tendenciaMedia.pendiente || 0) - (a.tendenciaMedia.pendiente || 0);
                 });
               } else if (ordenEvolucion === 'avgDecreasing') {
                 asignaturasOrdenadas.sort((a, b) => {
-                  const aVal = a.tendenciaMedia.tipo === 'decreciente' ? Math.abs(a.tendenciaMedia.pendiente) : -Infinity;
-                  const bVal = b.tendenciaMedia.tipo === 'decreciente' ? Math.abs(b.tendenciaMedia.pendiente) : -Infinity;
-                  return bVal - aVal;
+                  const aInfo = getTrendInfo(a.tendenciaMedia.tipo);
+                  const bInfo = getTrendInfo(b.tendenciaMedia.tipo);
+                  // Ordenar por prioridad inversa (menor es peor), luego por pendiente negativa
+                  if (aInfo.sortPriority !== bInfo.sortPriority) {
+                    return aInfo.sortPriority - bInfo.sortPriority;
+                  }
+                  return (a.tendenciaMedia.pendiente || 0) - (b.tendenciaMedia.pendiente || 0);
                 });
               } else if (ordenEvolucion === 'failedIncreasing') {
                 asignaturasOrdenadas.sort((a, b) => {
-                  const aVal = a.tendenciaSuspensos.tipo === 'creciente' ? a.tendenciaSuspensos.pendiente : -Infinity;
-                  const bVal = b.tendenciaSuspensos.tipo === 'creciente' ? b.tendenciaSuspensos.pendiente : -Infinity;
-                  return bVal - aVal;
+                  const aInfo = getTrendInfo(a.tendenciaSuspensos.tipo);
+                  const bInfo = getTrendInfo(b.tendenciaSuspensos.tipo);
+                  // Para suspensos, prioridad baja es peor (más suspensos)
+                  if (aInfo.sortPriority !== bInfo.sortPriority) {
+                    return aInfo.sortPriority - bInfo.sortPriority;
+                  }
+                  return (a.tendenciaSuspensos.pendiente || 0) - (b.tendenciaSuspensos.pendiente || 0);
                 });
               } else if (ordenEvolucion === 'failedDecreasing') {
                 asignaturasOrdenadas.sort((a, b) => {
-                  const aVal = a.tendenciaSuspensos.tipo === 'decreciente' ? Math.abs(a.tendenciaSuspensos.pendiente) : -Infinity;
-                  const bVal = b.tendenciaSuspensos.tipo === 'decreciente' ? Math.abs(b.tendenciaSuspensos.pendiente) : -Infinity;
-                  return bVal - aVal;
+                  const aInfo = getTrendInfo(a.tendenciaSuspensos.tipo);
+                  const bInfo = getTrendInfo(b.tendenciaSuspensos.tipo);
+                  // Para suspensos decrecientes, prioridad alta es mejor (menos suspensos)
+                  if (bInfo.sortPriority !== aInfo.sortPriority) {
+                    return bInfo.sortPriority - aInfo.sortPriority;
+                  }
+                  return (b.tendenciaSuspensos.pendiente || 0) - (a.tendenciaSuspensos.pendiente || 0);
                 });
               }
 

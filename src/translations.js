@@ -57,16 +57,45 @@ export const translations = {
     averageEvolution: 'Evolución de la Nota Media',
     failedEvolution: 'Evolución del % de Suspensos',
     trend: 'Tendencia',
-    trendIncreasing: 'Creciente',
-    trendDecreasing: 'Decreciente',
-    trendStable: 'Estable',
     notEnoughData: 'Datos insuficientes',
     sortByTrend: 'Ordenar por tendencia',
-    avgIncreasing: 'Media ↑ Creciente',
-    avgDecreasing: 'Media ↓ Decreciente',
-    failedIncreasing: 'Suspensos ↑ Creciente',
-    failedDecreasing: 'Suspensos ↓ Decreciente',
     noSortLabel: 'Sin ordenar',
+    filterByTrend: 'Filtrar por tendencia',
+    allTrends: 'Todas las tendencias',
+
+    // Tipos de tendencia - Lineales
+    trendStable: 'Estable',
+    trendCrecienteSostenido: 'Mejora sostenida',
+    trendDecrecienteSostenido: 'Empeora sostenido',
+
+    // Tipos de tendencia - Con curvatura
+    trendMejoraAcelerada: 'Mejora acelerada',
+    trendMejoraDesacelerada: 'Mejora desacelerada',
+    trendEmpeoraAcelerada: 'Empeora acelerado',
+    trendEmpeoraDesacelerada: 'Empeora desacelerado',
+
+    // Tipos de tendencia - Patrones U/∩
+    trendRecuperacion: 'Recuperación',
+    trendPico: 'Pico',
+
+    // Tipos de tendencia - Complejos
+    trendOscilante: 'Oscilante',
+    trendIrregular: 'Irregular',
+    trendInsuficiente: 'Insuficiente',
+
+    // Descripciones detalladas
+    trendDescStable: 'Se mantiene estable sin cambios significativos',
+    trendDescCrecienteSostenido: 'Mejora constante a lo largo del tiempo',
+    trendDescDecrecienteSostenido: 'Empeoramiento constante a lo largo del tiempo',
+    trendDescMejoraAcelerada: 'Mejora que se acelera progresivamente',
+    trendDescMejoraDesacelerada: 'Mejora que se ralentiza con el tiempo',
+    trendDescEmpeoraAcelerada: 'Empeoramiento que se acelera',
+    trendDescEmpeoraDesacelerada: 'Empeoramiento que se frena',
+    trendDescRecuperacion: 'Bajada seguida de recuperación',
+    trendDescPico: 'Subida seguida de bajada',
+    trendDescOscilante: 'Alterna subidas y bajadas',
+    trendDescIrregular: 'Sin patrón claro',
+    trendDescInsuficiente: 'Datos insuficientes para análisis',
 
     // Umbrales
     configureThresholds: 'Configurar umbrales',
@@ -245,16 +274,45 @@ export const translations = {
     averageEvolution: 'Evolució de la Nota Mitjana',
     failedEvolution: 'Evolució del % de Suspesos',
     trend: 'Tendència',
-    trendIncreasing: 'Creixent',
-    trendDecreasing: 'Decreixent',
-    trendStable: 'Estable',
     notEnoughData: 'Dades insuficients',
     sortByTrend: 'Ordenar per tendència',
-    avgIncreasing: 'Mitjana ↑ Creixent',
-    avgDecreasing: 'Mitjana ↓ Decreixent',
-    failedIncreasing: 'Suspesos ↑ Creixent',
-    failedDecreasing: 'Suspesos ↓ Decreixent',
     noSortLabel: 'Sense ordenar',
+    filterByTrend: 'Filtrar per tendència',
+    allTrends: 'Totes les tendències',
+
+    // Tipus de tendència - Lineals
+    trendStable: 'Estable',
+    trendCrecienteSostenido: 'Millora sostinguda',
+    trendDecrecienteSostenido: 'Empitjora sostingut',
+
+    // Tipus de tendència - Amb curvatura
+    trendMejoraAcelerada: 'Millora accelerada',
+    trendMejoraDesacelerada: 'Millora desaccelerada',
+    trendEmpeoraAcelerada: 'Empitjora accelerat',
+    trendEmpeoraDesacelerada: 'Empitjora desaccelerat',
+
+    // Tipus de tendència - Patrons U/∩
+    trendRecuperacion: 'Recuperació',
+    trendPico: 'Pic',
+
+    // Tipus de tendència - Complexos
+    trendOscilante: 'Oscil·lant',
+    trendIrregular: 'Irregular',
+    trendInsuficiente: 'Insuficient',
+
+    // Descripcions detallades
+    trendDescStable: 'Es manté estable sense canvis significatius',
+    trendDescCrecienteSostenido: 'Millora constant al llarg del temps',
+    trendDescDecrecienteSostenido: 'Empitjorament constant al llarg del temps',
+    trendDescMejoraAcelerada: 'Millora que s\'accelera progressivament',
+    trendDescMejoraDesacelerada: 'Millora que es ralentitza amb el temps',
+    trendDescEmpeoraAcelerada: 'Empitjorament que s\'accelera',
+    trendDescEmpeoraDesacelerada: 'Empitjorament que es frena',
+    trendDescRecuperacion: 'Baixada seguida de recuperació',
+    trendDescPico: 'Pujada seguida de baixada',
+    trendDescOscilante: 'Alterna pujades i baixades',
+    trendDescIrregular: 'Sense patró clar',
+    trendDescInsuficiente: 'Dades insuficients per a anàlisi',
 
     // Llindars
     configureThresholds: 'Configurar llindars',
