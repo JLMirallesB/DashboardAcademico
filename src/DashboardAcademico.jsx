@@ -54,7 +54,7 @@ const DashboardAcademico = () => {
   const [vistaDificultad, setVistaDificultad] = useState('niveles'); // 'niveles' o 'global'
 
   // Ordenación de análisis transversal en Evolución
-  const [ordenEvolucion, setOrdenEvolucion] = useState('none'); // 'none', 'avgAsc', 'avgDesc', 'failedAsc', 'failedDesc'
+  const [filtroTendencia, setFiltroTendencia] = useState('all'); // 'all' o tipo de tendencia específico
 
   // Selecciones específicas para vista de evolución (independiente de estadísticas)
   const [seleccionesEvolucion, setSeleccionesEvolucion] = useState([
@@ -3718,49 +3718,13 @@ const DashboardAcademico = () => {
                 ? asignaturasConDatos.filter(item => asignaturasTransversal.includes(item.asignatura))
                 : asignaturasConDatos;
 
-              // Ordenar según el criterio seleccionado
-              let asignaturasOrdenadas = [...asignaturasFiltradas];
-              if (ordenEvolucion === 'avgIncreasing') {
-                asignaturasOrdenadas.sort((a, b) => {
-                  const aInfo = getTrendInfo(a.tendenciaMedia.tipo);
-                  const bInfo = getTrendInfo(b.tendenciaMedia.tipo);
-                  // Ordenar por prioridad (mayor es mejor), luego por pendiente
-                  if (bInfo.sortPriority !== aInfo.sortPriority) {
-                    return bInfo.sortPriority - aInfo.sortPriority;
-                  }
-                  return (b.tendenciaMedia.pendiente || 0) - (a.tendenciaMedia.pendiente || 0);
-                });
-              } else if (ordenEvolucion === 'avgDecreasing') {
-                asignaturasOrdenadas.sort((a, b) => {
-                  const aInfo = getTrendInfo(a.tendenciaMedia.tipo);
-                  const bInfo = getTrendInfo(b.tendenciaMedia.tipo);
-                  // Ordenar por prioridad inversa (menor es peor), luego por pendiente negativa
-                  if (aInfo.sortPriority !== bInfo.sortPriority) {
-                    return aInfo.sortPriority - bInfo.sortPriority;
-                  }
-                  return (a.tendenciaMedia.pendiente || 0) - (b.tendenciaMedia.pendiente || 0);
-                });
-              } else if (ordenEvolucion === 'failedIncreasing') {
-                asignaturasOrdenadas.sort((a, b) => {
-                  const aInfo = getTrendInfo(a.tendenciaSuspensos.tipo);
-                  const bInfo = getTrendInfo(b.tendenciaSuspensos.tipo);
-                  // Para suspensos, prioridad baja es peor (más suspensos)
-                  if (aInfo.sortPriority !== bInfo.sortPriority) {
-                    return aInfo.sortPriority - bInfo.sortPriority;
-                  }
-                  return (a.tendenciaSuspensos.pendiente || 0) - (b.tendenciaSuspensos.pendiente || 0);
-                });
-              } else if (ordenEvolucion === 'failedDecreasing') {
-                asignaturasOrdenadas.sort((a, b) => {
-                  const aInfo = getTrendInfo(a.tendenciaSuspensos.tipo);
-                  const bInfo = getTrendInfo(b.tendenciaSuspensos.tipo);
-                  // Para suspensos decrecientes, prioridad alta es mejor (menos suspensos)
-                  if (bInfo.sortPriority !== aInfo.sortPriority) {
-                    return bInfo.sortPriority - aInfo.sortPriority;
-                  }
-                  return (b.tendenciaSuspensos.pendiente || 0) - (a.tendenciaSuspensos.pendiente || 0);
-                });
-              }
+              // Filtrar según el tipo de tendencia seleccionado
+              let asignaturasConFiltro = filtroTendencia === 'all'
+                ? asignaturasFiltradas
+                : asignaturasFiltradas.filter(item =>
+                    item.tendenciaMedia.tipo === filtroTendencia ||
+                    item.tendenciaSuspensos.tipo === filtroTendencia
+                  );
 
               return (
                 <div className="mt-8">
@@ -3771,17 +3735,33 @@ const DashboardAcademico = () => {
                       </h2>
                       <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2">
-                          <label className="text-sm font-medium text-slate-700">{t('sortByTrend')}:</label>
+                          <label className="text-sm font-medium text-slate-700">{t('filterByTrend')}:</label>
                           <select
-                            value={ordenEvolucion}
-                            onChange={(e) => setOrdenEvolucion(e.target.value)}
+                            value={filtroTendencia}
+                            onChange={(e) => setFiltroTendencia(e.target.value)}
                             className="px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                           >
-                            <option value="none">{t('noSortLabel')}</option>
-                            <option value="avgIncreasing">{t('avgIncreasing')}</option>
-                            <option value="avgDecreasing">{t('avgDecreasing')}</option>
-                            <option value="failedIncreasing">{t('failedIncreasing')}</option>
-                            <option value="failedDecreasing">{t('failedDecreasing')}</option>
+                            <option value="all">{t('allTrends')}</option>
+                            <optgroup label={idioma === 'es' ? 'Tendencias lineales' : 'Tendències lineals'}>
+                              <option value="estable">➖ {t('trendStable')}</option>
+                              <option value="creciente_sostenido">↗️ {t('trendCrecienteSostenido')}</option>
+                              <option value="decreciente_sostenido">↘️ {t('trendDecrecienteSostenido')}</option>
+                            </optgroup>
+                            <optgroup label={idioma === 'es' ? 'Con curvatura' : 'Amb curvatura'}>
+                              <option value="mejora_acelerada">🚀 {t('trendMejoraAcelerada')}</option>
+                              <option value="mejora_desacelerada">📈 {t('trendMejoraDesacelerada')}</option>
+                              <option value="empeora_acelerada">📉 {t('trendEmpeoraAcelerada')}</option>
+                              <option value="empeora_desacelerada">⬇️ {t('trendEmpeoraDesacelerada')}</option>
+                            </optgroup>
+                            <optgroup label={idioma === 'es' ? 'Patrones especiales' : 'Patrons especials'}>
+                              <option value="recuperacion">↗️ {t('trendRecuperacion')}</option>
+                              <option value="pico">⚠️ {t('trendPico')}</option>
+                              <option value="oscilante">〰️ {t('trendOscilante')}</option>
+                            </optgroup>
+                            <optgroup label={idioma === 'es' ? 'Otros' : 'Altres'}>
+                              <option value="irregular">❓ {t('trendIrregular')}</option>
+                              <option value="insuficiente">📊 {t('trendInsuficiente')}</option>
+                            </optgroup>
                           </select>
                         </div>
                       </div>
@@ -3828,7 +3808,7 @@ const DashboardAcademico = () => {
 
                   {/* Gráficas de evolución transversal por asignatura */}
                   <div className="space-y-8">
-                    {asignaturasOrdenadas.map(({ asignatura, datosPorNivel, tendenciaMedia, tendenciaSuspensos }) => (
+                    {asignaturasConFiltro.map(({ asignatura, datosPorNivel, tendenciaMedia, tendenciaSuspensos }) => (
                       <div key={asignatura} className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
                         <div className="mb-6">
                           <h3 className="text-2xl font-bold text-slate-800 mb-2">{asignatura}</h3>
@@ -3844,15 +3824,12 @@ const DashboardAcademico = () => {
                         <div className="mb-8">
                           <div className="flex items-center justify-between mb-4">
                             <h4 className="text-lg font-semibold text-slate-700">{t('averageEvolution')}</h4>
-                            <span className={`px-3 py-1.5 rounded-lg text-sm font-semibold ${
-                              tendenciaMedia.tipo === 'creciente'
-                                ? 'bg-green-100 text-green-800'
-                                : tendenciaMedia.tipo === 'decreciente'
-                                ? 'bg-red-100 text-red-800'
-                                : 'bg-gray-100 text-gray-800'
-                            }`}>
-                              {tendenciaMedia.tipo === 'creciente' ? '↑ ' : tendenciaMedia.tipo === 'decreciente' ? '↓ ' : '→ '}
-                              {t(`trend${tendenciaMedia.tipo.charAt(0).toUpperCase() + tendenciaMedia.tipo.slice(1)}`)}
+                            <span
+                              className={`px-3 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1.5 ${getTrendInfo(tendenciaMedia.tipo).color}`}
+                              title={getTrendInfo(tendenciaMedia.tipo).desc}
+                            >
+                              <span className="text-base">{tendenciaMedia.icono}</span>
+                              <span>{getTrendInfo(tendenciaMedia.tipo).label}</span>
                             </span>
                           </div>
                           <ResponsiveContainer width="100%" height={300}>
@@ -3896,16 +3873,25 @@ const DashboardAcademico = () => {
                         <div>
                           <div className="flex items-center justify-between mb-4">
                             <h4 className="text-lg font-semibold text-slate-700">{t('failedEvolution')}</h4>
-                            <span className={`px-3 py-1.5 rounded-lg text-sm font-semibold ${
-                              tendenciaSuspensos.tipo === 'creciente'
-                                ? 'bg-red-100 text-red-800'
-                                : tendenciaSuspensos.tipo === 'decreciente'
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-gray-100 text-gray-800'
-                            }`}>
-                              {tendenciaSuspensos.tipo === 'creciente' ? '↑ ' : tendenciaSuspensos.tipo === 'decreciente' ? '↓ ' : '→ '}
-                              {t(`trend${tendenciaSuspensos.tipo.charAt(0).toUpperCase() + tendenciaSuspensos.tipo.slice(1)}`)}
-                            </span>
+                            {(() => {
+                              const infoSuspensos = getTrendInfo(tendenciaSuspensos.tipo);
+                              // Invertir colores para suspensos (rojo=mejora, verde=empeora)
+                              const colorInvertido = tendenciaSuspensos.tipo.includes('mejora') || tendenciaSuspensos.tipo === 'creciente_sostenido' || tendenciaSuspensos.tipo === 'recuperacion'
+                                ? infoSuspensos.color.replace('green', 'TEMP').replace('red', 'green').replace('TEMP', 'red').replace('emerald', 'rose').replace('teal', 'orange')
+                                : tendenciaSuspensos.tipo.includes('empeora') || tendenciaSuspensos.tipo === 'decreciente_sostenido'
+                                ? infoSuspensos.color.replace('red', 'TEMP').replace('green', 'red').replace('TEMP', 'green').replace('rose', 'emerald').replace('orange', 'teal')
+                                : infoSuspensos.color;
+
+                              return (
+                                <span
+                                  className={`px-3 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1.5 ${colorInvertido}`}
+                                  title={infoSuspensos.desc}
+                                >
+                                  <span className="text-base">{tendenciaSuspensos.icono}</span>
+                                  <span>{infoSuspensos.label}</span>
+                                </span>
+                              );
+                            })()}
                           </div>
                           <ResponsiveContainer width="100%" height={300}>
                             <LineChart data={datosPorNivel} margin={{ top: 10, right: 30, left: 10, bottom: 20 }}>

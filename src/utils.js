@@ -1,6 +1,6 @@
 /**
  * Utilidades comunes para el Dashboard Académico
- * Versión 1.7.0
+ * Versión 1.7.1
  */
 
 /**
