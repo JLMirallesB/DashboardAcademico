@@ -53,8 +53,9 @@ const DashboardAcademico = () => {
   // Vista de dificultad: por niveles o global
   const [vistaDificultad, setVistaDificultad] = useState('niveles'); // 'niveles' o 'global'
 
-  // Ordenación de análisis transversal en Evolución
-  const [filtroTendencia, setFiltroTendencia] = useState('all'); // 'all' o tipo de tendencia específico
+  // Filtros de análisis transversal en Evolución
+  const [filtroTendenciaMedia, setFiltroTendenciaMedia] = useState('all'); // 'all' o tipo de tendencia específico para nota media
+  const [filtroTendenciaSuspensos, setFiltroTendenciaSuspensos] = useState('all'); // 'all' o tipo de tendencia específico para suspensos
 
   // Selecciones específicas para vista de evolución (independiente de estadísticas)
   const [seleccionesEvolucion, setSeleccionesEvolucion] = useState([
@@ -803,8 +804,27 @@ const DashboardAcademico = () => {
       }
     });
 
+    // Asegurar que "Teórica Troncal" siempre aparezca si estamos en EPM o TODOS
+    // y existe en algún nivel de los datos
+    if (modoEtapa === 'EPM' || modoEtapa === 'TODOS') {
+      trimestresABuscar.forEach(trim => {
+        if (datosCompletos[trim]) {
+          Object.entries(datosCompletos[trim]).forEach(([nivel, asigs]) => {
+            if (nivel !== 'GLOBAL' && detectarEtapa(nivel) === 'EPM') {
+              const teoricaTroncal = Object.keys(asigs).find(asig =>
+                normalizar(asig) === 'teórica troncal'
+              );
+              if (teoricaTroncal) {
+                asignaturas.add(teoricaTroncal);
+              }
+            }
+          });
+        }
+      });
+    }
+
     return Array.from(asignaturas).sort();
-  }, [trimestreSeleccionado, datosCompletos, modoEtapa, detectarEtapa, trimestresDisponibles]);
+  }, [trimestreSeleccionado, datosCompletos, modoEtapa, detectarEtapa, trimestresDisponibles, normalizar]);
 
   // Niveles sin GLOBAL para comparación
   const nivelesSinGlobal = useMemo(() => {
@@ -3704,13 +3724,12 @@ const DashboardAcademico = () => {
                 ? asignaturasConDatos.filter(item => asignaturasTransversal.includes(item.asignatura))
                 : asignaturasConDatos;
 
-              // Filtrar según el tipo de tendencia seleccionado
-              let asignaturasConFiltro = filtroTendencia === 'all'
-                ? asignaturasFiltradas
-                : asignaturasFiltradas.filter(item =>
-                    item.tendenciaMedia.tipo === filtroTendencia ||
-                    item.tendenciaSuspensos.tipo === filtroTendencia
-                  );
+              // Filtrar según los tipos de tendencia seleccionados
+              let asignaturasConFiltro = asignaturasFiltradas.filter(item => {
+                const cumpleFiltroMedia = filtroTendenciaMedia === 'all' || item.tendenciaMedia.tipo === filtroTendenciaMedia;
+                const cumpleFiltroSuspensos = filtroTendenciaSuspensos === 'all' || item.tendenciaSuspensos.tipo === filtroTendenciaSuspensos;
+                return cumpleFiltroMedia && cumpleFiltroSuspensos;
+              });
 
               return (
                 <div className="mt-8">
@@ -3720,11 +3739,48 @@ const DashboardAcademico = () => {
                         {t('transversalComparison')} - {t('allSubjects')}
                       </h2>
                       <div className="flex items-center gap-4">
+                        {/* Filtro por tendencia de nota media */}
                         <div className="flex items-center gap-2">
-                          <label className="text-sm font-medium text-slate-700">{t('filterByTrend')}:</label>
+                          <label className="text-sm font-medium text-slate-700">
+                            {idioma === 'es' ? 'Filtrar nota media:' : 'Filtrar nota mitjana:'}
+                          </label>
                           <select
-                            value={filtroTendencia}
-                            onChange={(e) => setFiltroTendencia(e.target.value)}
+                            value={filtroTendenciaMedia}
+                            onChange={(e) => setFiltroTendenciaMedia(e.target.value)}
+                            className="px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          >
+                            <option value="all">{t('allTrends')}</option>
+                            <optgroup label={idioma === 'es' ? 'Tendencias lineales' : 'Tendències lineals'}>
+                              <option value="estable">➖ {t('trendEstable')}</option>
+                              <option value="creciente_sostenido">↗️ {t('trendCrecienteSostenido')}</option>
+                              <option value="decreciente_sostenido">↘️ {t('trendDecrecienteSostenido')}</option>
+                            </optgroup>
+                            <optgroup label={idioma === 'es' ? 'Con curvatura' : 'Amb curvatura'}>
+                              <option value="creciente_acelerado">🚀 {t('trendCrecienteAcelerado')}</option>
+                              <option value="creciente_desacelerado">📈 {t('trendCrecienteDesacelerado')}</option>
+                              <option value="decreciente_acelerado">📉 {t('trendDecrecienteAcelerado')}</option>
+                              <option value="decreciente_desacelerado">⬇️ {t('trendDecrecienteDesacelerado')}</option>
+                            </optgroup>
+                            <optgroup label={idioma === 'es' ? 'Patrones especiales' : 'Patrons especials'}>
+                              <option value="valle">↗️ {t('trendValle')}</option>
+                              <option value="pico">⚠️ {t('trendPico')}</option>
+                              <option value="oscilante">〰️ {t('trendOscilante')}</option>
+                            </optgroup>
+                            <optgroup label={idioma === 'es' ? 'Otros' : 'Altres'}>
+                              <option value="irregular">❓ {t('trendIrregular')}</option>
+                              <option value="insuficiente">📊 {t('trendInsuficiente')}</option>
+                            </optgroup>
+                          </select>
+                        </div>
+
+                        {/* Filtro por tendencia de suspensos */}
+                        <div className="flex items-center gap-2">
+                          <label className="text-sm font-medium text-slate-700">
+                            {idioma === 'es' ? 'Filtrar % suspensos:' : 'Filtrar % suspesos:'}
+                          </label>
+                          <select
+                            value={filtroTendenciaSuspensos}
+                            onChange={(e) => setFiltroTendenciaSuspensos(e.target.value)}
                             className="px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                           >
                             <option value="all">{t('allTrends')}</option>
