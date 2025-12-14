@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { LineChart, Line, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import { translations } from './translations.js';
+import { normalizar, getBestTrimestre, parseTrimestre, getTrimestreBase, getTrimestreEtapa } from './utils.js';
 import { jsPDF } from 'jspdf';
 import { applyPlugin } from 'jspdf-autotable';
 
@@ -278,8 +279,13 @@ const DashboardAcademico = () => {
       const nuevos = prev.includes(trimestre) ? prev : [...prev, trimestre];
       return nuevos.sort((a, b) => {
         // Extraer trimestre base y etapa
-        const [trimA, etapaA] = a.split('-');
-        const [trimB, etapaB] = b.split('-');
+        const parsedA = parseTrimestre(a);
+        const parsedB = parseTrimestre(b);
+
+        const trimA = parsedA?.base || a;
+        const etapaA = parsedA?.etapa;
+        const trimB = parsedB?.base || b;
+        const etapaB = parsedB?.etapa;
 
         const orden = { '1EV': 1, '2EV': 2, '3EV': 3, 'FINAL': 4 };
         const ordenTrimA = orden[trimA] || 99;
@@ -517,7 +523,7 @@ const DashboardAcademico = () => {
     // En modo TODOS, buscar en todos los trimestres de la misma evaluación
     const trimestresABuscar = [];
     if (modoEtapa === 'TODOS') {
-      const trimestreBase = trimestreSeleccionado.split('-')[0]; // Ej: "1EV"
+      const trimestreBase = getTrimestreBase(trimestreSeleccionado);
       trimestresDisponibles.forEach(t => {
         if (t.startsWith(trimestreBase)) {
           trimestresABuscar.push(t);
@@ -550,9 +556,9 @@ const DashboardAcademico = () => {
 
   // Formatear nombre de trimestre para mostrar (ej: "1EV-EEM" → "1EV (EEM)")
   const formatearNombreTrimestre = useCallback((trimestreCompleto) => {
-    const partes = trimestreCompleto.split('-');
-    if (partes.length > 1) {
-      return `${partes[0]} (${partes[1]})`;
+    const parsed = parseTrimestre(trimestreCompleto);
+    if (parsed) {
+      return `${parsed.base} (${parsed.etapa})`;
     }
     return trimestreCompleto;
   }, []);
@@ -562,9 +568,9 @@ const DashboardAcademico = () => {
     const etapas = new Set();
     // Extraer etapas desde las claves de trimestres (formato: "1EV-EEM", "2EV-EPM")
     trimestresDisponibles.forEach(trimCompleto => {
-      const partes = trimCompleto.split('-');
-      if (partes.length > 1) {
-        etapas.add(partes[1]); // La etapa es la segunda parte
+      const parsed = parseTrimestre(trimCompleto);
+      if (parsed) {
+        etapas.add(parsed.etapa); // La etapa es la segunda parte
       }
     });
     const opciones = Array.from(etapas).sort();
@@ -616,7 +622,6 @@ const DashboardAcademico = () => {
 
     if (!asignaturaActualExiste) {
       // Seleccionar una asignatura apropiada según el modo (case-insensitive)
-      const normalizar = (str) => str.toLowerCase().trim();
       let nuevaAsignatura;
       if (modoEtapa === 'EPM') {
         // En EPM, preferir Teórica Troncal, Piano, o la primera disponible
@@ -642,13 +647,13 @@ const DashboardAcademico = () => {
     if (trimestresDisponibles.length === 0) return;
 
     // Si el trimestre actual no corresponde al modo seleccionado, buscar uno apropiado
-    const etapaTrimActual = trimestreSeleccionado ? trimestreSeleccionado.split('-')[1] : null;
+    const etapaTrimActual = trimestreSeleccionado ? getTrimestreEtapa(trimestreSeleccionado) : null;
 
     if (modoEtapa !== 'TODOS' && etapaTrimActual && etapaTrimActual !== modoEtapa) {
       // Buscar un trimestre del modo actual
       const trimestreDelModo = trimestresDisponibles.find(t => {
-        const partes = t.split('-');
-        return partes.length > 1 && partes[1] === modoEtapa;
+        const parsed = parseTrimestre(t);
+        return parsed && parsed.etapa === modoEtapa;
       });
 
       if (trimestreDelModo) {
@@ -667,18 +672,9 @@ const DashboardAcademico = () => {
         asignatura: asignaturaComparada
       })).filter(sel => {
         // En modo TODOS, buscar el trimestre apropiado para cada nivel
-        let trimestreParaNivel = sel.trimestre;
-        if (modoEtapa === 'TODOS') {
-          const etapaNivel = detectarEtapa(sel.nivel);
-          const trimestreBase = sel.trimestre.split('-')[0];
-          const trimestreConEtapa = trimestresDisponibles.find(t => {
-            const partes = t.split('-');
-            return partes[0] === trimestreBase && partes[1] === etapaNivel;
-          });
-          if (trimestreConEtapa) {
-            trimestreParaNivel = trimestreConEtapa;
-          }
-        }
+        const trimestreParaNivel = modoEtapa === 'TODOS'
+          ? getBestTrimestre(sel.trimestre, sel.nivel, trimestresDisponibles, detectarEtapa)
+          : sel.trimestre;
         // Solo incluir si el nivel tiene esa asignatura
         return datosCompletos[trimestreParaNivel]?.[sel.nivel]?.[asignaturaComparada];
       });
@@ -697,18 +693,9 @@ const DashboardAcademico = () => {
       asignatura: asignaturaComparada
     })).filter(sel => {
       // En modo TODOS, buscar el trimestre apropiado para cada nivel
-      let trimestreParaNivel = sel.trimestre;
-      if (modoEtapa === 'TODOS') {
-        const etapaNivel = detectarEtapa(sel.nivel);
-        const trimestreBase = sel.trimestre.split('-')[0]; // Ej: "1EV"
-        const trimestreConEtapa = trimestresDisponibles.find(t => {
-          const partes = t.split('-');
-          return partes[0] === trimestreBase && partes[1] === etapaNivel;
-        });
-        if (trimestreConEtapa) {
-          trimestreParaNivel = trimestreConEtapa;
-        }
-      }
+      const trimestreParaNivel = modoEtapa === 'TODOS'
+        ? getBestTrimestre(sel.trimestre, sel.nivel, trimestresDisponibles, detectarEtapa)
+        : sel.trimestre;
       // Solo incluir si el nivel tiene esa asignatura
       return datosCompletos[trimestreParaNivel]?.[sel.nivel]?.[sel.asignatura];
     });
@@ -739,18 +726,9 @@ const DashboardAcademico = () => {
         asignatura: nuevaAsignatura
       })).filter(sel => {
         // En modo TODOS, buscar el trimestre apropiado para cada nivel
-        let trimestreParaNivel = sel.trimestre;
-        if (modoEtapa === 'TODOS') {
-          const etapaNivel = detectarEtapa(sel.nivel);
-          const trimestreBase = sel.trimestre.split('-')[0]; // Ej: "1EV"
-          const trimestreConEtapa = trimestresDisponibles.find(t => {
-            const partes = t.split('-');
-            return partes[0] === trimestreBase && partes[1] === etapaNivel;
-          });
-          if (trimestreConEtapa) {
-            trimestreParaNivel = trimestreConEtapa;
-          }
-        }
+        const trimestreParaNivel = modoEtapa === 'TODOS'
+          ? getBestTrimestre(sel.trimestre, sel.nivel, trimestresDisponibles, detectarEtapa)
+          : sel.trimestre;
         return datosCompletos[trimestreParaNivel]?.[sel.nivel]?.[sel.asignatura];
       });
       setSelecciones(nuevasSelecciones);
@@ -859,7 +837,6 @@ const DashboardAcademico = () => {
 
     // Función para abreviar nombres de asignaturas (case-insensitive)
     const abreviar = (nombre) => {
-      const normalizar = (str) => str.toLowerCase().trim();
       const abreviaturas = {
         'lenguaje musical': 'LM',
         'coro': 'Cor',
@@ -920,7 +897,6 @@ const DashboardAcademico = () => {
 
     // Función para abreviar nombres de asignaturas (case-insensitive)
     const abreviar = (nombre) => {
-      const normalizar = (str) => str.toLowerCase().trim();
       const abreviaturas = {
         'lenguaje musical': 'LM',
         'coro': 'Cor',
@@ -1031,9 +1007,6 @@ const DashboardAcademico = () => {
 
   // Función auxiliar para determinar si una asignatura es de especialidades
   const esAsignaturaEspecialidad = useCallback((asignatura, modo) => {
-    // Normalizar nombre para comparación (minúsculas y sin espacios extra)
-    const normalizar = (nombre) => nombre.toLowerCase().trim();
-
     // Lista completa de instrumentos para EPM (especialidades instrumentales) - en minúsculas
     const instrumentalesEPM = new Set([
       'arpa', 'acordeón', 'bajo eléctrico', 'canto', 'clarinete', 'clave',
@@ -1078,7 +1051,6 @@ const DashboardAcademico = () => {
     const notaMediaCentro = global['Todos']?.stats?.notaMedia || 0;
 
     // KPI 2: Notas medias de asignaturas de referencia (case-insensitive)
-    const normalizar = (str) => str.toLowerCase().trim();
     const notasMediasRef = asignaturasReferencia.map(asigBuscada => {
       // Buscar la asignatura en global de forma case-insensitive
       const asigEncontrada = Object.keys(global).find(key =>
@@ -1736,7 +1708,8 @@ const DashboardAcademico = () => {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {trimestresDisponibles.map(trim => {
-                    const [trimestreBase, etapa] = trim.split('-');
+                    const parsed = parseTrimestre(trim);
+                    const etapa = parsed?.etapa;
                     const nivelCount = Object.keys(datosCompletos[trim] || {}).filter(n => n !== 'GLOBAL').length;
 
                     return (
@@ -2545,18 +2518,9 @@ const DashboardAcademico = () => {
                 {(() => {
                   const datosEvolucion = nivelesSinGlobalEtapa.map(nivel => {
                     // En modo TODOS, buscar el trimestre apropiado para cada nivel
-                    let trimestreParaNivel = trimestreSeleccionado;
-                    if (modoEtapa === 'TODOS') {
-                      const etapaNivel = detectarEtapa(nivel);
-                      const trimestreBase = trimestreSeleccionado.split('-')[0]; // Ej: "1EV"
-                      const trimestreConEtapa = trimestresDisponibles.find(t => {
-                        const partes = t.split('-');
-                        return partes[0] === trimestreBase && partes[1] === etapaNivel;
-                      });
-                      if (trimestreConEtapa) {
-                        trimestreParaNivel = trimestreConEtapa;
-                      }
-                    }
+                    const trimestreParaNivel = modoEtapa === 'TODOS'
+                      ? getBestTrimestre(trimestreSeleccionado, nivel, trimestresDisponibles, detectarEtapa)
+                      : trimestreSeleccionado;
 
                     const datos = datosCompletos[trimestreParaNivel]?.[nivel]?.[asignaturaComparada];
                     return {
@@ -2622,18 +2586,9 @@ const DashboardAcademico = () => {
                 {(() => {
                   const datosEvolucion = nivelesSinGlobalEtapa.map(nivel => {
                     // En modo TODOS, buscar el trimestre apropiado para cada nivel
-                    let trimestreParaNivel = trimestreSeleccionado;
-                    if (modoEtapa === 'TODOS') {
-                      const etapaNivel = detectarEtapa(nivel);
-                      const trimestreBase = trimestreSeleccionado.split('-')[0]; // Ej: "1EV"
-                      const trimestreConEtapa = trimestresDisponibles.find(t => {
-                        const partes = t.split('-');
-                        return partes[0] === trimestreBase && partes[1] === etapaNivel;
-                      });
-                      if (trimestreConEtapa) {
-                        trimestreParaNivel = trimestreConEtapa;
-                      }
-                    }
+                    const trimestreParaNivel = modoEtapa === 'TODOS'
+                      ? getBestTrimestre(trimestreSeleccionado, nivel, trimestresDisponibles, detectarEtapa)
+                      : trimestreSeleccionado;
 
                     const datos = datosCompletos[trimestreParaNivel]?.[nivel]?.[asignaturaComparada];
                     return {
@@ -3478,18 +3433,9 @@ const DashboardAcademico = () => {
               const asignaturasConDatos = todasLasAsignaturas.map(asignatura => {
                 const datosPorNivel = nivelesSinGlobalEtapa.map(nivel => {
                   // En modo TODOS, buscar el trimestre apropiado para cada nivel
-                  let trimestreParaNivel = trimestreSeleccionado;
-                  if (modoEtapa === 'TODOS') {
-                    const etapaNivel = detectarEtapa(nivel);
-                    const trimestreBase = trimestreSeleccionado.split('-')[0]; // Ej: "1EV"
-                    const trimestreConEtapa = trimestresDisponibles.find(t => {
-                      const partes = t.split('-');
-                      return partes[0] === trimestreBase && partes[1] === etapaNivel;
-                    });
-                    if (trimestreConEtapa) {
-                      trimestreParaNivel = trimestreConEtapa;
-                    }
-                  }
+                  const trimestreParaNivel = modoEtapa === 'TODOS'
+                    ? getBestTrimestre(trimestreSeleccionado, nivel, trimestresDisponibles, detectarEtapa)
+                    : trimestreSeleccionado;
 
                   const datos = datosCompletos[trimestreParaNivel]?.[nivel]?.[asignatura];
                   return datos ? {
@@ -4019,7 +3965,7 @@ const DashboardAcademico = () => {
                         headerText = `${trimestre} · ${nivel}`;
                       } else {
                         // Eliminar redundancia: 1EV-EEM 1EEM → 1EV 1EEM
-                        const trimestreBase = trimestre.split('-')[0]; // 1EV, 2EV, etc.
+                        const trimestreBase = getTrimestreBase(trimestre);
                         headerText = `${trimestreBase} · ${nivel}`;
                       }
 
