@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { LineChart, Line, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import { translations } from './translations.js';
-import { normalizar, getBestTrimestre, parseTrimestre, getTrimestreBase, getTrimestreEtapa } from './utils.js';
+import { normalizar, getBestTrimestre, parseTrimestre, getTrimestreBase, getTrimestreEtapa, tieneAsignatura } from './utils.js';
 import { jsPDF } from 'jspdf';
 import { applyPlugin } from 'jspdf-autotable';
 
@@ -711,8 +711,8 @@ const DashboardAcademico = () => {
       const trimestreParaNivel = modoEtapa === 'TODOS'
         ? getBestTrimestre(sel.trimestre, sel.nivel, trimestresDisponibles, detectarEtapa)
         : sel.trimestre;
-      // Solo incluir si el nivel tiene esa asignatura
-      return datosCompletos[trimestreParaNivel]?.[sel.nivel]?.[sel.asignatura];
+      // Solo incluir si el nivel tiene esa asignatura (considerando equivalencias)
+      return tieneAsignatura(datosCompletos, trimestreParaNivel, sel.nivel, sel.asignatura);
     });
     setSelecciones(nuevasSelecciones);
   }, [trimestreSeleccionado, nivelesSinGlobalEtapa, asignaturaComparada, datosCompletos, modoEtapa, detectarEtapa, trimestresDisponibles]);
@@ -744,7 +744,8 @@ const DashboardAcademico = () => {
         const trimestreParaNivel = modoEtapa === 'TODOS'
           ? getBestTrimestre(sel.trimestre, sel.nivel, trimestresDisponibles, detectarEtapa)
           : sel.trimestre;
-        return datosCompletos[trimestreParaNivel]?.[sel.nivel]?.[sel.asignatura];
+        // Solo incluir si el nivel tiene esa asignatura (considerando equivalencias)
+        return tieneAsignatura(datosCompletos, trimestreParaNivel, sel.nivel, sel.asignatura);
       });
       setSelecciones(nuevasSelecciones);
     }
@@ -2913,9 +2914,9 @@ const DashboardAcademico = () => {
           {/* Vista de Comparativa Transversal */}
           {compararNiveles && tipoComparativa === 'transversal' && (
             <div className="mt-6">
-              <h2 className="text-2xl font-bold text-slate-800 mb-6">{t('transversalComparison')} - {t('allSubjects')}</h2>
+              <h2 className="text-2xl font-bold text-slate-800 mb-6">{t('transversalComparison')} - {asignaturaComparada}</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {todasLasAsignaturas.map(asignatura => {
+                {[asignaturaComparada].map(asignatura => {
                   // Calcular datos de evolución para esta asignatura
                   const datosNotaMedia = nivelesSinGlobalEtapa.map(nivel => {
                     const datos = datosCompletos[trimestreSeleccionado]?.[nivel]?.[asignatura];

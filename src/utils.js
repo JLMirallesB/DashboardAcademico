@@ -1,6 +1,6 @@
 /**
  * Utilidades comunes para el Dashboard Académico
- * Versión 1.6.2
+ * Versión 1.6.4
  */
 
 /**
@@ -96,4 +96,49 @@ export const getTrimestreBase = (trimestre) => {
 export const getTrimestreEtapa = (trimestre) => {
   const parsed = parseTrimestre(trimestre);
   return parsed ? parsed.etapa : null;
+};
+
+/**
+ * Verifica si dos asignaturas son equivalentes entre EEM y EPM
+ * Considerando diferencias de capitalización y nombres alternativos
+ * @param {string} asignatura1 - Primera asignatura
+ * @param {string} asignatura2 - Segunda asignatura
+ * @returns {boolean} true si son equivalentes
+ */
+export const sonAsignaturasEquivalentes = (asignatura1, asignatura2) => {
+  const norm1 = normalizar(asignatura1);
+  const norm2 = normalizar(asignatura2);
+
+  // Si son exactamente iguales normalizadas, son equivalentes
+  if (norm1 === norm2) return true;
+
+  // Mapeo de asignaturas equivalentes entre EEM y EPM
+  const equivalencias = {
+    // Flauta en EEM es equivalente a Flauta Travesera en EPM
+    'flauta': 'flauta travesera',
+    'flauta travesera': 'flauta',
+  };
+
+  // Verificar si hay una equivalencia definida
+  return equivalencias[norm1] === norm2 || equivalencias[norm2] === norm1;
+};
+
+/**
+ * Verifica si una asignatura existe en un nivel, considerando equivalencias
+ * @param {Object} datosCompletos - Objeto con todos los datos
+ * @param {string} trimestre - Trimestre a buscar
+ * @param {string} nivel - Nivel a buscar
+ * @param {string} asignatura - Asignatura a buscar
+ * @returns {boolean} true si la asignatura existe (o una equivalente)
+ */
+export const tieneAsignatura = (datosCompletos, trimestre, nivel, asignatura) => {
+  if (!datosCompletos[trimestre]?.[nivel]) return false;
+
+  const asignaturasDelNivel = Object.keys(datosCompletos[trimestre][nivel]);
+
+  // Buscar coincidencia exacta o equivalente
+  return asignaturasDelNivel.some(asigDisponible =>
+    normalizar(asigDisponible) === normalizar(asignatura) ||
+    sonAsignaturasEquivalentes(asigDisponible, asignatura)
+  );
 };
