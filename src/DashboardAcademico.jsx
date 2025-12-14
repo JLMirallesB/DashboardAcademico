@@ -2464,9 +2464,9 @@ const DashboardAcademico = () => {
                       const asigData = asignaturasCombinadas.get(asignatura);
 
                       // Agregar las notas individuales si están disponibles
-                      if (datos.stats.notaMedia && datos.stats.alumnos > 0) {
+                      if (datos.stats.notaMedia && datos.stats.registros > 0) {
                         // Aproximar las notas individuales usando media y desviación
-                        const numAlumnos = datos.stats.alumnos || 0;
+                        const numAlumnos = datos.stats.registros || 0;
                         asigData.notasAcumuladas.push({
                           media: datos.stats.notaMedia,
                           desviacion: datos.stats.desviacion || 0,
@@ -2511,7 +2511,7 @@ const DashboardAcademico = () => {
                   if (asignatura !== 'Todos' && datos?.stats) {
                     const notaMedia = datos.stats.notaMedia;
                     const desviacion = datos.stats.desviacion || 0;
-                    const alumnos = datos.stats.alumnos || 0;
+                    const alumnos = datos.stats.registros || 0;
 
                     if (notaMedia !== undefined && alumnos > 0) {
                       datosDispersion.push({
