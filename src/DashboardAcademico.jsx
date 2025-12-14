@@ -3,8 +3,10 @@ import { LineChart, Line, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tool
 import { translations } from './translations.js';
 import { normalizar, getBestTrimestre, parseTrimestre, getTrimestreBase, getTrimestreEtapa, tieneAsignatura } from './utils.js';
 import { UMBRALES_DEFAULT, COLORES_COMPARACION, INSTRUMENTALES_EPM, ASIGNATURAS_EXCLUIR_EEM, ASIGNATURAS_EXCLUIR_TODOS } from './constants.js';
-import { validarEstructuraCSV, parseNumero } from './utils/validators.js';
 import { formatearNombreTrimestre, abreviarAsignatura } from './utils/formatters.js';
+import { parseCSV as parseCSVService } from './services/csvParser.js';
+import { procesarDatos as procesarDatosService } from './services/dataProcessor.js';
+import { exportarJSON as exportarJSONService, procesarImportacionJSON } from './services/dataIO.js';
 import { jsPDF } from 'jspdf';
 import { applyPlugin } from 'jspdf-autotable';
 
@@ -87,165 +89,14 @@ const DashboardAcademico = () => {
   // Colores para comparaciones
   const colores = COLORES_COMPARACION;
 
-  // Parser de CSV - detecta automáticamente el separador
+  // Parser de CSV - usa servicio externo
   const parseCSV = useCallback((csvText) => {
-    // Validar estructura del CSV
-    validarEstructuraCSV(csvText);
-
-    const lineas = csvText.split('\n').map(l => l.trim()).filter(l => l);
-
-    // Detectar separador: si hay más ; que , en las primeras líneas, usar ;
-    const primerasLineas = lineas.slice(0, 10).join('\n');
-    const separador = (primerasLineas.match(/;/g) || []).length > (primerasLineas.match(/,/g) || []).length ? ';' : ',';
-    
-    let seccionActual = null;
-    const resultado = {
-      metadata: {},
-      estadisticas: [],
-      correlaciones: []
-    };
-    
-    let encabezadosStats = [];
-    let encabezadosCorr = [];
-
-    for (let i = 0; i < lineas.length; i++) {
-      const linea = lineas[i];
-      
-      // Detectar sección
-      if (linea.startsWith('#METADATA')) {
-        seccionActual = 'metadata';
-        continue;
-      } else if (linea.startsWith('#ESTADISTICAS')) {
-        seccionActual = 'estadisticas';
-        continue;
-      } else if (linea.startsWith('#CORRELACIONES')) {
-        seccionActual = 'correlaciones';
-        continue;
-      } else if (linea.startsWith('#UMBRALES')) {
-        seccionActual = 'umbrales'; // Ignoramos umbrales del CSV
-        continue;
-      }
-      
-      // Parsear según sección usando el separador detectado
-      const campos = linea.split(separador).map(c => c.trim());
-      
-      if (seccionActual === 'metadata') {
-        if (campos[0] === 'Campo') continue; // Skip header
-        if (campos[0] && campos[1]) {
-          resultado.metadata[campos[0]] = campos[1];
-        }
-      } else if (seccionActual === 'estadisticas') {
-        if (campos[0] === 'Nivel') {
-          encabezadosStats = campos;
-          continue;
-        }
-        if (campos[0] && encabezadosStats.length > 0) {
-          const fila = {};
-          encabezadosStats.forEach((h, idx) => {
-            let valor = campos[idx] || '';
-            // Convertir números (columnas desde la 3ª en adelante)
-            if (idx >= 2 && valor !== '') {
-              valor = parseNumero(valor);
-              // Si es porcentaje (Aprobados o Suspendidos) y viene como decimal, convertir
-              if ((h === 'Aprobados' || h === 'Suspendidos') && valor !== null && valor <= 1) {
-                valor = valor * 100;
-              }
-            }
-            fila[h] = valor;
-          });
-          resultado.estadisticas.push(fila);
-        }
-      } else if (seccionActual === 'correlaciones') {
-        if (campos[0] === 'Nivel') {
-          encabezadosCorr = campos;
-          continue;
-        }
-        if (campos[0] && encabezadosCorr.length > 0) {
-          const fila = {};
-          encabezadosCorr.forEach((h, idx) => {
-            let valor = campos[idx] || '';
-            if (h === 'Correlacion' && valor !== '') {
-              valor = parseNumero(valor);
-            }
-            fila[h] = valor;
-          });
-          if (fila.Correlacion !== null && fila.Correlacion !== undefined) {
-            resultado.correlaciones.push(fila);
-          }
-        }
-      }
-    }
-    
-    return resultado;
+    return parseCSVService(csvText);
   }, []);
 
-  // Procesar datos parseados
+  // Procesar datos parseados - usa servicio externo
   const procesarDatos = useCallback((parsed) => {
-    const trimestreBase = parsed.metadata.Trimestre;
-    if (!trimestreBase) {
-      alert('Error: El CSV no contiene información de trimestre en METADATA');
-      return null;
-    }
-
-    // Estructurar datos
-    const datosEstructurados = {};
-    parsed.estadisticas.forEach(fila => {
-      const nivel = fila.Nivel;
-      const asignatura = fila.Asignatura;
-
-      if (!datosEstructurados[nivel]) {
-        datosEstructurados[nivel] = {};
-      }
-
-      datosEstructurados[nivel][asignatura] = {
-        stats: {
-          registros: fila.Registros,
-          notaMedia: fila.NotaMedia,
-          desviacion: fila.Desviacion,
-          moda: fila.Moda,
-          aprobados: fila.Aprobados,
-          suspendidos: fila.Suspendidos,
-          modaAprobados: fila.ModaAprobados,
-          modaSuspendidos: fila.ModaSuspendidos
-        },
-        distribucion: {
-          1: fila.Dist1 || 0,
-          2: fila.Dist2 || 0,
-          3: fila.Dist3 || 0,
-          4: fila.Dist4 || 0,
-          5: fila.Dist5 || 0,
-          6: fila.Dist6 || 0,
-          7: fila.Dist7 || 0,
-          8: fila.Dist8 || 0,
-          9: fila.Dist9 || 0,
-          10: fila.Dist10 || 0
-        }
-      };
-    });
-
-    // Detectar etapa del dataset basándose en los niveles
-    let etapaDetectada = null;
-    const niveles = Object.keys(datosEstructurados).filter(n => n !== 'GLOBAL');
-    if (niveles.length > 0) {
-      const primerNivel = niveles[0];
-      if (primerNivel.includes('EEM')) {
-        etapaDetectada = 'EEM';
-      } else if (primerNivel.includes('EPM')) {
-        etapaDetectada = 'EPM';
-      }
-    }
-
-    // Crear clave compuesta: trimestre + etapa (ej: "1T-EEM", "1T-EPM")
-    const trimestreCompleto = etapaDetectada ? `${trimestreBase}-${etapaDetectada}` : trimestreBase;
-
-    return {
-      trimestre: trimestreCompleto,
-      trimestreBase,
-      etapa: etapaDetectada,
-      metadata: parsed.metadata,
-      datos: datosEstructurados,
-      correlaciones: parsed.correlaciones
-    };
+    return procesarDatosService(parsed);
   }, []);
 
   // Aplicar datos
@@ -389,60 +240,40 @@ const DashboardAcademico = () => {
     setSelecciones(prev => prev.filter(s => s.trimestre !== trimestre));
   }, [trimestreSeleccionado, trimestresDisponibles]);
 
-  // Exportar JSON
+  // Exportar JSON - usa servicio externo
   const exportarJSON = useCallback(() => {
-    const exportData = {
-      metadata: {
-        exportadoEl: new Date().toISOString(),
-        trimestres: trimestresDisponibles,
-        metadataPorTrimestre: metadata
-      },
+    exportarJSONService({
+      trimestresDisponibles,
+      metadata,
       umbrales,
-      datos: datosCompletos,
-      correlaciones: correlacionesCompletas
-    };
-    
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `dashboard_academico_${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+      datosCompletos,
+      correlacionesCompletas
+    });
   }, [trimestresDisponibles, metadata, umbrales, datosCompletos, correlacionesCompletas]);
 
-  // Importar JSON
+  // Importar JSON - usa servicio externo
   const handleImportarJSON = useCallback((event) => {
     const file = event.target.files[0];
     if (!file) return;
-    
+
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const importado = JSON.parse(e.target.result);
-        
-        if (importado.datos) setDatosCompletos(importado.datos);
-        if (importado.correlaciones) setCorrelacionesCompletas(importado.correlaciones);
-        if (importado.umbrales) setUmbrales(importado.umbrales);
-        if (importado.metadata) {
-          setMetadata(importado.metadata.metadataPorTrimestre || {});
-          const trims = importado.metadata.trimestres || Object.keys(importado.datos || {});
-          setTrimestresDisponibles(trims);
-          if (trims.length > 0) {
-            setTrimestreSeleccionado(trims[0]);
-            const primerTrim = trims[0];
-            const niveles = Object.keys(importado.datos[primerTrim] || {});
-            if (niveles.includes('GLOBAL')) {
-              setSelecciones([{
-                id: 0,
-                trimestre: primerTrim,
-                nivel: 'GLOBAL',
-                asignatura: 'Todos'
-              }]);
-            }
+        const resultado = procesarImportacionJSON(e.target.result);
+
+        if (resultado.datosCompletos) setDatosCompletos(resultado.datosCompletos);
+        if (resultado.correlacionesCompletas) setCorrelacionesCompletas(resultado.correlacionesCompletas);
+        if (resultado.umbrales) setUmbrales(resultado.umbrales);
+        setMetadata(resultado.metadata);
+        setTrimestresDisponibles(resultado.trimestresDisponibles);
+
+        if (resultado.trimestresDisponibles.length > 0) {
+          setTrimestreSeleccionado(resultado.trimestresDisponibles[0]);
+          if (resultado.seleccionInicial) {
+            setSelecciones([resultado.seleccionInicial]);
           }
         }
-        
+
         setMostrarPanelCarga(false);
       } catch (err) {
         alert('Error al parsear el archivo JSON');
