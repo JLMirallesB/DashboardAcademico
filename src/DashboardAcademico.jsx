@@ -456,18 +456,40 @@ const DashboardAcademico = () => {
   // Actualizar selecciones cuando cambia modoEtapa y compararNiveles está activo
   useEffect(() => {
     if (compararNiveles && trimestreSeleccionado && nivelesSinGlobalEtapa.length > 0) {
-      const nuevasSelecciones = nivelesSinGlobalEtapa.map((nivel, idx) => ({
-        id: idx,
-        trimestre: trimestreSeleccionado,
-        nivel,
-        asignatura: asignaturaComparada
-      })).filter(sel => {
-        // En modo TODOS, buscar el trimestre apropiado para cada nivel
-        const trimestreParaNivel = modoEtapa === 'TODOS'
-          ? getBestTrimestre(sel.trimestre, sel.nivel, trimestresDisponibles, detectarEtapa)
-          : sel.trimestre;
-        // Solo incluir si el nivel tiene esa asignatura
-        return datosCompletos[trimestreParaNivel]?.[sel.nivel]?.[asignaturaComparada];
+      const nuevasSelecciones = nivelesSinGlobalEtapa.map((nivel, idx) => {
+        // En modo TODOS, buscar cualquier trimestre que tenga la asignatura para este nivel
+        let trimestreParaNivel = trimestreSeleccionado;
+
+        if (modoEtapa === 'TODOS') {
+          // Buscar el trimestre correspondiente a la etapa del nivel
+          const trimestreBest = getBestTrimestre(trimestreSeleccionado, nivel, trimestresDisponibles, detectarEtapa);
+
+          // Verificar si ese trimestre tiene la asignatura
+          if (tieneAsignatura(datosCompletos, trimestreBest, nivel, asignaturaComparada)) {
+            trimestreParaNivel = trimestreBest;
+          } else {
+            // Si no, buscar en TODOS los trimestres de esta etapa
+            const etapaNivel = detectarEtapa(nivel);
+            const trimestreConAsignatura = trimestresDisponibles.find(trim => {
+              const parsed = parseTrimestre(trim);
+              return parsed && parsed.etapa === etapaNivel &&
+                     tieneAsignatura(datosCompletos, trim, nivel, asignaturaComparada);
+            });
+            if (trimestreConAsignatura) {
+              trimestreParaNivel = trimestreConAsignatura;
+            }
+          }
+        }
+
+        return {
+          id: idx,
+          trimestre: trimestreParaNivel,
+          nivel,
+          asignatura: asignaturaComparada
+        };
+      }).filter(sel => {
+        // Solo incluir si encontramos la asignatura
+        return tieneAsignatura(datosCompletos, sel.trimestre, sel.nivel, sel.asignatura);
       });
       setSelecciones(nuevasSelecciones);
     }
@@ -477,18 +499,40 @@ const DashboardAcademico = () => {
   const activarCompararNiveles = useCallback(() => {
     if (!trimestreSeleccionado) return;
     setCompararNiveles(true);
-    const nuevasSelecciones = nivelesSinGlobalEtapa.map((nivel, idx) => ({
-      id: idx,
-      trimestre: trimestreSeleccionado,
-      nivel,
-      asignatura: asignaturaComparada
-    })).filter(sel => {
-      // En modo TODOS, buscar el trimestre apropiado para cada nivel
-      const trimestreParaNivel = modoEtapa === 'TODOS'
-        ? getBestTrimestre(sel.trimestre, sel.nivel, trimestresDisponibles, detectarEtapa)
-        : sel.trimestre;
-      // Solo incluir si el nivel tiene esa asignatura (considerando equivalencias)
-      return tieneAsignatura(datosCompletos, trimestreParaNivel, sel.nivel, sel.asignatura);
+    const nuevasSelecciones = nivelesSinGlobalEtapa.map((nivel, idx) => {
+      // En modo TODOS, buscar cualquier trimestre que tenga la asignatura para este nivel
+      let trimestreParaNivel = trimestreSeleccionado;
+
+      if (modoEtapa === 'TODOS') {
+        // Buscar el trimestre correspondiente a la etapa del nivel
+        const trimestreBest = getBestTrimestre(trimestreSeleccionado, nivel, trimestresDisponibles, detectarEtapa);
+
+        // Verificar si ese trimestre tiene la asignatura
+        if (tieneAsignatura(datosCompletos, trimestreBest, nivel, asignaturaComparada)) {
+          trimestreParaNivel = trimestreBest;
+        } else {
+          // Si no, buscar en TODOS los trimestres de esta etapa
+          const etapaNivel = detectarEtapa(nivel);
+          const trimestreConAsignatura = trimestresDisponibles.find(trim => {
+            const parsed = parseTrimestre(trim);
+            return parsed && parsed.etapa === etapaNivel &&
+                   tieneAsignatura(datosCompletos, trim, nivel, asignaturaComparada);
+          });
+          if (trimestreConAsignatura) {
+            trimestreParaNivel = trimestreConAsignatura;
+          }
+        }
+      }
+
+      return {
+        id: idx,
+        trimestre: trimestreParaNivel,
+        nivel,
+        asignatura: asignaturaComparada
+      };
+    }).filter(sel => {
+      // Solo incluir si encontramos la asignatura
+      return tieneAsignatura(datosCompletos, sel.trimestre, sel.nivel, sel.asignatura);
     });
     setSelecciones(nuevasSelecciones);
   }, [trimestreSeleccionado, nivelesSinGlobalEtapa, asignaturaComparada, datosCompletos, modoEtapa, detectarEtapa, trimestresDisponibles]);
@@ -510,18 +554,40 @@ const DashboardAcademico = () => {
   const cambiarAsignaturaComparada = useCallback((nuevaAsignatura) => {
     setAsignaturaComparada(nuevaAsignatura);
     if (compararNiveles) {
-      const nuevasSelecciones = nivelesSinGlobalEtapa.map((nivel, idx) => ({
-        id: idx,
-        trimestre: trimestreSeleccionado,
-        nivel,
-        asignatura: nuevaAsignatura
-      })).filter(sel => {
-        // En modo TODOS, buscar el trimestre apropiado para cada nivel
-        const trimestreParaNivel = modoEtapa === 'TODOS'
-          ? getBestTrimestre(sel.trimestre, sel.nivel, trimestresDisponibles, detectarEtapa)
-          : sel.trimestre;
-        // Solo incluir si el nivel tiene esa asignatura (considerando equivalencias)
-        return tieneAsignatura(datosCompletos, trimestreParaNivel, sel.nivel, sel.asignatura);
+      const nuevasSelecciones = nivelesSinGlobalEtapa.map((nivel, idx) => {
+        // En modo TODOS, buscar cualquier trimestre que tenga la asignatura para este nivel
+        let trimestreParaNivel = trimestreSeleccionado;
+
+        if (modoEtapa === 'TODOS') {
+          // Buscar el trimestre correspondiente a la etapa del nivel
+          const trimestreBest = getBestTrimestre(trimestreSeleccionado, nivel, trimestresDisponibles, detectarEtapa);
+
+          // Verificar si ese trimestre tiene la asignatura
+          if (tieneAsignatura(datosCompletos, trimestreBest, nivel, nuevaAsignatura)) {
+            trimestreParaNivel = trimestreBest;
+          } else {
+            // Si no, buscar en TODOS los trimestres de esta etapa
+            const etapaNivel = detectarEtapa(nivel);
+            const trimestreConAsignatura = trimestresDisponibles.find(trim => {
+              const parsed = parseTrimestre(trim);
+              return parsed && parsed.etapa === etapaNivel &&
+                     tieneAsignatura(datosCompletos, trim, nivel, nuevaAsignatura);
+            });
+            if (trimestreConAsignatura) {
+              trimestreParaNivel = trimestreConAsignatura;
+            }
+          }
+        }
+
+        return {
+          id: idx,
+          trimestre: trimestreParaNivel,
+          nivel,
+          asignatura: nuevaAsignatura
+        };
+      }).filter(sel => {
+        // Solo incluir si encontramos la asignatura
+        return tieneAsignatura(datosCompletos, sel.trimestre, sel.nivel, sel.asignatura);
       });
       setSelecciones(nuevasSelecciones);
     }
