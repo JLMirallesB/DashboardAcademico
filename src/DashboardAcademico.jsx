@@ -2270,12 +2270,12 @@ const DashboardAcademico = () => {
                 <div
                   key={sel.id}
                   className="p-4 rounded-lg border-2"
-                  style={{ borderColor: colores[idx].line, backgroundColor: colores[idx].bg }}
+                  style={{ borderColor: colores[idx % colores.length].line, backgroundColor: colores[idx % colores.length].bg }}
                 >
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: colores[idx].line }} />
-                      <span className="text-sm font-semibold" style={{ color: colores[idx].line }}>
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: colores[idx % colores.length].line }} />
+                      <span className="text-sm font-semibold" style={{ color: colores[idx % colores.length].line }}>
                         {t('selection')} {idx + 1}
                       </span>
                     </div>
@@ -2391,11 +2391,11 @@ const DashboardAcademico = () => {
                 <div
                   key={sel.id}
                   className="bg-white rounded-xl border-2 p-4"
-                  style={{ borderColor: colores[idx].line }}
+                  style={{ borderColor: colores[idx % colores.length].line }}
                 >
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: colores[idx].line }} />
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: colores[idx % colores.length].line }} />
                       <h4 className="font-semibold text-slate-800 text-sm">
                         {sel.trimestre} · {sel.nivel} · {sel.asignatura}
                       </h4>
@@ -2505,8 +2505,8 @@ const DashboardAcademico = () => {
                       key={sel.id}
                       name={`${sel.trimestre} - ${sel.nivel} - ${sel.asignatura}`}
                       dataKey={`Sel ${idx + 1}`}
-                      stroke={colores[idx].line}
-                      fill={colores[idx].line}
+                      stroke={colores[idx % colores.length].line}
+                      fill={colores[idx % colores.length].line}
                       fillOpacity={0.15}
                       strokeWidth={2}
                     />
@@ -2722,9 +2722,9 @@ const DashboardAcademico = () => {
                       key={sel.id}
                       type="monotone"
                       dataKey={label}
-                      stroke={colores[idx].line}
+                      stroke={colores[idx % colores.length].line}
                       strokeWidth={2}
-                      dot={{ fill: colores[idx].line, r: 4 }}
+                      dot={{ fill: colores[idx % colores.length].line, r: 4 }}
                     />
                   );
                 })}
@@ -3377,7 +3377,7 @@ const DashboardAcademico = () => {
                 {/* Gráfico de evolución de nota media */}
                 {(() => {
                   // Colores para las diferentes selecciones
-                  const colores = ['#1a1a2e', '#3b82f6', '#ef4444', '#22c55e', '#f59e0b'];
+                  const colores = ['#1a1a2e', '#3b82f6', '#ef4444', '#22c55e', '#f59e0b', '#ec4899', '#06b6d4', '#8b5cf6', '#14b8a6', '#f97316', '#a855f7', '#f43f5e', '#84cc16', '#0ea5e9', '#f472b6'];
 
                   // Preparar datos combinados de todas las selecciones
                   const datosEvolucion = trimestresDisponibles.map(trim => {
@@ -3429,9 +3429,9 @@ const DashboardAcademico = () => {
                               type="monotone"
                               dataKey={`notaMedia_${idx}`}
                               name={`${sel.nivel} - ${sel.asignatura}`}
-                              stroke={colores[idx]}
+                              stroke={colores[idx % colores.length]}
                               strokeWidth={3}
-                              dot={{ fill: colores[idx], r: 5 }}
+                              dot={{ fill: colores[idx % colores.length], r: 5 }}
                               connectNulls
                             />
                           ))}
