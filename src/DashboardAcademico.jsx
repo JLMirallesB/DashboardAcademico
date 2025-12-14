@@ -99,7 +99,20 @@ const DashboardAcademico = () => {
   // Parser de CSV - detecta automáticamente el separador
   const parseCSV = useCallback((csvText) => {
     const lineas = csvText.split('\n').map(l => l.trim()).filter(l => l);
-    
+
+    // Validación básica: archivo no vacío
+    if (lineas.length === 0) {
+      throw new Error('El archivo CSV está vacío');
+    }
+
+    // Validar que tiene al menos las secciones requeridas
+    const tieneMetadata = lineas.some(l => l.startsWith('#METADATA'));
+    const tieneEstadisticas = lineas.some(l => l.startsWith('#ESTADISTICAS'));
+
+    if (!tieneMetadata || !tieneEstadisticas) {
+      throw new Error('El archivo CSV no tiene la estructura esperada. Debe contener #METADATA y #ESTADISTICAS');
+    }
+
     // Detectar separador: si hay más ; que , en las primeras líneas, usar ;
     const primerasLineas = lineas.slice(0, 10).join('\n');
     const separador = (primerasLineas.match(/;/g) || []).length > (primerasLineas.match(/,/g) || []).length ? ';' : ',';
@@ -519,8 +532,9 @@ const DashboardAcademico = () => {
       sumY2 += y * y;
     });
 
-    const pendiente = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
-    const intercepto = (sumY - pendiente * sumX) / n;
+    const denominador = (n * sumX2 - sumX * sumX);
+    const pendiente = denominador !== 0 ? (n * sumXY - sumX * sumY) / denominador : 0;
+    const intercepto = n !== 0 ? (sumY - pendiente * sumX) / n : 0;
 
     // Calcular R² para regresión lineal
     const mediaY = sumY / n;
@@ -590,8 +604,12 @@ const DashboardAcademico = () => {
         const primerosDiferencias = diferencias.slice(0, mitad);
         const segundosDiferencias = diferencias.slice(mitad);
 
-        const mediaPrimeros = primerosDiferencias.reduce((a, b) => a + b, 0) / primerosDiferencias.length;
-        const mediaSegundos = segundosDiferencias.reduce((a, b) => a + b, 0) / segundosDiferencias.length;
+        const mediaPrimeros = primerosDiferencias.length > 0
+          ? primerosDiferencias.reduce((a, b) => a + b, 0) / primerosDiferencias.length
+          : 0;
+        const mediaSegundos = segundosDiferencias.length > 0
+          ? segundosDiferencias.reduce((a, b) => a + b, 0) / segundosDiferencias.length
+          : 0;
 
         if (mediaPrimeros < -0.1 && mediaSegundos > 0.1) {
           esRecuperacion = true;
@@ -609,8 +627,12 @@ const DashboardAcademico = () => {
         diferencias.push(valoresValidos[i] - valoresValidos[i - 1]);
       }
 
-      const mediaDif = diferencias.reduce((a, b) => a + b, 0) / diferencias.length;
-      varianzaDiferencias = diferencias.reduce((sum, d) => sum + (d - mediaDif) ** 2, 0) / diferencias.length;
+      const mediaDif = diferencias.length > 0
+        ? diferencias.reduce((a, b) => a + b, 0) / diferencias.length
+        : 0;
+      varianzaDiferencias = diferencias.length > 0
+        ? diferencias.reduce((sum, d) => sum + (d - mediaDif) ** 2, 0) / diferencias.length
+        : 0;
     }
 
     // ========== CLASIFICACIÓN EN CATEGORÍAS ==========
@@ -2093,8 +2115,8 @@ const DashboardAcademico = () => {
             <div>
               <h1 className="text-5xl text-slate-800 mb-2">{t('appTitle')}</h1>
               <p className="text-xl text-slate-600 font-medium">
-                {metadata[trimestresDisponibles[0]]?.Centro || 'EEM'} ·
-                Curso {metadata[trimestresDisponibles[0]]?.CursoAcademico || ''}
+                {trimestresDisponibles.length > 0 ? (metadata[trimestresDisponibles[0]]?.Centro || 'EEM') : 'EEM'} ·
+                Curso {trimestresDisponibles.length > 0 ? (metadata[trimestresDisponibles[0]]?.CursoAcademico || '') : ''}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -2535,7 +2557,9 @@ const DashboardAcademico = () => {
             if (datosDispersion.length === 0) return null;
 
             // Calcular desviación máxima para el rango automático
-            const maxDesviacion = Math.max(...datosDispersion.map(d => d.desviacion));
+            const maxDesviacion = datosDispersion.length > 0
+              ? Math.max(...datosDispersion.map(d => d.desviacion))
+              : 0;
             const desviacionMax = zoomDispersion.rangoDesviacion.max || Math.max(3, Math.ceil(maxDesviacion * 1.2));
 
             // Filtrar datos según rangos de valores (no índices)
@@ -3359,7 +3383,7 @@ const DashboardAcademico = () => {
                 // Calcular totales y máximos para el mapa de calor
                 const totales = selecciones.map(sel => {
                   const datos = datosCompletos[sel.trimestre]?.[sel.nivel]?.[sel.asignatura];
-                  return datos ? Object.values(datos.distribucion).reduce((a, b) => a + b, 0) : 0;
+                  return datos?.distribucion ? Object.values(datos.distribucion).reduce((a, b) => a + b, 0) : 0;
                 });
 
                 // Calcular máximos según el modo
@@ -3369,7 +3393,7 @@ const DashboardAcademico = () => {
                 selecciones.forEach((sel) => {
                   const datos = datosCompletos[sel.trimestre]?.[sel.nivel]?.[sel.asignatura];
                   let maxColumna = 0;
-                  if (datos) {
+                  if (datos?.distribucion) {
                     Object.values(datos.distribucion).forEach(v => {
                       if (v > maxValorGlobal) maxValorGlobal = v;
                       if (v > maxColumna) maxColumna = v;
@@ -4043,7 +4067,11 @@ const DashboardAcademico = () => {
                   return datos ? {
                     nivel,
                     notaMedia: datos.stats?.notaMedia || datos.notaMedia,
-                    suspendidos: datos.stats ? (datos.stats.suspendidos) : ((datos.estadisticas?.suspendidos / datos.estadisticas?.alumnos * 100) || 0)
+                    suspendidos: datos.stats
+                      ? (datos.stats.suspendidos)
+                      : (datos.estadisticas?.alumnos > 0
+                          ? (datos.estadisticas.suspendidos / datos.estadisticas.alumnos * 100)
+                          : 0)
                   } : null;
                 }).filter(Boolean);
 
