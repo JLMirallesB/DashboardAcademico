@@ -43,6 +43,12 @@ export const useKPICalculation = (
     // KPI 1: Nota media del centro (GLOBAL/Todos)
     const notaMediaCentro = global['Todos']?.stats?.notaMedia || 0;
 
+    // KPI 1b: Desviación típica del centro
+    const desviacionCentro = global['Todos']?.stats?.desviacion || 0;
+
+    // KPI 1c: Moda del centro
+    const modaCentro = global['Todos']?.stats?.moda || 0;
+
     // KPI 2: Notas medias de asignaturas de referencia (case-insensitive)
     const notasMediasRef = asignaturasReferencia.map(asigBuscada => {
       const asigEncontrada = Object.keys(global).find(key =>
@@ -112,6 +118,8 @@ export const useKPICalculation = (
 
     return {
       notaMediaCentro,
+      desviacionCentro,
+      modaCentro,
       notasMediasRef,
       notaMediaEspecialidades,
       aprobadosEspecialidades,

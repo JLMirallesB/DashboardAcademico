@@ -30,6 +30,8 @@ export const translations = {
     // KPIs
     kpis: 'Indicadores Clave del Centro',
     kpiCenterAvg: 'Nota Media del Centro',
+    kpiStdDev: 'Desviación Típica',
+    kpiMode: 'Moda del Centro',
     kpiLMAvg: 'Nota Media Lenguaje Musical',
     kpiTTAvg: 'Nota Media Teórica Troncal',
     kpiInstrAvg: 'Nota Media Especialidades',
@@ -257,6 +259,8 @@ export const translations = {
     // KPIs
     kpis: 'Indicadors Clau del Centre',
     kpiCenterAvg: 'Nota Mitjana del Centre',
+    kpiStdDev: 'Desviació Típica',
+    kpiMode: 'Moda del Centre',
     kpiLMAvg: 'Nota Mitjana Llenguatge Musical',
     kpiTTAvg: 'Nota Mitjana Teòrica Troncal',
     kpiInstrAvg: 'Nota Mitjana Especialitats',
