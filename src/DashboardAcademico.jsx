@@ -849,6 +849,8 @@ const DashboardAcademico = () => {
 
     // KPI 1: Nota media del centro (GLOBAL/Todos)
     const notaMediaCentro = global['Todos']?.stats?.notaMedia || 0;
+    const desviacionCentro = global['Todos']?.stats?.desviacion || 0;
+    const modaCentro = global['Todos']?.stats?.moda || 0;
 
     // KPI 2: Notas medias de asignaturas de referencia (case-insensitive)
     const notasMediasRef = asignaturasReferencia.map(asigBuscada => {
@@ -918,6 +920,8 @@ const DashboardAcademico = () => {
 
     const result = {
       notaMediaCentro,
+      desviacionCentro,
+      modaCentro,
       notasMediasRef, // Array de objetos {asignatura, notaMedia, aprobados, suspendidos}
       notaMediaEsp,
       countDificiles,
