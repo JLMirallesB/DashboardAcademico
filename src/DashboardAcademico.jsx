@@ -10,6 +10,9 @@ import { exportarJSON as exportarJSONService, procesarImportacionJSON } from './
 import { useStatisticalCalculations } from './hooks/useStatisticalCalculations.js';
 import { useDifficultyAnalysis } from './hooks/useDifficultyAnalysis.js';
 import { useKPICalculation } from './hooks/useKPICalculation.js';
+import KPICentro from './components/kpi/KPICentro.jsx';
+import KPIDetalle from './components/kpi/KPIDetalle.jsx';
+import KPIComparativa from './components/kpi/KPIComparativa.jsx';
 import { jsPDF } from 'jspdf';
 import { applyPlugin } from 'jspdf-autotable';
 
@@ -33,6 +36,7 @@ const DashboardAcademico = () => {
   // UI State
   const [trimestreSeleccionado, setTrimestreSeleccionado] = useState(null);
   const [vistaActual, setVistaActual] = useState('estadisticas'); // 'estadisticas', 'correlaciones', 'evolucion', 'dificultad', 'asignaturas'
+  const [vistaKPI, setVistaKPI] = useState('centro'); // 'centro', 'detalle', 'comparativa'
   const [selecciones, setSelecciones] = useState([]);
   const [mostrarModalConfirm, setMostrarModalConfirm] = useState(false);
   const [trimestrePendiente, setTrimestrePendiente] = useState(null);
@@ -830,110 +834,16 @@ const DashboardAcademico = () => {
     }
   }, []);
 
-  // Calcular KPIs globales del centro
-  const kpisGlobales = useMemo(() => {
-    if (!trimestreSeleccionado || !datosCompletos[trimestreSeleccionado]) {
-      return null;
-    }
-
-    const datos = datosCompletos[trimestreSeleccionado];
-    const global = datos['GLOBAL'];
-    if (!global || !global['Todos']) {
-      return null;
-    }
-
-    // Asignaturas de referencia según modo (en TODOS: ambas)
-    const asignaturasReferencia = modoEtapa === 'EPM' ? ['Teórica Troncal'] :
-                                   modoEtapa === 'EEM' ? ['Lenguaje Musical'] :
-                                   ['Lenguaje Musical', 'Teórica Troncal']; // TODOS: ambas
-
-    // KPI 1: Nota media del centro (GLOBAL/Todos)
-    const notaMediaCentro = global['Todos']?.stats?.notaMedia || 0;
-    const desviacionCentro = global['Todos']?.stats?.desviacion || 0;
-    const modaCentro = global['Todos']?.stats?.moda || 0;
-
-    // KPI 2: Notas medias de asignaturas de referencia (case-insensitive)
-    const notasMediasRef = asignaturasReferencia.map(asigBuscada => {
-      // Buscar la asignatura en global de forma case-insensitive
-      const asigEncontrada = Object.keys(global).find(key =>
-        normalizar(key) === normalizar(asigBuscada)
-      );
-      return {
-        asignatura: asigBuscada,
-        notaMedia: asigEncontrada ? (global[asigEncontrada]?.stats?.notaMedia || 0) : 0,
-        aprobados: asigEncontrada ? (global[asigEncontrada]?.stats?.aprobados || 0) : 0,
-        suspendidos: asigEncontrada ? (global[asigEncontrada]?.stats?.suspendidos || 0) : 0
-      };
-    });
-
-    // KPI 3: Nota media de Especialidades - usar función auxiliar
-    let sumaNotasEsp = 0, sumaPesosEsp = 0;
-    Object.entries(global).forEach(([asig, data]) => {
-      if (esAsignaturaEspecialidad(asig, modoEtapa) && data?.stats) {
-        sumaNotasEsp += data.stats.notaMedia * data.stats.registros;
-        sumaPesosEsp += data.stats.registros;
-      }
-    });
-    const notaMediaEsp = sumaPesosEsp > 0 ? sumaNotasEsp / sumaPesosEsp : 0;
-
-    // KPI 4: Contador de asignaturas difíciles/fáciles
-    // En modo TODOS, itera por TODOS los niveles (Piano EEM ≠ Piano EPM)
-    let countDificiles = 0;
-    let countFaciles = 0;
-    Object.entries(datos).forEach(([nivel, asigs]) => {
-      if (nivel === 'GLOBAL') return;
-      // En modo TODOS no filtrar por etapa, en otros sí
-      if (modoEtapa !== 'TODOS' && detectarEtapa(nivel) !== modoEtapa) return;
-
-      Object.entries(asigs).forEach(([, data]) => {
-        if (data?.stats && data.stats.registros >= umbrales.alumnosMinimo) {
-          const resultado = calcularResultado(data.stats);
-          if (resultado === 'DIFÍCIL') countDificiles++;
-          if (resultado === 'FÁCIL') countFaciles++;
-        }
-      });
-    });
-
-    // KPI 5-6: % Aprobados (total y especialidades) - usar función auxiliar
-    const aprobadosCentro = global['Todos']?.stats?.aprobados || 0;
-
-    let sumaAprobadosEsp = 0, sumaPesosAprobadosEsp = 0;
-    Object.entries(global).forEach(([asig, data]) => {
-      if (esAsignaturaEspecialidad(asig, modoEtapa) && data?.stats) {
-        sumaAprobadosEsp += data.stats.aprobados * data.stats.registros;
-        sumaPesosAprobadosEsp += data.stats.registros;
-      }
-    });
-    const aprobadosEsp = sumaPesosAprobadosEsp > 0 ? sumaAprobadosEsp / sumaPesosAprobadosEsp : 0;
-
-    // KPI 7-8: % Suspendidos (total y especialidades) - usar función auxiliar
-    const suspendidosCentro = global['Todos']?.stats?.suspendidos || 0;
-
-    let sumaSuspendidosEsp = 0, sumaPesosSuspendidosEsp = 0;
-    Object.entries(global).forEach(([asig, data]) => {
-      if (esAsignaturaEspecialidad(asig, modoEtapa) && data?.stats) {
-        sumaSuspendidosEsp += data.stats.suspendidos * data.stats.registros;
-        sumaPesosSuspendidosEsp += data.stats.registros;
-      }
-    });
-    const suspendidosEsp = sumaPesosSuspendidosEsp > 0 ? sumaSuspendidosEsp / sumaPesosSuspendidosEsp : 0;
-
-    const result = {
-      notaMediaCentro,
-      desviacionCentro,
-      modaCentro,
-      notasMediasRef, // Array de objetos {asignatura, notaMedia, aprobados, suspendidos}
-      notaMediaEsp,
-      countDificiles,
-      countFaciles,
-      aprobadosCentro,
-      aprobadosEsp,
-      suspendidosCentro,
-      suspendidosEsp,
-      modoEtapa // Incluir para usar en UI
-    };
-    return result;
-  }, [trimestreSeleccionado, datosCompletos, calcularResultado, modoEtapa, detectarEtapa, umbrales, esAsignaturaEspecialidad]);
+  // Calcular KPIs globales del centro usando el hook optimizado
+  const kpisGlobales = useKPICalculation(
+    trimestreSeleccionado,
+    datosCompletos,
+    calcularResultado,
+    umbrales,
+    modoEtapa,
+    esAsignaturaEspecialidad,
+    detectarEtapa
+  );
 
   // Análisis de dificultad de asignaturas
   const analisisDificultad = useMemo(() => {
@@ -1108,9 +1018,9 @@ const DashboardAcademico = () => {
         });
 
         kpisData.push(
-          [t('kpiInstrAvg'), (kpisGlobales.notaMediaEsp || 0).toFixed(2)],
-          [t('kpiDifficult'), kpisGlobales.countDificiles.toString()],
-          [t('kpiEasy'), kpisGlobales.countFaciles.toString()],
+          [t('kpiInstrAvg'), (kpisGlobales.notaMediaEspecialidades || 0).toFixed(2)],
+          [t('kpiDifficult'), (kpisGlobales.asignaturasDificiles || 0).toString()],
+          [t('kpiEasy'), (kpisGlobales.asignaturasFaciles || 0).toString()],
           [t('kpiPassedAvg'), `${(kpisGlobales.aprobadosCentro || 0).toFixed(1)}%`]
         );
 
@@ -1123,7 +1033,7 @@ const DashboardAcademico = () => {
         });
 
         kpisData.push(
-          [t('kpiPassedInstr'), `${(kpisGlobales.aprobadosEsp || 0).toFixed(1)}%`],
+          [t('kpiPassedInstr'), `${(kpisGlobales.aprobadosEspecialidades || 0).toFixed(1)}%`],
           [t('kpiFailedAvg'), `${(kpisGlobales.suspendidosCentro || 0).toFixed(1)}%`]
         );
 
@@ -1135,7 +1045,7 @@ const DashboardAcademico = () => {
           ]);
         });
 
-        kpisData.push([t('kpiFailedInstr'), `${(kpisGlobales.suspendidosEsp || 0).toFixed(1)}%`]);
+        kpisData.push([t('kpiFailedInstr'), `${(kpisGlobales.suspendidosEspecialidades || 0).toFixed(1)}%`]);
 
         pdf.autoTable({
           startY: 35,
@@ -1809,9 +1719,56 @@ const DashboardAcademico = () => {
       {/* VISTA: ESTADÍSTICAS */}
       {vistaActual === 'estadisticas' && (
         <div className="max-w-7xl mx-auto">
-          {/* Panel de KPIs Globales */}
+          {/* Panel de KPIs Globales con Navegación por Pestañas */}
           {kpisGlobales && (
             <div className="mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-slate-800">{t('kpis')}</h3>
+                {/* Navegación por pestañas */}
+                <div className="flex gap-2 bg-slate-100 p-1 rounded-lg">
+                  <button
+                    onClick={() => setVistaKPI('centro')}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                      vistaKPI === 'centro'
+                        ? 'bg-white text-blue-700 shadow-sm'
+                        : 'text-slate-600 hover:text-slate-800'
+                    }`}
+                  >
+                    {t('center') || 'Centro'}
+                  </button>
+                  <button
+                    onClick={() => setVistaKPI('detalle')}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                      vistaKPI === 'detalle'
+                        ? 'bg-white text-blue-700 shadow-sm'
+                        : 'text-slate-600 hover:text-slate-800'
+                    }`}
+                  >
+                    {t('detail') || 'Detalle'}
+                  </button>
+                  <button
+                    onClick={() => setVistaKPI('comparativa')}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                      vistaKPI === 'comparativa'
+                        ? 'bg-white text-blue-700 shadow-sm'
+                        : 'text-slate-600 hover:text-slate-800'
+                    }`}
+                  >
+                    {t('comparison') || 'Comparativa'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Renderizar componente según vista seleccionada */}
+              {vistaKPI === 'centro' && <KPICentro kpis={kpisGlobales} t={t} />}
+              {vistaKPI === 'detalle' && <KPIDetalle kpis={kpisGlobales} t={t} />}
+              {vistaKPI === 'comparativa' && <KPIComparativa kpis={kpisGlobales} t={t} />}
+            </div>
+          )}
+
+          {/* SECCIÓN ORIGINAL DE KPIs (OCULTA - MANTENER POR COMPATIBILIDAD CON PDF) */}
+          {false && kpisGlobales && (
+            <div className="mb-6 hidden">
               <h3 className="text-lg font-semibold text-slate-800 mb-4">{t('kpis')}</h3>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                 {/* Nota Media del Centro */}

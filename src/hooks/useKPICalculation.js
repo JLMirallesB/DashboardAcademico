@@ -14,6 +14,7 @@ import { normalizar } from '../utils.js';
  * @param {Object} umbrales - Umbrales configurables
  * @param {string} modoEtapa - Modo de etapa (EEM/EPM/TODOS)
  * @param {Function} esAsignaturaEspecialidad - Función para detectar especialidades
+ * @param {Function} detectarEtapa - Función para detectar etapa de un nivel
  * @returns {Object|null} KPIs globales calculados
  */
 export const useKPICalculation = (
@@ -22,7 +23,8 @@ export const useKPICalculation = (
   calcularResultado,
   umbrales,
   modoEtapa,
-  esAsignaturaEspecialidad
+  esAsignaturaEspecialidad,
+  detectarEtapa
 ) => {
   return useMemo(() => {
     if (!trimestreSeleccionado || !datosCompletos[trimestreSeleccionado]) {
@@ -66,12 +68,15 @@ export const useKPICalculation = (
     // Primero intentar leer de 'Total Especialidad' (viene del CSV)
     const totalEsp = global['Total Especialidad'];
     let notaMediaEspecialidades, aprobadosEspecialidades, suspendidosEspecialidades;
+    let desviacionEspecialidades, modaEspecialidades;
 
     if (totalEsp && totalEsp.stats) {
       // Usar datos precalculados del CSV
       notaMediaEspecialidades = totalEsp.stats.notaMedia || 0;
       aprobadosEspecialidades = totalEsp.stats.aprobados || 0;
       suspendidosEspecialidades = totalEsp.stats.suspendidos || 0;
+      desviacionEspecialidades = totalEsp.stats.desviacion || 0;
+      modaEspecialidades = totalEsp.stats.moda || 0;
     } else {
       // Fallback: calcular manualmente (retrocompatibilidad con CSVs antiguos)
       let sumaNotasEsp = 0, sumaPesosEsp = 0;
@@ -94,6 +99,21 @@ export const useKPICalculation = (
       notaMediaEspecialidades = sumaPesosEsp > 0 ? sumaNotasEsp / sumaPesosEsp : 0;
       aprobadosEspecialidades = sumaPesosAprobEsp > 0 ? sumaAprobEsp / sumaPesosAprobEsp : 0;
       suspendidosEspecialidades = sumaPesosSuspEsp > 0 ? sumaSuspEsp / sumaPesosSuspEsp : 0;
+      desviacionEspecialidades = 0; // No disponible en fallback
+      modaEspecialidades = 0; // No disponible en fallback
+    }
+
+    // KPI No Especialidades: Leer de 'Total no Especialidad' (viene del CSV)
+    const totalNoEsp = global['Total no Especialidad'];
+    let notaMediaNoEspecialidades = 0, aprobadosNoEspecialidades = 0, suspendidosNoEspecialidades = 0;
+    let desviacionNoEspecialidades = 0, modaNoEspecialidades = 0;
+
+    if (totalNoEsp && totalNoEsp.stats) {
+      notaMediaNoEspecialidades = totalNoEsp.stats.notaMedia || 0;
+      aprobadosNoEspecialidades = totalNoEsp.stats.aprobados || 0;
+      suspendidosNoEspecialidades = totalNoEsp.stats.suspendidos || 0;
+      desviacionNoEspecialidades = totalNoEsp.stats.desviacion || 0;
+      modaNoEspecialidades = totalNoEsp.stats.moda || 0;
     }
 
     // KPI 6: Asignaturas difíciles
@@ -114,18 +134,65 @@ export const useKPICalculation = (
     // KPI 8: Total de asignaturas evaluadas
     const totalAsignaturas = contDificiles + contFaciles + contNeutrales;
 
+    // KPI 9: Alumnos por curso (registros de 'Total Especialidad' por cada nivel)
+    const alumnosPorCurso = [];
+    const niveles = Object.keys(datos).filter(n => n !== 'GLOBAL');
+
+    niveles.forEach(nivel => {
+      const totalEspNivel = datos[nivel]?.['Total Especialidad'];
+      if (totalEspNivel && totalEspNivel.stats) {
+        const etapa = detectarEtapa ? detectarEtapa(nivel) : null;
+        alumnosPorCurso.push({
+          nivel,
+          etapa,
+          alumnos: totalEspNivel.stats.registros || 0
+        });
+      }
+    });
+
+    // Ordenar por nivel (1EEM, 2EEM, ..., 1EPM, 2EPM, ...)
+    alumnosPorCurso.sort((a, b) => {
+      const numA = parseInt(a.nivel.match(/\d+/)?.[0] || '0');
+      const numB = parseInt(b.nivel.match(/\d+/)?.[0] || '0');
+      if (a.etapa !== b.etapa) {
+        return a.etapa === 'EEM' ? -1 : 1;
+      }
+      return numA - numB;
+    });
+
     return {
+      // Centro
       notaMediaCentro,
       desviacionCentro,
       modaCentro,
+      aprobadosCentro: global['Todos']?.stats?.aprobados || 0,
+      suspendidosCentro: global['Todos']?.stats?.suspendidos || 0,
+
+      // Referencia
       notasMediasRef,
+
+      // Especialidades
       notaMediaEspecialidades,
       aprobadosEspecialidades,
       suspendidosEspecialidades,
+      desviacionEspecialidades,
+      modaEspecialidades,
+
+      // No Especialidades
+      notaMediaNoEspecialidades,
+      aprobadosNoEspecialidades,
+      suspendidosNoEspecialidades,
+      desviacionNoEspecialidades,
+      modaNoEspecialidades,
+
+      // Asignaturas
       asignaturasDificiles: contDificiles,
       asignaturasFaciles: contFaciles,
       asignaturasNeutrales: contNeutrales,
-      totalAsignaturas
+      totalAsignaturas,
+
+      // Alumnos
+      alumnosPorCurso
     };
   }, [
     trimestreSeleccionado,
@@ -133,6 +200,7 @@ export const useKPICalculation = (
     calcularResultado,
     umbrales,
     modoEtapa,
-    esAsignaturaEspecialidad
+    esAsignaturaEspecialidad,
+    detectarEtapa
   ]);
 };
