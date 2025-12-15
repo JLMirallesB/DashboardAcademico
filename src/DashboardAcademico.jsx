@@ -2305,8 +2305,9 @@ const DashboardAcademico = () => {
                         else if (!mediaAlta && !desviacionAlta) color = '#f97316'; // orange
                         else color = '#f43f5e'; // rose
 
-                        // Tamaño basado en cantidad de alumnos (min 8, max 25)
-                        const radius = Math.min(25, Math.max(8, payload.alumnos / 8));
+                        // Tamaño basado en cantidad de alumnos con escala de raíz cuadrada
+                        // Esto mejora la diferenciación de valores pequeños vs grandes
+                        const radius = Math.min(25, Math.max(8, Math.sqrt(payload.alumnos) * 2.5));
 
                         return (
                           <g>
