@@ -82,6 +82,9 @@ const DashboardAcademico = () => {
   // Estado para nivel seleccionado en mapa de dispersión
   const [nivelDispersion, setNivelDispersion] = useState('GLOBAL');
 
+  // Estado para filtro de número mínimo de alumnos en mapa de dispersión
+  const [minAlumnosDispersion, setMinAlumnosDispersion] = useState(0);
+
   // Estado para generación de informes
   const [mostrarModalInforme, setMostrarModalInforme] = useState(false);
   const [generandoInforme, setGenerandoInforme] = useState(false);
@@ -2186,18 +2189,23 @@ const DashboardAcademico = () => {
 
             if (datosDispersion.length === 0) return null;
 
-            // Calcular desviación máxima para el rango automático
+            // Calcular desviación máxima y alumnos máximos para los rangos
             const maxDesviacion = datosDispersion.length > 0
               ? Math.max(...datosDispersion.map(d => d.desviacion))
               : 0;
             const desviacionMax = zoomDispersion.rangoDesviacion.max || Math.max(3, Math.ceil(maxDesviacion * 1.2));
+
+            const maxAlumnos = datosDispersion.length > 0
+              ? Math.max(...datosDispersion.map(d => d.alumnos))
+              : 0;
 
             // Filtrar datos según rangos de valores (no índices)
             const datosFiltrados = datosDispersion.filter(d =>
               d.notaMedia >= zoomDispersion.rangoMedia.min &&
               d.notaMedia <= zoomDispersion.rangoMedia.max &&
               d.desviacion >= zoomDispersion.rangoDesviacion.min &&
-              d.desviacion <= desviacionMax
+              d.desviacion <= desviacionMax &&
+              d.alumnos >= minAlumnosDispersion
             );
 
             // Función para determinar el cuadrante y su interpretación
@@ -2337,14 +2345,33 @@ const DashboardAcademico = () => {
                       <span className="text-xs text-slate-500">-</span>
                       <span className="text-xs text-slate-700 font-mono">{desviacionMax.toFixed(1)}</span>
                     </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-600 whitespace-nowrap">{t('students')} ≥:</span>
+                      <input
+                        type="range"
+                        min="0"
+                        max={Math.max(50, maxAlumnos)}
+                        step="1"
+                        value={minAlumnosDispersion}
+                        onChange={(e) => setMinAlumnosDispersion(parseInt(e.target.value))}
+                        className="w-32"
+                      />
+                      <span className="text-xs text-slate-700 font-mono w-8">{minAlumnosDispersion}</span>
+                      {minAlumnosDispersion > 0 && (
+                        <span className="text-xs text-emerald-600">✓</span>
+                      )}
+                    </div>
                     <button
-                      onClick={() => setZoomDispersion({
-                        rangoMedia: { min: 0, max: 10 },
-                        rangoDesviacion: { min: 0, max: null }
-                      })}
+                      onClick={() => {
+                        setZoomDispersion({
+                          rangoMedia: { min: 0, max: 10 },
+                          rangoDesviacion: { min: 0, max: null }
+                        });
+                        setMinAlumnosDispersion(0);
+                      }}
                       className="px-3 py-1.5 bg-slate-600 text-white text-xs rounded hover:bg-slate-700 transition-all whitespace-nowrap"
                     >
-                      {idioma === 'es' ? 'Reiniciar' : 'Reiniciar'}
+                      {idioma === 'es' ? 'Reiniciar filtros' : 'Reiniciar filtres'}
                     </button>
                   </div>
                 </div>
@@ -2396,9 +2423,10 @@ const DashboardAcademico = () => {
                         else if (!mediaAlta && !desviacionAlta) color = '#f97316'; // orange
                         else color = '#f43f5e'; // rose
 
-                        // Tamaño basado en cantidad de alumnos con escala de raíz cuadrada
-                        // Esto mejora la diferenciación de valores pequeños vs grandes
-                        const radius = Math.min(25, Math.max(8, Math.sqrt(payload.alumnos) * 2.5));
+                        // Tamaño basado en cantidad de alumnos con escala logarítmica
+                        // Esto mejora significativamente la diferenciación entre valores pequeños (2, 6, 10 alumnos)
+                        // log1p(x) = log(1+x) da mejor diferenciación que sqrt(x) en rangos bajos
+                        const radius = Math.min(30, Math.max(10, Math.log1p(payload.alumnos) * 7.5));
 
                         return (
                           <g>
