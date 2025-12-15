@@ -96,6 +96,26 @@ const DashboardAcademico = () => {
   // Colores para comparaciones
   const colores = COLORES_COMPARACION;
 
+  // Función auxiliar para renderizar opciones de asignaturas con separador
+  const renderOpcionesAsignaturas = useCallback((asignaturas) => {
+    const totales = ['Total', 'Total Especialidad', 'Total no Especialidad'];
+    const tieneTotales = asignaturas.some(a => totales.includes(a));
+    const indexPrimerNoTotal = asignaturas.findIndex(a => !totales.includes(a));
+
+    return asignaturas.map((asig, idx) => {
+      const esSeparador = tieneTotales && idx === indexPrimerNoTotal;
+      if (esSeparador) {
+        return (
+          <React.Fragment key={asig}>
+            <option disabled className="text-slate-400">──────────────</option>
+            <option key={asig} value={asig}>{asig}</option>
+          </React.Fragment>
+        );
+      }
+      return <option key={asig} value={asig}>{asig}</option>;
+    });
+  }, []);
+
   // Custom hooks para cálculos estadísticos
   const { calcularResultado, calcularTendencia, getTrendInfo, detectarEtapa } =
     useStatisticalCalculations(umbrales, t);
@@ -367,7 +387,16 @@ const DashboardAcademico = () => {
       });
     }
 
-    return Array.from(asignaturas).sort();
+    // Ordenar: Totales primero, luego el resto alfabéticamente
+    const listaAsignaturas = Array.from(asignaturas);
+    const totales = ['Total', 'Total Especialidad', 'Total no Especialidad'];
+    const asignaturasConTotales = listaAsignaturas.filter(a => totales.includes(a));
+    const asignaturasSinTotales = listaAsignaturas.filter(a => !totales.includes(a)).sort();
+
+    // Ordenar los totales en el orden específico
+    const totalesOrdenados = totales.filter(t => asignaturasConTotales.includes(t));
+
+    return [...totalesOrdenados, ...asignaturasSinTotales];
   }, [trimestreSeleccionado, datosCompletos, modoEtapa, detectarEtapa, trimestresDisponibles, normalizar]);
 
   // Niveles sin GLOBAL para comparación
@@ -614,10 +643,16 @@ const DashboardAcademico = () => {
     }
   }, [compararNiveles, nivelesSinGlobalEtapa, trimestreSeleccionado, datosCompletos, modoEtapa, detectarEtapa, trimestresDisponibles]);
 
-  // Obtener asignaturas por nivel
+  // Obtener asignaturas por nivel (con totales primero)
   const getAsignaturas = useCallback((trimestre, nivel) => {
     if (!trimestre || !nivel || !datosCompletos[trimestre]?.[nivel]) return [];
-    return Object.keys(datosCompletos[trimestre][nivel]);
+    const asignaturas = Object.keys(datosCompletos[trimestre][nivel]);
+    const totales = ['Total', 'Total Especialidad', 'Total no Especialidad'];
+    const totalesEncontrados = totales.filter(t => asignaturas.includes(t));
+    const asignaturasSinTotales = asignaturas
+      .filter(a => !totales.includes(a))
+      .sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+    return [...totalesEncontrados, ...asignaturasSinTotales];
   }, [datosCompletos]);
 
   // Gestión de selecciones
@@ -2332,9 +2367,7 @@ const DashboardAcademico = () => {
                       onChange={(e) => cambiarAsignaturaComparada(e.target.value)}
                       className="w-full md:w-64 py-2 px-3 bg-white border border-slate-300 rounded-lg text-sm"
                     >
-                      {todasLasAsignaturas.map(asig => (
-                        <option key={asig} value={asig}>{asig}</option>
-                      ))}
+                      {renderOpcionesAsignaturas(todasLasAsignaturas)}
                     </select>
                   </div>
                 )}
@@ -2400,9 +2433,7 @@ const DashboardAcademico = () => {
                         disabled={compararNiveles}
                         className="w-full py-2 px-3 bg-white border border-slate-300 rounded-lg text-sm disabled:bg-slate-100 disabled:cursor-not-allowed"
                       >
-                        {getAsignaturas(sel.trimestre, sel.nivel).map(a => (
-                          <option key={a} value={a}>{a}</option>
-                        ))}
+                        {renderOpcionesAsignaturas(getAsignaturas(sel.trimestre, sel.nivel))}
                       </select>
                     </div>
                   </div>
@@ -3409,10 +3440,7 @@ const DashboardAcademico = () => {
                           }}
                           className="flex-1 px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         >
-                          <option value="Total">Total</option>
-                          {todasLasAsignaturas.map(a => (
-                            <option key={a} value={a}>{a}</option>
-                          ))}
+                          {renderOpcionesAsignaturas(todasLasAsignaturas)}
                         </select>
 
                         {seleccionesEvolucion.length > 1 && (
