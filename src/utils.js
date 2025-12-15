@@ -117,3 +117,28 @@ export const tieneAsignatura = (datosCompletos, trimestre, nivel, asignatura) =>
     normalizar(asigDisponible) === asignaturaBuscada
   );
 };
+
+/**
+ * Verifica si una asignatura pertenece a un grupo específico
+ * @param {string} asignatura - Nombre de la asignatura
+ * @param {string} grupo - Grupo a verificar (ej: 'Especialidad', 'Tecla', 'Madera')
+ * @param {Object} agrupaciones - Mapa de agrupaciones { asignatura → [grupos] }
+ * @returns {boolean} true si la asignatura pertenece al grupo
+ */
+export const perteneceAGrupo = (asignatura, grupo, agrupaciones = {}) => {
+  if (!asignatura || !grupo) return false;
+
+  const asigNorm = normalizar(asignatura);
+  const grupoNorm = normalizar(grupo);
+
+  // Si no hay agrupaciones definidas, retornar false (fallback en el código que llama)
+  if (!agrupaciones || Object.keys(agrupaciones).length === 0) {
+    return false;
+  }
+
+  // Obtener grupos de la asignatura
+  const grupos = agrupaciones[asigNorm] || [];
+
+  // Verificar si el grupo buscado está en la lista
+  return grupos.some(g => normalizar(g) === grupoNorm);
+};

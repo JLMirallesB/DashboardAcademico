@@ -3,10 +3,12 @@
  * Transforma datos parseados a la estructura interna del dashboard
  */
 
+import { normalizar } from '../utils.js';
+
 /**
  * Procesa datos parseados del CSV y los estructura para el dashboard
- * @param {Object} parsed - Datos parseados del CSV (metadata, estadisticas, correlaciones)
- * @returns {Object|null} Objeto procesado con trimestre, metadata, datos y correlaciones
+ * @param {Object} parsed - Datos parseados del CSV (metadata, estadisticas, correlaciones, agrupaciones)
+ * @returns {Object|null} Objeto procesado con trimestre, metadata, datos, correlaciones y agrupaciones
  */
 export const procesarDatos = (parsed) => {
   const trimestreBase = parsed.metadata.Trimestre;
@@ -66,12 +68,28 @@ export const procesarDatos = (parsed) => {
   // Crear clave compuesta: trimestre + etapa (ej: "1T-EEM", "1T-EPM")
   const trimestreCompleto = etapaDetectada ? `${trimestreBase}-${etapaDetectada}` : trimestreBase;
 
+  // Procesar agrupaciones: convertir array a mapa { asignatura → [grupos] }
+  const agrupacionesMapa = {};
+  if (parsed.agrupaciones && parsed.agrupaciones.length > 0) {
+    parsed.agrupaciones.forEach(({ Asignatura, Grupos }) => {
+      if (Asignatura && Grupos) {
+        const asigNorm = normalizar(Asignatura);
+        // Dividir grupos por ; y normalizar cada uno
+        const gruposArray = Grupos.split(';')
+          .map(g => normalizar(g))
+          .filter(g => g); // Eliminar vacíos
+        agrupacionesMapa[asigNorm] = gruposArray;
+      }
+    });
+  }
+
   return {
     trimestre: trimestreCompleto,
     trimestreBase,
     etapa: etapaDetectada,
     metadata: parsed.metadata,
     datos: datosEstructurados,
-    correlaciones: parsed.correlaciones
+    correlaciones: parsed.correlaciones,
+    agrupaciones: agrupacionesMapa
   };
 };

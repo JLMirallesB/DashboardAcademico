@@ -62,41 +62,39 @@ export const useKPICalculation = (
       };
     });
 
-    // KPI 3: Nota media de Especialidades
-    let sumaNotasEsp = 0, sumaPesosEsp = 0;
-    Object.entries(global).forEach(([asig, data]) => {
-      if (asig === 'Todos' || !data.stats) return;
-      if (esAsignaturaEspecialidad(asig, modoEtapa)) {
-        const peso = data.stats.registros || 0;
-        sumaNotasEsp += (data.stats.notaMedia || 0) * peso;
-        sumaPesosEsp += peso;
-      }
-    });
-    const notaMediaEspecialidades = sumaPesosEsp > 0 ? sumaNotasEsp / sumaPesosEsp : 0;
+    // KPI 3, 4, 5: Estadísticas de Especialidades
+    // Primero intentar leer de 'Total Especialidad' (viene del CSV)
+    const totalEsp = global['Total Especialidad'];
+    let notaMediaEspecialidades, aprobadosEspecialidades, suspendidosEspecialidades;
 
-    // KPI 4: % Aprobados en Especialidades
-    let sumaAprobEsp = 0, sumaPesosAprobEsp = 0;
-    Object.entries(global).forEach(([asig, data]) => {
-      if (asig === 'Todos' || !data.stats) return;
-      if (esAsignaturaEspecialidad(asig, modoEtapa)) {
-        const peso = data.stats.registros || 0;
-        sumaAprobEsp += (data.stats.aprobados || 0) * peso;
-        sumaPesosAprobEsp += peso;
-      }
-    });
-    const aprobadosEspecialidades = sumaPesosAprobEsp > 0 ? sumaAprobEsp / sumaPesosAprobEsp : 0;
+    if (totalEsp && totalEsp.stats) {
+      // Usar datos precalculados del CSV
+      notaMediaEspecialidades = totalEsp.stats.notaMedia || 0;
+      aprobadosEspecialidades = totalEsp.stats.aprobados || 0;
+      suspendidosEspecialidades = totalEsp.stats.suspendidos || 0;
+    } else {
+      // Fallback: calcular manualmente (retrocompatibilidad con CSVs antiguos)
+      let sumaNotasEsp = 0, sumaPesosEsp = 0;
+      let sumaAprobEsp = 0, sumaPesosAprobEsp = 0;
+      let sumaSuspEsp = 0, sumaPesosSuspEsp = 0;
 
-    // KPI 5: % Suspensos en Especialidades
-    let sumaSuspEsp = 0, sumaPesosSuspEsp = 0;
-    Object.entries(global).forEach(([asig, data]) => {
-      if (asig === 'Todos' || !data.stats) return;
-      if (esAsignaturaEspecialidad(asig, modoEtapa)) {
-        const peso = data.stats.registros || 0;
-        sumaSuspEsp += (data.stats.suspendidos || 0) * peso;
-        sumaPesosSuspEsp += peso;
-      }
-    });
-    const suspendidosEspecialidades = sumaPesosSuspEsp > 0 ? sumaSuspEsp / sumaPesosSuspEsp : 0;
+      Object.entries(global).forEach(([asig, data]) => {
+        if (asig === 'Todos' || !data.stats) return;
+        if (esAsignaturaEspecialidad(asig, modoEtapa)) {
+          const peso = data.stats.registros || 0;
+          sumaNotasEsp += (data.stats.notaMedia || 0) * peso;
+          sumaPesosEsp += peso;
+          sumaAprobEsp += (data.stats.aprobados || 0) * peso;
+          sumaPesosAprobEsp += peso;
+          sumaSuspEsp += (data.stats.suspendidos || 0) * peso;
+          sumaPesosSuspEsp += peso;
+        }
+      });
+
+      notaMediaEspecialidades = sumaPesosEsp > 0 ? sumaNotasEsp / sumaPesosEsp : 0;
+      aprobadosEspecialidades = sumaPesosAprobEsp > 0 ? sumaAprobEsp / sumaPesosAprobEsp : 0;
+      suspendidosEspecialidades = sumaPesosSuspEsp > 0 ? sumaSuspEsp / sumaPesosSuspEsp : 0;
+    }
 
     // KPI 6: Asignaturas difíciles
     let contDificiles = 0, contFaciles = 0, contNeutrales = 0;

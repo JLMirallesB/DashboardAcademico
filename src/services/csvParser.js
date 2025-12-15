@@ -25,11 +25,13 @@ export const parseCSV = (csvText) => {
   const resultado = {
     metadata: {},
     estadisticas: [],
-    correlaciones: []
+    correlaciones: [],
+    agrupaciones: []
   };
 
   let encabezadosStats = [];
   let encabezadosCorr = [];
+  let encabezadosAgrup = [];
 
   for (let i = 0; i < lineas.length; i++) {
     const linea = lineas[i];
@@ -43,6 +45,9 @@ export const parseCSV = (csvText) => {
       continue;
     } else if (linea.startsWith('#CORRELACIONES')) {
       seccionActual = 'correlaciones';
+      continue;
+    } else if (linea.startsWith('#AGRUPACIONES')) {
+      seccionActual = 'agrupaciones';
       continue;
     } else if (linea.startsWith('#UMBRALES')) {
       seccionActual = 'umbrales'; // Ignoramos umbrales del CSV
@@ -94,6 +99,21 @@ export const parseCSV = (csvText) => {
         });
         if (fila.Correlacion !== null && fila.Correlacion !== undefined) {
           resultado.correlaciones.push(fila);
+        }
+      }
+    } else if (seccionActual === 'agrupaciones') {
+      if (campos[0] === 'Asignatura') {
+        encabezadosAgrup = campos;
+        continue;
+      }
+      if (campos[0] && encabezadosAgrup.length > 0) {
+        const fila = {};
+        encabezadosAgrup.forEach((h, idx) => {
+          fila[h] = campos[idx] || '';
+        });
+        // Solo añadir si tiene asignatura
+        if (fila.Asignatura) {
+          resultado.agrupaciones.push(fila);
         }
       }
     }
