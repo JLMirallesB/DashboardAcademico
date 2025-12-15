@@ -2423,10 +2423,8 @@ const DashboardAcademico = () => {
                         else if (!mediaAlta && !desviacionAlta) color = '#f97316'; // orange
                         else color = '#f43f5e'; // rose
 
-                        // Tamaño basado en cantidad de alumnos con escala logarítmica
-                        // Esto mejora significativamente la diferenciación entre valores pequeños (2, 6, 10 alumnos)
-                        // log1p(x) = log(1+x) da mejor diferenciación que sqrt(x) en rangos bajos
-                        const radius = Math.min(30, Math.max(10, Math.log1p(payload.alumnos) * 7.5));
+                        // Tamaño basado en cantidad de alumnos con escala de raíz cuadrada
+                        const radius = Math.min(25, Math.max(8, Math.sqrt(payload.alumnos) * 2.5));
 
                         return (
                           <g>
