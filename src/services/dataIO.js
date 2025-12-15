@@ -66,7 +66,7 @@ export const procesarImportacionJSON = (jsonContent) => {
         id: 0,
         trimestre: primerTrim,
         nivel: 'GLOBAL',
-        asignatura: 'Todos'
+        asignatura: 'Total'
       };
     }
   }

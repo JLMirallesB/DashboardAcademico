@@ -78,7 +78,7 @@ export const useDifficultyAnalysis = (
       if (!global) return { dificiles: [], neutrales: [], faciles: [], todas: [] };
 
       Object.entries(global).forEach(([nombreAsig, data]) => {
-        if (nombreAsig === 'Todos') return;
+        if (nombreAsig === 'Total' || nombreAsig === 'Total Especialidad' || nombreAsig === 'Total no Especialidad') return;
         if (!data.stats || data.stats.registros < umbrales.alumnosMinimo) return;
 
         const resultado = calcularResultado(data.stats);

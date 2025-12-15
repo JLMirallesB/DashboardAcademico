@@ -65,7 +65,7 @@ const DashboardAcademico = () => {
 
   // Selecciones específicas para vista de evolución (independiente de estadísticas)
   const [seleccionesEvolucion, setSeleccionesEvolucion] = useState([
-    { nivel: 'GLOBAL', asignatura: 'Todos' }
+    { nivel: 'GLOBAL', asignatura: 'Total' }
   ]);
   const [asignaturasTransversal, setAsignaturasTransversal] = useState([]); // Asignaturas seleccionadas para comparativa transversal
 
@@ -169,7 +169,7 @@ const DashboardAcademico = () => {
         id: 0,
         trimestre: trimestre,
         nivel: 'GLOBAL',
-        asignatura: 'Todos'
+        asignatura: 'Total'
       }]);
     }
 
@@ -566,7 +566,7 @@ const DashboardAcademico = () => {
         id: 0,
         trimestre: trimestreSeleccionado,
         nivel: 'GLOBAL',
-        asignatura: 'Todos'
+        asignatura: 'Total'
       }]);
     }
   }, [trimestreSeleccionado, datosCompletos]);
@@ -863,7 +863,7 @@ const DashboardAcademico = () => {
       if (nivel !== 'GLOBAL' && modoEtapa !== 'TODOS' && detectarEtapa(nivel) !== modoEtapa) return;
 
       Object.entries(asigs).forEach(([asig, data]) => {
-        if (asig === 'Todos' || !data?.stats) return;
+        if (asig === 'Total' || !data?.stats) return;
 
         // Filtrar por número mínimo de alumnos
         if (data.stats.registros < umbrales.alumnosMinimo) return;
@@ -1958,7 +1958,7 @@ const DashboardAcademico = () => {
                 const datosGlobal = datosCompletos[trim]?.['GLOBAL'];
                 if (datosGlobal) {
                   Object.entries(datosGlobal).forEach(([asignatura, datos]) => {
-                    if (asignatura !== 'Todos' && datos?.stats) {
+                    if (asignatura !== 'Total' && datos?.stats) {
                       if (!asignaturasCombinadas.has(asignatura)) {
                         asignaturasCombinadas.set(asignatura, {
                           asignatura,
@@ -2013,7 +2013,7 @@ const DashboardAcademico = () => {
               const datosGlobal = datosCompletos[trimestreSeleccionado]?.['GLOBAL'];
               if (datosGlobal) {
                 Object.entries(datosGlobal).forEach(([asignatura, datos]) => {
-                  if (asignatura !== 'Todos' && datos?.stats) {
+                  if (asignatura !== 'Total' && datos?.stats) {
                     const notaMedia = datos.stats.notaMedia;
                     const desviacion = datos.stats.desviacion || 0;
                     const alumnos = datos.stats.registros || 0;
@@ -3370,7 +3370,7 @@ const DashboardAcademico = () => {
                       <button
                         onClick={() => {
                           if (seleccionesEvolucion.length < 15) {
-                            setSeleccionesEvolucion([...seleccionesEvolucion, { nivel: 'GLOBAL', asignatura: 'Todos' }]);
+                            setSeleccionesEvolucion([...seleccionesEvolucion, { nivel: 'GLOBAL', asignatura: 'Total' }]);
                           }
                         }}
                         disabled={seleccionesEvolucion.length >= 15}
@@ -3409,7 +3409,7 @@ const DashboardAcademico = () => {
                           }}
                           className="flex-1 px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         >
-                          <option value="Todos">Todos</option>
+                          <option value="Total">Total</option>
                           {todasLasAsignaturas.map(a => (
                             <option key={a} value={a}>{a}</option>
                           ))}
@@ -4025,7 +4025,7 @@ const DashboardAcademico = () => {
                   if (filtroNivel === 'ALL' && nivel === 'GLOBAL') return;
 
                   Object.entries(asigs).forEach(([asignatura, data]) => {
-                    if (asignatura === 'Todos' || !data?.stats) return;
+                    if (asignatura === 'Total' || !data?.stats) return;
 
                     asignaturas.push({
                       trimestre,

@@ -33,7 +33,7 @@ export const useKPICalculation = (
 
     const datos = datosCompletos[trimestreSeleccionado];
     const global = datos['GLOBAL'];
-    if (!global || !global['Todos']) {
+    if (!global || !global['Total']) {
       return null;
     }
 
@@ -42,14 +42,14 @@ export const useKPICalculation = (
                                    modoEtapa === 'EEM' ? ['Lenguaje Musical'] :
                                    ['Lenguaje Musical', 'Teórica Troncal'];
 
-    // KPI 1: Nota media del centro (GLOBAL/Todos)
-    const notaMediaCentro = global['Todos']?.stats?.notaMedia || 0;
+    // KPI 1: Nota media del centro (GLOBAL/Total)
+    const notaMediaCentro = global['Total']?.stats?.notaMedia || 0;
 
     // KPI 1b: Desviación típica del centro
-    const desviacionCentro = global['Todos']?.stats?.desviacion || 0;
+    const desviacionCentro = global['Total']?.stats?.desviacion || 0;
 
     // KPI 1c: Moda del centro
-    const modaCentro = global['Todos']?.stats?.moda || 0;
+    const modaCentro = global['Total']?.stats?.moda || 0;
 
     // KPI 2: Notas medias de asignaturas de referencia (case-insensitive)
     const notasMediasRef = asignaturasReferencia.map(asigBuscada => {
@@ -84,7 +84,7 @@ export const useKPICalculation = (
       let sumaSuspEsp = 0, sumaPesosSuspEsp = 0;
 
       Object.entries(global).forEach(([asig, data]) => {
-        if (asig === 'Todos' || !data.stats) return;
+        if (asig === 'Total' || asig === 'Total Especialidad' || asig === 'Total no Especialidad' || !data.stats) return;
         if (esAsignaturaEspecialidad(asig, modoEtapa)) {
           const peso = data.stats.registros || 0;
           sumaNotasEsp += (data.stats.notaMedia || 0) * peso;
@@ -119,7 +119,7 @@ export const useKPICalculation = (
     // KPI 6: Asignaturas difíciles
     let contDificiles = 0, contFaciles = 0, contNeutrales = 0;
     Object.entries(global).forEach(([asig, data]) => {
-      if (asig === 'Todos' || !data.stats) return;
+      if (asig === 'Total' || asig === 'Total Especialidad' || asig === 'Total no Especialidad' || !data.stats) return;
       if ((data.stats.registros || 0) < umbrales.alumnosMinimo) return;
 
       const resultado = calcularResultado(data.stats);
@@ -165,8 +165,8 @@ export const useKPICalculation = (
       notaMediaCentro,
       desviacionCentro,
       modaCentro,
-      aprobadosCentro: global['Todos']?.stats?.aprobados || 0,
-      suspendidosCentro: global['Todos']?.stats?.suspendidos || 0,
+      aprobadosCentro: global['Total']?.stats?.aprobados || 0,
+      suspendidosCentro: global['Total']?.stats?.suspendidos || 0,
 
       // Referencia
       notasMediasRef,
