@@ -2,10 +2,25 @@ import React from 'react';
 
 /**
  * Componente KPIDetalle - Vista detallada de Especialidades vs No Especialidades
- * Muestra dos grupos lado a lado con todas las métricas
+ * En EPM muestra 3 columnas: Teórica Troncal, Especialidades, No Especialidades
+ * En otros modos muestra 2 columnas: Especialidades, No Especialidades
  */
-const KPIDetalle = ({ kpis, t }) => {
+const KPIDetalle = ({ kpis, t, modoEtapa }) => {
   if (!kpis) return null;
+
+  const teoricaTroncal = {
+    titulo: 'Teórica Troncal',
+    notaMedia: kpis.notaMediaTeoricaTroncal,
+    desviacion: kpis.desviacionTeoricaTroncal,
+    moda: kpis.modaTeoricaTroncal,
+    aprobados: kpis.aprobadosTeoricaTroncal,
+    suspendidos: kpis.suspendidosTeoricaTroncal,
+    colorFrom: 'cyan-50',
+    colorTo: 'cyan-100',
+    colorBorder: 'cyan-200',
+    colorText: 'cyan-700',
+    colorValue: 'cyan-900'
+  };
 
   const especialidades = {
     titulo: t('specialties') || 'Especialidades',
@@ -95,6 +110,17 @@ const KPIDetalle = ({ kpis, t }) => {
       </div>
     </div>
   );
+
+  // En EPM mostrar 3 columnas, en otros modos 2 columnas
+  if (modoEtapa === 'EPM') {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {renderGrupo(teoricaTroncal)}
+        {renderGrupo(especialidades)}
+        {renderGrupo(noEspecialidades)}
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

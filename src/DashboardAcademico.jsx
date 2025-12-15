@@ -27,6 +27,7 @@ const DashboardAcademico = () => {
   // Estado principal
   const [datosCompletos, setDatosCompletos] = useState({});
   const [correlacionesCompletas, setCorrelacionesCompletas] = useState({});
+  const [agrupacionesCompletas, setAgrupacionesCompletas] = useState({});
   const [metadata, setMetadata] = useState({});
   const [trimestresDisponibles, setTrimestresDisponibles] = useState([]);
   
@@ -135,7 +136,7 @@ const DashboardAcademico = () => {
 
   // Aplicar datos
   const aplicarDatos = useCallback((procesado) => {
-    const { trimestre, metadata: meta, datos, correlaciones } = procesado;
+    const { trimestre, metadata: meta, datos, correlaciones, agrupaciones } = procesado;
 
     setDatosCompletos(prev => ({
       ...prev,
@@ -145,6 +146,11 @@ const DashboardAcademico = () => {
     setCorrelacionesCompletas(prev => ({
       ...prev,
       [trimestre]: correlaciones
+    }));
+
+    setAgrupacionesCompletas(prev => ({
+      ...prev,
+      [trimestre]: agrupaciones || {}
     }));
 
     setMetadata(prev => ({
@@ -390,17 +396,59 @@ const DashboardAcademico = () => {
       });
     }
 
-    // Ordenar: Totales primero, luego el resto alfabéticamente
+    // Ordenar según criterio: Totales > Teórica Troncal > Especialidades > No Especialidades > Optativas
     const listaAsignaturas = Array.from(asignaturas);
     const totales = ['Total', 'Total Especialidad', 'Total no Especialidad'];
-    const asignaturasConTotales = listaAsignaturas.filter(a => totales.includes(a));
-    const asignaturasSinTotales = listaAsignaturas.filter(a => !totales.includes(a)).sort();
+
+    // Obtener agrupaciones del trimestre actual
+    const agrupaciones = agrupacionesCompletas[trimestreSeleccionado] || {};
+
+    // Clasificar asignaturas
+    const clasificadas = {
+      totales: [],
+      teoricaTroncal: [],
+      especialidades: [],
+      noEspecialidades: [],
+      optativas: []
+    };
+
+    listaAsignaturas.forEach(asig => {
+      if (totales.includes(asig)) {
+        clasificadas.totales.push(asig);
+      } else if (normalizar(asig) === 'teórica troncal') {
+        clasificadas.teoricaTroncal.push(asig);
+      } else {
+        // Verificar en agrupaciones
+        const asigNorm = normalizar(asig);
+        const grupos = agrupaciones[asigNorm] || [];
+
+        if (grupos.some(g => normalizar(g) === 'especialidad')) {
+          clasificadas.especialidades.push(asig);
+        } else if (grupos.some(g => normalizar(g) === 'no especialidad')) {
+          clasificadas.noEspecialidades.push(asig);
+        } else {
+          clasificadas.optativas.push(asig);
+        }
+      }
+    });
 
     // Ordenar los totales en el orden específico
-    const totalesOrdenados = totales.filter(t => asignaturasConTotales.includes(t));
+    const totalesOrdenados = totales.filter(t => clasificadas.totales.includes(t));
 
-    return [...totalesOrdenados, ...asignaturasSinTotales];
-  }, [trimestreSeleccionado, datosCompletos, modoEtapa, detectarEtapa, trimestresDisponibles, normalizar]);
+    // Ordenar alfabéticamente cada grupo
+    clasificadas.teoricaTroncal.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+    clasificadas.especialidades.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+    clasificadas.noEspecialidades.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+    clasificadas.optativas.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+
+    return [
+      ...totalesOrdenados,
+      ...clasificadas.teoricaTroncal,
+      ...clasificadas.especialidades,
+      ...clasificadas.noEspecialidades,
+      ...clasificadas.optativas
+    ];
+  }, [trimestreSeleccionado, datosCompletos, modoEtapa, detectarEtapa, trimestresDisponibles, normalizar, agrupacionesCompletas]);
 
   // Niveles sin GLOBAL para comparación
   const nivelesSinGlobal = useMemo(() => {
@@ -646,17 +694,60 @@ const DashboardAcademico = () => {
     }
   }, [compararNiveles, nivelesSinGlobalEtapa, trimestreSeleccionado, datosCompletos, modoEtapa, detectarEtapa, trimestresDisponibles]);
 
-  // Obtener asignaturas por nivel (con totales primero)
+  // Obtener asignaturas por nivel (ordenadas: Totales > Teórica Troncal > Especialidades > No Especialidades > Optativas)
   const getAsignaturas = useCallback((trimestre, nivel) => {
     if (!trimestre || !nivel || !datosCompletos[trimestre]?.[nivel]) return [];
     const asignaturas = Object.keys(datosCompletos[trimestre][nivel]);
     const totales = ['Total', 'Total Especialidad', 'Total no Especialidad'];
-    const totalesEncontrados = totales.filter(t => asignaturas.includes(t));
-    const asignaturasSinTotales = asignaturas
-      .filter(a => !totales.includes(a))
-      .sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
-    return [...totalesEncontrados, ...asignaturasSinTotales];
-  }, [datosCompletos]);
+
+    // Obtener agrupaciones del trimestre
+    const agrupaciones = agrupacionesCompletas[trimestre] || {};
+
+    // Clasificar asignaturas
+    const clasificadas = {
+      totales: [],
+      teoricaTroncal: [],
+      especialidades: [],
+      noEspecialidades: [],
+      optativas: []
+    };
+
+    asignaturas.forEach(asig => {
+      if (totales.includes(asig)) {
+        clasificadas.totales.push(asig);
+      } else if (normalizar(asig) === 'teórica troncal') {
+        clasificadas.teoricaTroncal.push(asig);
+      } else {
+        const asigNorm = normalizar(asig);
+        const grupos = agrupaciones[asigNorm] || [];
+
+        if (grupos.some(g => normalizar(g) === 'especialidad')) {
+          clasificadas.especialidades.push(asig);
+        } else if (grupos.some(g => normalizar(g) === 'no especialidad')) {
+          clasificadas.noEspecialidades.push(asig);
+        } else {
+          clasificadas.optativas.push(asig);
+        }
+      }
+    });
+
+    // Ordenar los totales en el orden específico
+    const totalesOrdenados = totales.filter(t => clasificadas.totales.includes(t));
+
+    // Ordenar alfabéticamente cada grupo
+    clasificadas.teoricaTroncal.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+    clasificadas.especialidades.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+    clasificadas.noEspecialidades.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+    clasificadas.optativas.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+
+    return [
+      ...totalesOrdenados,
+      ...clasificadas.teoricaTroncal,
+      ...clasificadas.especialidades,
+      ...clasificadas.noEspecialidades,
+      ...clasificadas.optativas
+    ];
+  }, [datosCompletos, agrupacionesCompletas, normalizar]);
 
   // Gestión de selecciones
   const agregarSeleccion = useCallback(() => {
@@ -1799,8 +1890,8 @@ const DashboardAcademico = () => {
 
               {/* Renderizar componente según vista seleccionada */}
               {vistaKPI === 'centro' && <KPICentro kpis={kpisGlobales} t={t} />}
-              {vistaKPI === 'detalle' && <KPIDetalle kpis={kpisGlobales} t={t} />}
-              {vistaKPI === 'comparativa' && <KPIComparativa kpis={kpisGlobales} t={t} />}
+              {vistaKPI === 'detalle' && <KPIDetalle kpis={kpisGlobales} t={t} modoEtapa={modoEtapa} />}
+              {vistaKPI === 'comparativa' && <KPIComparativa kpis={kpisGlobales} t={t} modoEtapa={modoEtapa} />}
             </div>
           )}
 

@@ -160,6 +160,26 @@ export const useKPICalculation = (
       return numA - numB;
     });
 
+    // KPI Teórica Troncal (para EPM): buscar en GLOBAL
+    let notaMediaTeoricaTroncal = 0, aprobadosTeoricaTroncal = 0, suspendidosTeoricaTroncal = 0;
+    let desviacionTeoricaTroncal = 0, modaTeoricaTroncal = 0;
+
+    if (modoEtapa === 'EPM' || modoEtapa === 'TODOS') {
+      // Buscar Teórica Troncal (case-insensitive)
+      const teoricaTroncalKey = Object.keys(global).find(key =>
+        normalizar(key) === 'teórica troncal'
+      );
+
+      if (teoricaTroncalKey && global[teoricaTroncalKey]?.stats) {
+        const stats = global[teoricaTroncalKey].stats;
+        notaMediaTeoricaTroncal = stats.notaMedia || 0;
+        aprobadosTeoricaTroncal = stats.aprobados || 0;
+        suspendidosTeoricaTroncal = stats.suspendidos || 0;
+        desviacionTeoricaTroncal = stats.desviacion || 0;
+        modaTeoricaTroncal = stats.moda || 0;
+      }
+    }
+
     return {
       // Centro
       notaMediaCentro,
@@ -170,6 +190,13 @@ export const useKPICalculation = (
 
       // Referencia
       notasMediasRef,
+
+      // Teórica Troncal (EPM)
+      notaMediaTeoricaTroncal,
+      aprobadosTeoricaTroncal,
+      suspendidosTeoricaTroncal,
+      desviacionTeoricaTroncal,
+      modaTeoricaTroncal,
 
       // Especialidades
       notaMediaEspecialidades,

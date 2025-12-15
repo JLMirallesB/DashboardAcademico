@@ -1,11 +1,12 @@
 import React from 'react';
 
 /**
- * Componente KPIComparativa - Vista comparativa de 3 columnas
- * Especialidades | Centro | No Especialidades
- * Con relaciones porcentuales en las columnas laterales
+ * Componente KPIComparativa - Vista comparativa
+ * EPM: Centro | Teórica Troncal | Especialidades | No Especialidades (4 columnas)
+ * Otros: Especialidades | Centro | No Especialidades (3 columnas)
+ * Con relaciones porcentuales respecto al centro
  */
-const KPIComparativa = ({ kpis, t }) => {
+const KPIComparativa = ({ kpis, t, modoEtapa }) => {
   if (!kpis) return null;
 
   // Calcular diferencias porcentuales con respecto al centro
@@ -31,6 +32,7 @@ const KPIComparativa = ({ kpis, t }) => {
       key: 'notaMedia',
       label: t('avgGrade') || 'Nota Media',
       centro: kpis.notaMediaCentro,
+      teoricaTroncal: kpis.notaMediaTeoricaTroncal,
       especialidades: kpis.notaMediaEspecialidades,
       noEspecialidades: kpis.notaMediaNoEspecialidades,
       formato: (val) => (val || 0).toFixed(2),
@@ -44,6 +46,7 @@ const KPIComparativa = ({ kpis, t }) => {
       key: 'desviacion',
       label: t('kpiStdDev') || 'Desviación Típica',
       centro: kpis.desviacionCentro,
+      teoricaTroncal: kpis.desviacionTeoricaTroncal,
       especialidades: kpis.desviacionEspecialidades,
       noEspecialidades: kpis.desviacionNoEspecialidades,
       formato: (val) => (val || 0).toFixed(2),
@@ -57,6 +60,7 @@ const KPIComparativa = ({ kpis, t }) => {
       key: 'moda',
       label: t('kpiMode') || 'Moda',
       centro: kpis.modaCentro,
+      teoricaTroncal: kpis.modaTeoricaTroncal,
       especialidades: kpis.modaEspecialidades,
       noEspecialidades: kpis.modaNoEspecialidades,
       formato: (val) => (val || 0).toFixed(0),
@@ -70,6 +74,7 @@ const KPIComparativa = ({ kpis, t }) => {
       key: 'aprobados',
       label: t('passed') || '% Aprobados',
       centro: kpis.aprobadosCentro,
+      teoricaTroncal: kpis.aprobadosTeoricaTroncal,
       especialidades: kpis.aprobadosEspecialidades,
       noEspecialidades: kpis.aprobadosNoEspecialidades,
       formato: (val) => `${(val || 0).toFixed(1)}%`,
@@ -83,6 +88,7 @@ const KPIComparativa = ({ kpis, t }) => {
       key: 'suspendidos',
       label: t('failed') || '% Suspendidos',
       centro: kpis.suspendidosCentro,
+      teoricaTroncal: kpis.suspendidosTeoricaTroncal,
       especialidades: kpis.suspendidosEspecialidades,
       noEspecialidades: kpis.suspendidosNoEspecialidades,
       formato: (val) => `${(val || 0).toFixed(1)}%`,
@@ -94,6 +100,103 @@ const KPIComparativa = ({ kpis, t }) => {
     }
   ];
 
+  // En EPM: 4 columnas (Centro, Teórica Troncal, Especialidades, No Especialidades)
+  // En otros modos: 3 columnas (Especialidades, Centro, No Especialidades)
+  if (modoEtapa === 'EPM') {
+    return (
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="bg-slate-100">
+              <th className="p-4 text-left text-sm font-semibold text-slate-700 border-b-2 border-slate-300">
+                Métrica
+              </th>
+              <th className="p-4 text-center text-sm font-semibold text-blue-700 border-b-2 border-blue-300 bg-blue-50">
+                {t('center') || 'Centro'}
+              </th>
+              <th className="p-4 text-center text-sm font-semibold text-cyan-700 border-b-2 border-cyan-300 bg-cyan-50">
+                Teórica Troncal
+              </th>
+              <th className="p-4 text-center text-sm font-semibold text-amber-700 border-b-2 border-amber-300 bg-amber-50">
+                {t('specialties') || 'Especialidades'}
+              </th>
+              <th className="p-4 text-center text-sm font-semibold text-purple-700 border-b-2 border-purple-300 bg-purple-50">
+                {t('nonSpecialties') || 'No Especialidades'}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {metricas.map((metrica, idx) => {
+              const diffTT = calcularRelacion(metrica.teoricaTroncal, metrica.centro);
+              const diffEsp = calcularRelacion(metrica.especialidades, metrica.centro);
+              const diffNoEsp = calcularRelacion(metrica.noEspecialidades, metrica.centro);
+
+              return (
+                <tr key={metrica.key} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                  {/* Métrica */}
+                  <td className="p-4 border-b border-slate-200">
+                    <div className="flex items-center gap-2 text-slate-700">
+                      {metrica.icon}
+                      <span className="font-medium">{metrica.label}</span>
+                    </div>
+                  </td>
+
+                  {/* Centro */}
+                  <td className="p-4 text-center border-b border-blue-200 bg-blue-50/30">
+                    <span className="text-2xl font-bold text-blue-900">
+                      {metrica.formato(metrica.centro)}
+                    </span>
+                  </td>
+
+                  {/* Teórica Troncal */}
+                  <td className="p-4 text-center border-b border-cyan-200 bg-cyan-50/30">
+                    <div className="flex flex-col items-center">
+                      <span className="text-2xl font-bold text-cyan-900">
+                        {metrica.formato(metrica.teoricaTroncal)}
+                      </span>
+                      {renderRelacion(diffTT)}
+                    </div>
+                  </td>
+
+                  {/* Especialidades */}
+                  <td className="p-4 text-center border-b border-amber-200 bg-amber-50/30">
+                    <div className="flex flex-col items-center">
+                      <span className="text-2xl font-bold text-amber-900">
+                        {metrica.formato(metrica.especialidades)}
+                      </span>
+                      {renderRelacion(diffEsp)}
+                    </div>
+                  </td>
+
+                  {/* No Especialidades */}
+                  <td className="p-4 text-center border-b border-purple-200 bg-purple-50/30">
+                    <div className="flex flex-col items-center">
+                      <span className="text-2xl font-bold text-purple-900">
+                        {metrica.formato(metrica.noEspecialidades)}
+                      </span>
+                      {renderRelacion(diffNoEsp)}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+
+        {/* Leyenda */}
+        <div className="mt-4 p-3 bg-slate-100 rounded-lg">
+          <p className="text-xs text-slate-600 flex items-center gap-2">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {t('comparisonLegend') || 'Las flechas indican la diferencia porcentual con respecto al centro. Verde (↑) = superior, Rojo (↓) = inferior.'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Modo EEM/TODOS: 3 columnas
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse">
