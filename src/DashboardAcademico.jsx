@@ -78,6 +78,9 @@ const DashboardAcademico = () => {
     rangoDesviacion: { min: 0, max: null } // null = automático
   });
 
+  // Estado para nivel seleccionado en mapa de dispersión
+  const [nivelDispersion, setNivelDispersion] = useState('GLOBAL');
+
   // Estado para generación de informes
   const [mostrarModalInforme, setMostrarModalInforme] = useState(false);
   const [generandoInforme, setGenerandoInforme] = useState(false);
@@ -1978,77 +1981,101 @@ const DashboardAcademico = () => {
 
           {/* Mapa de Dispersión: Nota Media vs Desviación Estándar */}
           {trimestreSeleccionado && (() => {
-            // Recopilar datos de todas las asignaturas desde GLOBAL
+            // Recopilar datos de todas las asignaturas desde el nivel seleccionado
             const datosDispersion = [];
 
-            if (modoEtapa === 'TODOS') {
-              // En modo TODOS: combinar datos de asignaturas con mismo nombre de ambas etapas
-              const asignaturasCombinadas = new Map();
+            if (nivelDispersion === 'GLOBAL') {
+              // Mostrar datos de GLOBAL
+              if (modoEtapa === 'TODOS') {
+                // En modo TODOS: combinar datos de asignaturas con mismo nombre de ambas etapas
+                const asignaturasCombinadas = new Map();
 
-              // Buscar en todos los trimestres de la misma evaluación
-              const trimestreBase = getTrimestreBase(trimestreSeleccionado);
-              const trimestresABuscar = trimestresDisponibles.filter(t => t.startsWith(trimestreBase));
+                // Buscar en todos los trimestres de la misma evaluación
+                const trimestreBase = getTrimestreBase(trimestreSeleccionado);
+                const trimestresABuscar = trimestresDisponibles.filter(t => t.startsWith(trimestreBase));
 
-              trimestresABuscar.forEach(trim => {
-                const datosGlobal = datosCompletos[trim]?.['GLOBAL'];
-                if (datosGlobal) {
-                  Object.entries(datosGlobal).forEach(([asignatura, datos]) => {
-                    if (asignatura !== 'Total' && datos?.stats) {
-                      if (!asignaturasCombinadas.has(asignatura)) {
-                        asignaturasCombinadas.set(asignatura, {
-                          asignatura,
-                          notasAcumuladas: [],
-                          alumnosTotales: 0
-                        });
+                trimestresABuscar.forEach(trim => {
+                  const datosNivel = datosCompletos[trim]?.['GLOBAL'];
+                  if (datosNivel) {
+                    Object.entries(datosNivel).forEach(([asignatura, datos]) => {
+                      if (asignatura !== 'Total' && asignatura !== 'Total Especialidad' && asignatura !== 'Total no Especialidad' && datos?.stats) {
+                        if (!asignaturasCombinadas.has(asignatura)) {
+                          asignaturasCombinadas.set(asignatura, {
+                            asignatura,
+                            notasAcumuladas: [],
+                            alumnosTotales: 0
+                          });
+                        }
+                        const asigData = asignaturasCombinadas.get(asignatura);
+
+                        // Agregar las notas individuales si están disponibles
+                        if (datos.stats.notaMedia && datos.stats.registros > 0) {
+                          // Aproximar las notas individuales usando media y desviación
+                          const numAlumnos = datos.stats.registros || 0;
+                          asigData.notasAcumuladas.push({
+                            media: datos.stats.notaMedia,
+                            desviacion: datos.stats.desviacion || 0,
+                            alumnos: numAlumnos
+                          });
+                          asigData.alumnosTotales += numAlumnos;
+                        }
                       }
-                      const asigData = asignaturasCombinadas.get(asignatura);
+                    });
+                  }
+                });
 
-                      // Agregar las notas individuales si están disponibles
-                      if (datos.stats.notaMedia && datos.stats.registros > 0) {
-                        // Aproximar las notas individuales usando media y desviación
-                        const numAlumnos = datos.stats.registros || 0;
-                        asigData.notasAcumuladas.push({
-                          media: datos.stats.notaMedia,
-                          desviacion: datos.stats.desviacion || 0,
-                          alumnos: numAlumnos
+                // Calcular media y desviación combinadas
+                asignaturasCombinadas.forEach((asigData) => {
+                  if (asigData.notasAcumuladas.length > 0 && asigData.alumnosTotales > 0) {
+                    // Media ponderada
+                    const mediaPonderada = asigData.notasAcumuladas.reduce((sum, grupo) =>
+                      sum + (grupo.media * grupo.alumnos), 0) / asigData.alumnosTotales;
+
+                    // Desviación estándar combinada (aproximación conservadora)
+                    const desviacionCombinada = Math.sqrt(
+                      asigData.notasAcumuladas.reduce((sum, grupo) => {
+                        const varianza = Math.pow(grupo.desviacion, 2);
+                        const difMedia = Math.pow(grupo.media - mediaPonderada, 2);
+                        return sum + ((varianza + difMedia) * grupo.alumnos);
+                      }, 0) / asigData.alumnosTotales
+                    );
+
+                    datosDispersion.push({
+                      asignatura: asigData.asignatura,
+                      notaMedia: mediaPonderada,
+                      desviacion: desviacionCombinada,
+                      alumnos: asigData.alumnosTotales
+                    });
+                  }
+                });
+              } else {
+                // Modo EEM o EPM: datos GLOBAL del trimestre seleccionado
+                const datosNivel = datosCompletos[trimestreSeleccionado]?.['GLOBAL'];
+                if (datosNivel) {
+                  Object.entries(datosNivel).forEach(([asignatura, datos]) => {
+                    if (asignatura !== 'Total' && asignatura !== 'Total Especialidad' && asignatura !== 'Total no Especialidad' && datos?.stats) {
+                      const notaMedia = datos.stats.notaMedia;
+                      const desviacion = datos.stats.desviacion || 0;
+                      const alumnos = datos.stats.registros || 0;
+
+                      if (notaMedia !== undefined && alumnos > 0) {
+                        datosDispersion.push({
+                          asignatura,
+                          notaMedia,
+                          desviacion,
+                          alumnos
                         });
-                        asigData.alumnosTotales += numAlumnos;
                       }
                     }
                   });
                 }
-              });
-
-              // Calcular media y desviación combinadas
-              asignaturasCombinadas.forEach((asigData) => {
-                if (asigData.notasAcumuladas.length > 0 && asigData.alumnosTotales > 0) {
-                  // Media ponderada
-                  const mediaPonderada = asigData.notasAcumuladas.reduce((sum, grupo) =>
-                    sum + (grupo.media * grupo.alumnos), 0) / asigData.alumnosTotales;
-
-                  // Desviación estándar combinada (aproximación conservadora)
-                  const desviacionCombinada = Math.sqrt(
-                    asigData.notasAcumuladas.reduce((sum, grupo) => {
-                      const varianza = Math.pow(grupo.desviacion, 2);
-                      const difMedia = Math.pow(grupo.media - mediaPonderada, 2);
-                      return sum + ((varianza + difMedia) * grupo.alumnos);
-                    }, 0) / asigData.alumnosTotales
-                  );
-
-                  datosDispersion.push({
-                    asignatura: asigData.asignatura,
-                    notaMedia: mediaPonderada,
-                    desviacion: desviacionCombinada,
-                    alumnos: asigData.alumnosTotales
-                  });
-                }
-              });
+              }
             } else {
-              // Modo EEM o EPM: datos del trimestre seleccionado
-              const datosGlobal = datosCompletos[trimestreSeleccionado]?.['GLOBAL'];
-              if (datosGlobal) {
-                Object.entries(datosGlobal).forEach(([asignatura, datos]) => {
-                  if (asignatura !== 'Total' && datos?.stats) {
+              // Mostrar datos de un nivel específico (1EEM, 2EPM, etc.)
+              const datosNivel = datosCompletos[trimestreSeleccionado]?.[nivelDispersion];
+              if (datosNivel) {
+                Object.entries(datosNivel).forEach(([asignatura, datos]) => {
+                  if (asignatura !== 'Total' && asignatura !== 'Total Especialidad' && asignatura !== 'Total no Especialidad' && datos?.stats) {
                     const notaMedia = datos.stats.notaMedia;
                     const desviacion = datos.stats.desviacion || 0;
                     const alumnos = datos.stats.registros || 0;
@@ -2110,9 +2137,34 @@ const DashboardAcademico = () => {
               return null;
             };
 
+            // Obtener niveles disponibles para el selector
+            const nivelesParaDispersion = ['GLOBAL', ...Object.keys(datosCompletos[trimestreSeleccionado] || {}).filter(n => n !== 'GLOBAL')];
+
             return (
               <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
                 <h3 className="text-lg font-semibold text-slate-800 mb-4">{t('dispersionMap')}</h3>
+
+                {/* Selector de nivel/curso */}
+                <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <label className="block text-sm font-semibold text-slate-700 mb-3">
+                    {idioma === 'es' ? 'Filtrar por curso:' : 'Filtrar per curs:'}
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {nivelesParaDispersion.map(nivel => (
+                      <button
+                        key={nivel}
+                        onClick={() => setNivelDispersion(nivel)}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          nivelDispersion === nivel
+                            ? 'bg-blue-600 text-white shadow-md'
+                            : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        {nivel === 'GLOBAL' ? `📊 ${idioma === 'es' ? 'Todos los cursos' : 'Tots els cursos'}` : nivel}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
                 {/* Controles y leyenda */}
                 <div className="flex flex-col md:flex-row gap-4 mb-4">
