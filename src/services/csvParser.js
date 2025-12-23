@@ -6,6 +6,40 @@
 import { validarEstructuraCSV, parseNumero } from '../utils/validators.js';
 
 /**
+ * Parsea una línea CSV respetando comillas dobles como delimitadores de campo
+ * @param {string} linea - Línea a parsear
+ * @param {string} separador - Separador de campos (';' o ',')
+ * @returns {string[]} Array de campos parseados
+ */
+const parseCSVLine = (linea, separador) => {
+  const campos = [];
+  let campoActual = '';
+  let dentroDeComillas = false;
+
+  for (let i = 0; i < linea.length; i++) {
+    const char = linea[i];
+
+    if (char === '"') {
+      // Toggle estado de comillas
+      dentroDeComillas = !dentroDeComillas;
+      // No incluir las comillas en el campo
+    } else if (char === separador && !dentroDeComillas) {
+      // Separador fuera de comillas: fin de campo
+      campos.push(campoActual.trim());
+      campoActual = '';
+    } else {
+      // Carácter normal o separador dentro de comillas
+      campoActual += char;
+    }
+  }
+
+  // Añadir último campo
+  campos.push(campoActual.trim());
+
+  return campos;
+};
+
+/**
  * Parsea un archivo CSV con formato del Dashboard Académico
  * Detecta automáticamente el separador (punto y coma o coma)
  * @param {string} csvText - Contenido del archivo CSV
@@ -54,8 +88,8 @@ export const parseCSV = (csvText) => {
       continue;
     }
 
-    // Parsear según sección usando el separador detectado
-    const campos = linea.split(separador).map(c => c.trim());
+    // Parsear según sección usando el separador detectado (respetando comillas)
+    const campos = parseCSVLine(linea, separador);
 
     if (seccionActual === 'metadata') {
       if (campos[0] === 'Campo') continue; // Skip header

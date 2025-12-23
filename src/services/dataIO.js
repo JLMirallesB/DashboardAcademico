@@ -11,13 +11,15 @@
  * @param {Object} params.umbrales - Umbrales configurados
  * @param {Object} params.datosCompletos - Datos completos del dashboard
  * @param {Object} params.correlacionesCompletas - Correlaciones completas
+ * @param {Object} params.agrupacionesCompletas - Agrupaciones de asignaturas por trimestre
  */
 export const exportarJSON = ({
   trimestresDisponibles,
   metadata,
   umbrales,
   datosCompletos,
-  correlacionesCompletas
+  correlacionesCompletas,
+  agrupacionesCompletas
 }) => {
   const exportData = {
     metadata: {
@@ -27,7 +29,8 @@ export const exportarJSON = ({
     },
     umbrales,
     datos: datosCompletos,
-    correlaciones: correlacionesCompletas
+    correlaciones: correlacionesCompletas,
+    agrupaciones: agrupacionesCompletas
   };
 
   const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
@@ -51,6 +54,7 @@ export const procesarImportacionJSON = (jsonContent) => {
   const resultado = {
     datosCompletos: importado.datos || null,
     correlacionesCompletas: importado.correlaciones || null,
+    agrupacionesCompletas: importado.agrupaciones || {},
     umbrales: importado.umbrales || null,
     metadata: importado.metadata?.metadataPorTrimestre || {},
     trimestresDisponibles: importado.metadata?.trimestres || Object.keys(importado.datos || {}),

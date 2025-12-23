@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { LineChart, Line, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ScatterChart, Scatter, ReferenceLine } from 'recharts';
 import { translations } from './translations.js';
-import { normalizar, getBestTrimestre, parseTrimestre, getTrimestreBase, getTrimestreEtapa, tieneAsignatura } from './utils.js';
+import { normalizar, getBestTrimestre, parseTrimestre, getTrimestreBase, getTrimestreEtapa, tieneAsignatura, perteneceAGrupo } from './utils.js';
 import { UMBRALES_DEFAULT, COLORES_COMPARACION, INSTRUMENTALES_EPM, ASIGNATURAS_EXCLUIR_EEM, ASIGNATURAS_EXCLUIR_TODOS } from './constants.js';
 import { formatearNombreTrimestre, abreviarAsignatura } from './utils/formatters.js';
 import { parseCSV as parseCSVService } from './services/csvParser.js';
@@ -58,6 +58,7 @@ const DashboardAcademico = () => {
   // Filtros para vista de asignaturas
   const [filtroNivel, setFiltroNivel] = useState('ALL'); // 'ALL', 'GLOBAL', '1EEM', '2EEM', etc.
   const [filtroTrimestre, setFiltroTrimestre] = useState('ALL'); // 'ALL' o un trimestre específico
+  const [filtroGrupo, setFiltroGrupo] = useState('ALL'); // 'ALL' o un grupo específico
 
   // Vista de dificultad: por niveles o global
   const [vistaDificultad, setVistaDificultad] = useState('niveles'); // 'niveles' o 'global'
@@ -302,9 +303,10 @@ const DashboardAcademico = () => {
       metadata,
       umbrales,
       datosCompletos,
-      correlacionesCompletas
+      correlacionesCompletas,
+      agrupacionesCompletas
     });
-  }, [trimestresDisponibles, metadata, umbrales, datosCompletos, correlacionesCompletas]);
+  }, [trimestresDisponibles, metadata, umbrales, datosCompletos, correlacionesCompletas, agrupacionesCompletas]);
 
   // Importar JSON - usa servicio externo
   const handleImportarJSON = useCallback((event) => {
@@ -318,6 +320,7 @@ const DashboardAcademico = () => {
 
         if (resultado.datosCompletos) setDatosCompletos(resultado.datosCompletos);
         if (resultado.correlacionesCompletas) setCorrelacionesCompletas(resultado.correlacionesCompletas);
+        if (resultado.agrupacionesCompletas) setAgrupacionesCompletas(resultado.agrupacionesCompletas);
         if (resultado.umbrales) setUmbrales(resultado.umbrales);
         setMetadata(resultado.metadata);
         setTrimestresDisponibles(resultado.trimestresDisponibles);
@@ -708,6 +711,27 @@ const DashboardAcademico = () => {
       setSelecciones(nuevasSelecciones);
     }
   }, [compararNiveles, nivelesSinGlobalEtapa, trimestreSeleccionado, datosCompletos, modoEtapa, detectarEtapa, trimestresDisponibles]);
+
+  // Obtener grupos únicos disponibles para los trimestres filtrados
+  const obtenerGruposDisponibles = () => {
+    const gruposSet = new Set();
+    const trimestresAConsiderar = filtroTrimestre === 'ALL'
+      ? trimestresDisponibles
+      : [filtroTrimestre];
+
+    trimestresAConsiderar.forEach(trimestre => {
+      const agrupacionesTrimestre = agrupacionesCompletas[trimestre];
+      if (!agrupacionesTrimestre) return;
+
+      Object.values(agrupacionesTrimestre).forEach(grupos => {
+        if (Array.isArray(grupos)) {
+          grupos.forEach(grupo => gruposSet.add(grupo));
+        }
+      });
+    });
+
+    return Array.from(gruposSet).sort();
+  };
 
   // Obtener asignaturas por nivel (ordenadas: Totales > Teórica Troncal > Especialidades > No Especialidades > Optativas)
   const getAsignaturas = useCallback((trimestre, nivel) => {
@@ -4228,6 +4252,22 @@ const DashboardAcademico = () => {
                   ))}
                 </select>
               </div>
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-slate-700 mb-2">{t('filterByGroup')}</label>
+                <select
+                  value={filtroGrupo}
+                  onChange={(e) => setFiltroGrupo(e.target.value)}
+                  className="w-full py-2 px-3 border border-slate-300 rounded-lg text-sm bg-white"
+                  disabled={obtenerGruposDisponibles().length === 0}
+                >
+                  <option value="ALL">{t('allGroups')}</option>
+                  {obtenerGruposDisponibles().map(grupo => (
+                    <option key={grupo} value={grupo}>
+                      {grupo.charAt(0).toUpperCase() + grupo.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {/* Grid de asignaturas */}
@@ -4249,6 +4289,13 @@ const DashboardAcademico = () => {
 
                   Object.entries(asigs).forEach(([asignatura, data]) => {
                     if (asignatura === 'Total' || !data?.stats) return;
+
+                    // Filtrar por grupo si no es 'ALL'
+                    if (filtroGrupo !== 'ALL') {
+                      const agrupacionesTrimestre = agrupacionesCompletas[trimestre] || {};
+                      const perteneceAlGrupo = perteneceAGrupo(asignatura, filtroGrupo, agrupacionesTrimestre);
+                      if (!perteneceAlGrupo) return;
+                    }
 
                     asignaturas.push({
                       trimestre,
