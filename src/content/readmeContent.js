@@ -1,4 +1,9 @@
-# Dashboard Académico v2.0.2
+/**
+ * Dashboard Académico - README Content
+ * Embedded README content for the help modal
+ */
+
+export const README_CONTENT = `# Dashboard Académico v2.0.2
 
 ---
 
@@ -47,9 +52,9 @@ Proyecto de código abierto disponible en GitHub
 2. Hacer clic en **"Cargar CSV de trimestre"** en la pantalla inicial o desde el botón **"Gestionar datos cargados"**
 3. Seleccionar el archivo CSV exportado
 4. El sistema detecta automáticamente:
-   - Separador (`;` o `,`)
+   - Separador (\`;\` o \`,\`)
    - Etapa educativa (EEM/EPM) según los niveles presentes
-   - Estructura multi-sección (`#METADATA`, `#ESTADISTICAS`, `#CORRELACIONES`, `#AGRUPACIONES`)
+   - Estructura multi-sección (\`#METADATA\`, \`#ESTADISTICAS\`, \`#CORRELACIONES\`, \`#AGRUPACIONES\`)
 
 **Formato JSON:**
 1. Hacer clic en **"Importar JSON guardado"**
@@ -221,9 +226,9 @@ Projecte de codi obert disponible en GitHub
 2. Fer clic en **"Carregar CSV de trimestre"** en la pantalla inicial o des del botó **"Gestionar dades carregades"**
 3. Seleccionar l'arxiu CSV exportat
 4. El sistema detecta automàticament:
-   - Separador (`;` o `,`)
+   - Separador (\`;\` o \`,\`)
    - Etapa educativa (EEM/EPM) segons els nivells presents
-   - Estructura multi-secció (`#METADATA`, `#ESTADISTICAS`, `#CORRELACIONES`, `#AGRUPACIONES`)
+   - Estructura multi-secció (\`#METADATA\`, \`#ESTADISTICAS\`, \`#CORRELACIONES\`, \`#AGRUPACIONES\`)
 
 **Format JSON:**
 1. Fer clic en **"Importar JSON guardat"**
@@ -347,7 +352,4 @@ Esta secció defineix els termes tècnics utilitzats en el dashboard sense inter
 
 **Rang**
 > Diferència entre el valor màxim i mínim d'un conjunt de dades. Mesura l'amplitud total de variació.
-
----
-
-**Repositorio GitHub**: https://github.com/jlmirallesb/DashboardAcademico
+`;

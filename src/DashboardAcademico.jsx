@@ -15,6 +15,7 @@ import KPIDetalle from './components/kpi/KPIDetalle.jsx';
 import KPIComparativa from './components/kpi/KPIComparativa.jsx';
 import { jsPDF } from 'jspdf';
 import { applyPlugin } from 'jspdf-autotable';
+import { HelpModal } from './components/modals/HelpModal.jsx';
 
 // Aplicar el plugin autoTable a jsPDF
 applyPlugin(jsPDF);
@@ -45,6 +46,7 @@ const DashboardAcademico = () => {
   const [mostrarPanelUmbrales, setMostrarPanelUmbrales] = useState(false);
   const [mostrarPanelCarga, setMostrarPanelCarga] = useState(true);
   const [mostrarModalGestionDatos, setMostrarModalGestionDatos] = useState(false);
+  const [mostrarModalAyuda, setMostrarModalAyuda] = useState(false);
   const [compararNiveles, setCompararNiveles] = useState(false);
   const [asignaturaComparada, setAsignaturaComparada] = useState('Lenguaje Musical');
   const [tipoComparativa, setTipoComparativa] = useState('longitudinal'); // 'longitudinal' o 'transversal'
@@ -1470,6 +1472,16 @@ const DashboardAcademico = () => {
                 </svg>
                 {t('importJSON')}
               </button>
+
+              <button
+                onClick={() => setMostrarModalAyuda(true)}
+                className="w-full py-4 px-6 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-all font-medium text-lg flex items-center justify-center gap-3"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {t('helpButton')}
+              </button>
             </div>
 
             <input
@@ -1499,6 +1511,14 @@ const DashboardAcademico = () => {
             {t('designedBy')} <a href="https://jlmirall.es" target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:text-slate-800 underline">José Luis Miralles Bono</a> {t('withHelpOf')}
           </p>
         </div>
+
+        {/* Modal de Ayuda */}
+        <HelpModal
+          isOpen={mostrarModalAyuda}
+          onClose={() => setMostrarModalAyuda(false)}
+          idioma={idioma}
+          t={t}
+        />
       </div>
     );
   }
@@ -1737,6 +1757,15 @@ const DashboardAcademico = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
               {t('generateReport')}
+            </button>
+            <button
+              onClick={() => setMostrarModalAyuda(true)}
+              className="py-2 px-4 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-all text-sm font-medium flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {t('helpButton')}
             </button>
           </div>
         </div>
@@ -4435,6 +4464,14 @@ const DashboardAcademico = () => {
           </div>
         </div>
       )}
+
+      {/* Modal de Ayuda */}
+      <HelpModal
+        isOpen={mostrarModalAyuda}
+        onClose={() => setMostrarModalAyuda(false)}
+        idioma={idioma}
+        t={t}
+      />
 
       {/* Footer */}
       <footer className="max-w-7xl mx-auto mt-12 py-6 border-t border-slate-200">

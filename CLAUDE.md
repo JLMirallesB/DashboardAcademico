@@ -143,3 +143,29 @@ Automatic deployment to GitHub Pages via [.github/workflows/deploy.yml](.github/
 - **Normalization**: All string comparisons use `normalizar()` for case-insensitive matching
 - **CSV format**: Multi-section format with `#METADATA`, `#ESTADISTICAS`, `#CORRELACIONES`, `#AGRUPACIONES` markers
 - **Auto-save**: Dashboard state can be exported to JSON and re-imported to preserve multi-trimester data
+
+## Documentation Maintenance
+
+When adding new features or making significant changes to the application, you must maintain the bilingual README documentation:
+
+1. **Update README.md** in BOTH Spanish and Valencian sections
+   - Spanish section: `## [ES] ESPAÑOL`
+   - Valencian section: `## [VA] VALENCIÀ`
+
+2. **Keep both language versions synchronized**
+   - Every change in Spanish must have its parallel translation in Valencian
+   - Maintain identical structure and formatting in both sections
+
+3. **Update mathematical/statistical terms section** if new concepts are introduced
+   - Add definitions without pedagogical interpretations
+   - Provide technical explanations with formulas when applicable
+
+4. **Update [readmeContent.js](src/content/readmeContent.js)** to match README.md changes
+   - This file contains the embedded version used by the help modal
+   - Copy the entire updated README content into the `README_CONTENT` constant
+   - Ensure proper escaping of backticks (use `\`` for inline code)
+
+5. **Maintain consistent formatting** between language sections
+   - Use the same heading levels (###, ##, #)
+   - Keep bullet point structures identical
+   - Preserve emoji usage across both versions

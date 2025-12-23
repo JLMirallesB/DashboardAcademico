@@ -231,6 +231,10 @@ export const translations = {
     difficultyReason: 'Análisis Detallado',
     easySubjects: 'Asignaturas Fáciles',
 
+    // Ayuda
+    help: 'Ayuda',
+    helpButton: 'Ayuda',
+
     // Footer
     designedBy: 'App diseñada por',
     withHelpOf: 'con ayuda de Claude',
@@ -466,6 +470,10 @@ export const translations = {
     reportFor: 'Informe per a',
     difficultyReason: 'Anàlisi Detallada',
     easySubjects: 'Assignatures Fàcils',
+
+    // Ajuda
+    help: 'Ajuda',
+    helpButton: 'Ajuda',
 
     // Footer
     designedBy: 'App dissenyada per',
