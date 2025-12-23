@@ -217,7 +217,17 @@ const DashboardAcademico = () => {
     reader.onload = (e) => {
       const texto = e.target.result;
       const parsed = parseCSV(texto);
-      const procesado = procesarDatos(parsed);
+      let procesado;
+      try {
+        procesado = procesarDatos(parsed);
+      } catch (error) {
+        if (error.message === 'ERROR_NO_TRIMESTER_METADATA') {
+          alert(t('errorNoTrimesterMetadata'));
+        } else {
+          alert(error.message);
+        }
+        return;
+      }
 
       if (!procesado) {
         return;
@@ -319,7 +329,7 @@ const DashboardAcademico = () => {
 
         setMostrarPanelCarga(false);
       } catch (err) {
-        alert('Error al parsear el archivo JSON');
+        alert(t('errorParsingJSON'));
       }
     };
     reader.readAsText(file);
@@ -1066,7 +1076,7 @@ const DashboardAcademico = () => {
     console.log('[PDF] Iniciando generación de informe...');
 
     if (!trimestreSeleccionado || !datosCompletos[trimestreSeleccionado]) {
-      alert('No hay datos cargados para generar el informe');
+      alert(t('noDataForReport'));
       return;
     }
 
@@ -1841,8 +1851,8 @@ const DashboardAcademico = () => {
               <span className="inline-block px-2 py-0.5 bg-green-100 text-green-700 rounded mr-2">{t('easy')}</span>
               {t('passed')} ≥ {umbrales.aprobadosMinimo}% o {t('average')} ≥ {umbrales.mediaFacil}
               <span className="mx-4">|</span>
-              <span className="inline-block px-2 py-0.5 bg-slate-100 text-slate-700 rounded mr-2">Filtro</span>
-              Solo asignaturas con ≥ {umbrales.alumnosMinimo} alumnos
+              <span className="inline-block px-2 py-0.5 bg-slate-100 text-slate-700 rounded mr-2">{t('filter')}</span>
+              {t('minStudentsFilter').replace('{min}', umbrales.alumnosMinimo)}
             </div>
           </div>
         )}

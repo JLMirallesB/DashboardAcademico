@@ -35,7 +35,7 @@ export const generarInformePDF = ({
   console.log('[PDF] Iniciando generación de informe...');
 
   if (!trimestreSeleccionado || !datosCompletos[trimestreSeleccionado]) {
-    alert('No hay datos cargados para generar el informe');
+    alert(t('noDataForReport'));
     return;
   }
 
@@ -379,7 +379,7 @@ export const generarInformePDF = ({
     } catch (error) {
       console.error('[PDF] Error al generar PDF:', error);
       console.error('[PDF] Stack trace:', error.stack);
-      alert(`Error al generar el informe PDF: ${error.message}`);
+      alert(`${t('errorGeneratingPDF')}: ${error.message}`);
       if (onError) onError(error);
     }
   }, 100);

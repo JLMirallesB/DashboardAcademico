@@ -118,6 +118,8 @@ export const translations = {
     easyAvg: 'Media fácil',
     minPassed: '% Aprobados mínimo',
     minStudents: 'Alumnos mínimos',
+    filter: 'Filtro',
+    minStudentsFilter: 'Solo asignaturas con ≥ {min} alumnos',
 
     // Etapas educativas
     stage: 'Etapa',
@@ -207,6 +209,10 @@ export const translations = {
     noCorrelationData: 'No hay datos de correlaciones para este trimestre.',
     csvInstructions: 'Exporta los datos desde la hoja EXPORTAR de tu Excel en formato CSV, o importa un archivo JSON previamente guardado.',
     trimestersLoadedLabel: 'Trimestres cargados:',
+    errorParsingJSON: 'Error al parsear el archivo JSON',
+    noDataForReport: 'No hay datos cargados para generar el informe',
+    errorGeneratingPDF: 'Error al generar el informe PDF',
+    errorNoTrimesterMetadata: 'Error: El CSV no contiene información de trimestre en METADATA',
 
     // Informes
     generateReport: 'Generar Informe',
@@ -347,6 +353,8 @@ export const translations = {
     easyAvg: 'Mitjana fàcil',
     minPassed: '% Aprovats mínim',
     minStudents: 'Alumnes mínims',
+    filter: 'Filtre',
+    minStudentsFilter: 'Només assignatures amb ≥ {min} alumnes',
 
     // Etapes educatives
     stage: 'Etapa',
@@ -436,6 +444,10 @@ export const translations = {
     noCorrelationData: 'No hi ha dades de correlacions per a aquest trimestre.',
     csvInstructions: 'Exporta les dades des del full EXPORTAR del teu Excel en format CSV, o importa un arxiu JSON prèviament guardat.',
     trimestersLoadedLabel: 'Trimestres carregats:',
+    errorParsingJSON: 'Error en parsejar l\'arxiu JSON',
+    noDataForReport: 'No hi ha dades carregades per a generar l\'informe',
+    errorGeneratingPDF: 'Error en generar l\'informe PDF',
+    errorNoTrimesterMetadata: 'Error: El CSV no conté informació de trimestre en METADATA',
 
     // Informes
     generateReport: 'Generar Informe',
