@@ -198,8 +198,10 @@ export const translations = {
     // Datos de Asignaturas
     filterByLevel: 'Filtrar por nivel',
     filterByTrimester: 'Filtrar por evaluación',
+    filterByGroup: 'Filtrar por grupo',
     allLevels: 'Todos los niveles',
     allTrimesters: 'Todas las evaluaciones',
+    allGroups: 'Todos los grupos',
     showingSubjects: 'Mostrando {count} asignaturas',
     viewByLevels: 'Por Niveles',
     viewGlobal: 'Global',
@@ -438,8 +440,10 @@ export const translations = {
     // Dades d'Assignatures
     filterByLevel: 'Filtrar per nivell',
     filterByTrimester: 'Filtrar per avaluació',
+    filterByGroup: 'Filtrar per grup',
     allLevels: 'Tots els nivells',
     allTrimesters: 'Totes les avaluacions',
+    allGroups: 'Tots els grups',
     showingSubjects: 'Mostrant {count} assignatures',
     viewByLevels: 'Per Nivells',
     viewGlobal: 'Global',
