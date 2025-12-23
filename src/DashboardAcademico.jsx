@@ -846,11 +846,15 @@ const DashboardAcademico = () => {
     const tipos = new Set();
     Object.values(correlacionesCompletas).forEach(corrs => {
       corrs.forEach(c => {
-        tipos.add(`${c.Asignatura1}-${c.Asignatura2}`);
+        // Filtrar por etapa del nivel
+        const etapaNivel = detectarEtapa(c.Nivel);
+        if (modoEtapa === 'TODOS' || etapaNivel === modoEtapa) {
+          tipos.add(`${c.Asignatura1}-${c.Asignatura2}`);
+        }
       });
     });
     return Array.from(tipos);
-  }, [correlacionesCompletas]);
+  }, [correlacionesCompletas, modoEtapa, detectarEtapa]);
 
   // Datos para gráfico de evolución de correlaciones
   const datosEvolucionCorrelaciones = useMemo(() => {
@@ -3415,7 +3419,7 @@ const DashboardAcademico = () => {
                 <div>
                   <h3 className="text-lg font-semibold text-slate-800 mb-1">{t('correlationEvolution')}</h3>
                   <p className="text-sm text-slate-500">
-                    {ejeCorrelaciones === 'pares' ? t('correlationEvolutionDesc') : 'El eje X muestra los niveles (1EEM-4EEM), cada línea representa un par de asignaturas'}
+                    {ejeCorrelaciones === 'pares' ? t('correlationEvolutionDesc') : t('correlationEvolutionDescAlt').replace('{levels}', nivelesSinGlobalEtapa.join(', '))}
                   </p>
                 </div>
                 <div className="flex gap-2 bg-slate-100 rounded-lg p-1">
@@ -3475,42 +3479,24 @@ const DashboardAcademico = () => {
                       }}
                     />
                     <Legend />
-                    <Line
-                      type="monotone"
-                      dataKey="1EEM"
-                      name="1EEM"
-                      stroke="#3b82f6"
-                      strokeWidth={2}
-                      dot={{ fill: '#3b82f6', r: 4 }}
-                      connectNulls
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="2EEM"
-                      name="2EEM"
-                      stroke="#ef4444"
-                      strokeWidth={2}
-                      dot={{ fill: '#ef4444', r: 4 }}
-                      connectNulls
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="3EEM"
-                      name="3EEM"
-                      stroke="#22c55e"
-                      strokeWidth={2}
-                      dot={{ fill: '#22c55e', r: 4 }}
-                      connectNulls
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="4EEM"
-                      name="4EEM"
-                      stroke="#a855f7"
-                      strokeWidth={2}
-                      dot={{ fill: '#a855f7', r: 4 }}
-                      connectNulls
-                    />
+                    {nivelesSinGlobalEtapa.map((nivel, idx) => {
+                      const coloresLineas = [
+                        '#3b82f6', '#ef4444', '#22c55e', '#a855f7', '#f59e0b',
+                        '#ec4899', '#06b6d4', '#8b5cf6', '#14b8a6', '#f97316'
+                      ];
+                      return (
+                        <Line
+                          key={nivel}
+                          type="monotone"
+                          dataKey={nivel}
+                          name={nivel}
+                          stroke={coloresLineas[idx % coloresLineas.length]}
+                          strokeWidth={2}
+                          dot={{ fill: coloresLineas[idx % coloresLineas.length], r: 4 }}
+                          connectNulls
+                        />
+                      );
+                    })}
                   </LineChart>
                 ) : (
                   <LineChart data={datosEvolucionCorrelacionesAlt} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
