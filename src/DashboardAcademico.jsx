@@ -15,6 +15,7 @@ import KPIDetalle from './components/kpi/KPIDetalle.jsx';
 import KPIComparativa from './components/kpi/KPIComparativa.jsx';
 import { jsPDF } from 'jspdf';
 import { applyPlugin } from 'jspdf-autotable';
+import { HelpModal } from './components/modals/HelpModal.jsx';
 
 // Aplicar el plugin autoTable a jsPDF
 applyPlugin(jsPDF);
@@ -45,6 +46,7 @@ const DashboardAcademico = () => {
   const [mostrarPanelUmbrales, setMostrarPanelUmbrales] = useState(false);
   const [mostrarPanelCarga, setMostrarPanelCarga] = useState(true);
   const [mostrarModalGestionDatos, setMostrarModalGestionDatos] = useState(false);
+  const [mostrarModalAyuda, setMostrarModalAyuda] = useState(false);
   const [compararNiveles, setCompararNiveles] = useState(false);
   const [asignaturaComparada, setAsignaturaComparada] = useState('Lenguaje Musical');
   const [tipoComparativa, setTipoComparativa] = useState('longitudinal'); // 'longitudinal' o 'transversal'
@@ -217,7 +219,17 @@ const DashboardAcademico = () => {
     reader.onload = (e) => {
       const texto = e.target.result;
       const parsed = parseCSV(texto);
-      const procesado = procesarDatos(parsed);
+      let procesado;
+      try {
+        procesado = procesarDatos(parsed);
+      } catch (error) {
+        if (error.message === 'ERROR_NO_TRIMESTER_METADATA') {
+          alert(t('errorNoTrimesterMetadata'));
+        } else {
+          alert(error.message);
+        }
+        return;
+      }
 
       if (!procesado) {
         return;
@@ -319,7 +331,7 @@ const DashboardAcademico = () => {
 
         setMostrarPanelCarga(false);
       } catch (err) {
-        alert('Error al parsear el archivo JSON');
+        alert(t('errorParsingJSON'));
       }
     };
     reader.readAsText(file);
@@ -836,11 +848,15 @@ const DashboardAcademico = () => {
     const tipos = new Set();
     Object.values(correlacionesCompletas).forEach(corrs => {
       corrs.forEach(c => {
-        tipos.add(`${c.Asignatura1}-${c.Asignatura2}`);
+        // Filtrar por etapa del nivel
+        const etapaNivel = detectarEtapa(c.Nivel);
+        if (modoEtapa === 'TODOS' || etapaNivel === modoEtapa) {
+          tipos.add(`${c.Asignatura1}-${c.Asignatura2}`);
+        }
       });
     });
     return Array.from(tipos);
-  }, [correlacionesCompletas]);
+  }, [correlacionesCompletas, modoEtapa, detectarEtapa]);
 
   // Datos para gráfico de evolución de correlaciones
   const datosEvolucionCorrelaciones = useMemo(() => {
@@ -1066,7 +1082,7 @@ const DashboardAcademico = () => {
     console.log('[PDF] Iniciando generación de informe...');
 
     if (!trimestreSeleccionado || !datosCompletos[trimestreSeleccionado]) {
-      alert('No hay datos cargados para generar el informe');
+      alert(t('noDataForReport'));
       return;
     }
 
@@ -1456,6 +1472,16 @@ const DashboardAcademico = () => {
                 </svg>
                 {t('importJSON')}
               </button>
+
+              <button
+                onClick={() => setMostrarModalAyuda(true)}
+                className="w-full py-4 px-6 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-all font-medium text-lg flex items-center justify-center gap-3"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {t('helpButton')}
+              </button>
             </div>
 
             <input
@@ -1485,6 +1511,14 @@ const DashboardAcademico = () => {
             {t('designedBy')} <a href="https://jlmirall.es" target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:text-slate-800 underline">José Luis Miralles Bono</a> {t('withHelpOf')}
           </p>
         </div>
+
+        {/* Modal de Ayuda */}
+        <HelpModal
+          isOpen={mostrarModalAyuda}
+          onClose={() => setMostrarModalAyuda(false)}
+          idioma={idioma}
+          t={t}
+        />
       </div>
     );
   }
@@ -1724,6 +1758,15 @@ const DashboardAcademico = () => {
               </svg>
               {t('generateReport')}
             </button>
+            <button
+              onClick={() => setMostrarModalAyuda(true)}
+              className="py-2 px-4 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-all text-sm font-medium flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {t('helpButton')}
+            </button>
           </div>
         </div>
 
@@ -1841,8 +1884,8 @@ const DashboardAcademico = () => {
               <span className="inline-block px-2 py-0.5 bg-green-100 text-green-700 rounded mr-2">{t('easy')}</span>
               {t('passed')} ≥ {umbrales.aprobadosMinimo}% o {t('average')} ≥ {umbrales.mediaFacil}
               <span className="mx-4">|</span>
-              <span className="inline-block px-2 py-0.5 bg-slate-100 text-slate-700 rounded mr-2">Filtro</span>
-              Solo asignaturas con ≥ {umbrales.alumnosMinimo} alumnos
+              <span className="inline-block px-2 py-0.5 bg-slate-100 text-slate-700 rounded mr-2">{t('filter')}</span>
+              {t('minStudentsFilter').replace('{min}', umbrales.alumnosMinimo)}
             </div>
           </div>
         )}
@@ -3405,7 +3448,7 @@ const DashboardAcademico = () => {
                 <div>
                   <h3 className="text-lg font-semibold text-slate-800 mb-1">{t('correlationEvolution')}</h3>
                   <p className="text-sm text-slate-500">
-                    {ejeCorrelaciones === 'pares' ? t('correlationEvolutionDesc') : 'El eje X muestra los niveles (1EEM-4EEM), cada línea representa un par de asignaturas'}
+                    {ejeCorrelaciones === 'pares' ? t('correlationEvolutionDesc') : t('correlationEvolutionDescAlt').replace('{levels}', nivelesSinGlobalEtapa.join(', '))}
                   </p>
                 </div>
                 <div className="flex gap-2 bg-slate-100 rounded-lg p-1">
@@ -3465,42 +3508,24 @@ const DashboardAcademico = () => {
                       }}
                     />
                     <Legend />
-                    <Line
-                      type="monotone"
-                      dataKey="1EEM"
-                      name="1EEM"
-                      stroke="#3b82f6"
-                      strokeWidth={2}
-                      dot={{ fill: '#3b82f6', r: 4 }}
-                      connectNulls
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="2EEM"
-                      name="2EEM"
-                      stroke="#ef4444"
-                      strokeWidth={2}
-                      dot={{ fill: '#ef4444', r: 4 }}
-                      connectNulls
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="3EEM"
-                      name="3EEM"
-                      stroke="#22c55e"
-                      strokeWidth={2}
-                      dot={{ fill: '#22c55e', r: 4 }}
-                      connectNulls
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="4EEM"
-                      name="4EEM"
-                      stroke="#a855f7"
-                      strokeWidth={2}
-                      dot={{ fill: '#a855f7', r: 4 }}
-                      connectNulls
-                    />
+                    {nivelesSinGlobalEtapa.map((nivel, idx) => {
+                      const coloresLineas = [
+                        '#3b82f6', '#ef4444', '#22c55e', '#a855f7', '#f59e0b',
+                        '#ec4899', '#06b6d4', '#8b5cf6', '#14b8a6', '#f97316'
+                      ];
+                      return (
+                        <Line
+                          key={nivel}
+                          type="monotone"
+                          dataKey={nivel}
+                          name={nivel}
+                          stroke={coloresLineas[idx % coloresLineas.length]}
+                          strokeWidth={2}
+                          dot={{ fill: coloresLineas[idx % coloresLineas.length], r: 4 }}
+                          connectNulls
+                        />
+                      );
+                    })}
                   </LineChart>
                 ) : (
                   <LineChart data={datosEvolucionCorrelacionesAlt} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
@@ -4439,6 +4464,14 @@ const DashboardAcademico = () => {
           </div>
         </div>
       )}
+
+      {/* Modal de Ayuda */}
+      <HelpModal
+        isOpen={mostrarModalAyuda}
+        onClose={() => setMostrarModalAyuda(false)}
+        idioma={idioma}
+        t={t}
+      />
 
       {/* Footer */}
       <footer className="max-w-7xl mx-auto mt-12 py-6 border-t border-slate-200">

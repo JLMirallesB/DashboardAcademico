@@ -13,8 +13,8 @@ import { normalizar } from '../utils.js';
 export const procesarDatos = (parsed) => {
   const trimestreBase = parsed.metadata.Trimestre;
   if (!trimestreBase) {
-    alert('Error: El CSV no contiene información de trimestre en METADATA');
-    return null;
+    // Throw error to be caught and translated by the component
+    throw new Error('ERROR_NO_TRIMESTER_METADATA');
   }
 
   // Estructurar datos

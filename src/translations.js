@@ -118,6 +118,8 @@ export const translations = {
     easyAvg: 'Media fácil',
     minPassed: '% Aprobados mínimo',
     minStudents: 'Alumnos mínimos',
+    filter: 'Filtro',
+    minStudentsFilter: 'Solo asignaturas con ≥ {min} alumnos',
 
     // Etapas educativas
     stage: 'Etapa',
@@ -180,6 +182,7 @@ export const translations = {
     veryWeak: 'Muy débil',
     correlationEvolution: 'Evolución de correlaciones por nivel',
     correlationEvolutionDesc: 'Cada línea representa un nivel (1EEM-4EEM), el eje X muestra los pares de asignaturas',
+    correlationEvolutionDescAlt: 'El eje X muestra los niveles ({levels}), cada línea representa un par de asignaturas',
     correlationToggleSubjects: 'Por Asignaturas',
     correlationToggleLevels: 'Por Niveles',
     radarComparison: 'Comparación Radar',
@@ -207,6 +210,10 @@ export const translations = {
     noCorrelationData: 'No hay datos de correlaciones para este trimestre.',
     csvInstructions: 'Exporta los datos desde la hoja EXPORTAR de tu Excel en formato CSV, o importa un archivo JSON previamente guardado.',
     trimestersLoadedLabel: 'Trimestres cargados:',
+    errorParsingJSON: 'Error al parsear el archivo JSON',
+    noDataForReport: 'No hay datos cargados para generar el informe',
+    errorGeneratingPDF: 'Error al generar el informe PDF',
+    errorNoTrimesterMetadata: 'Error: El CSV no contiene información de trimestre en METADATA',
 
     // Informes
     generateReport: 'Generar Informe',
@@ -223,6 +230,10 @@ export const translations = {
     reportFor: 'Informe para',
     difficultyReason: 'Análisis Detallado',
     easySubjects: 'Asignaturas Fáciles',
+
+    // Ayuda
+    help: 'Ayuda',
+    helpButton: 'Ayuda',
 
     // Footer
     designedBy: 'App diseñada por',
@@ -347,6 +358,8 @@ export const translations = {
     easyAvg: 'Mitjana fàcil',
     minPassed: '% Aprovats mínim',
     minStudents: 'Alumnes mínims',
+    filter: 'Filtre',
+    minStudentsFilter: 'Només assignatures amb ≥ {min} alumnes',
 
     // Etapes educatives
     stage: 'Etapa',
@@ -409,6 +422,7 @@ export const translations = {
     veryWeak: 'Molt dèbil',
     correlationEvolution: 'Evolució de correlacions per nivell',
     correlationEvolutionDesc: 'Cada línia representa un nivell (1EEM-4EEM), l\'eix X mostra els parells d\'assignatures',
+    correlationEvolutionDescAlt: 'L\'eix X mostra els nivells ({levels}), cada línia representa un parell d\'assignatures',
     correlationToggleSubjects: 'Per Assignatures',
     correlationToggleLevels: 'Per Nivells',
     radarComparison: 'Comparació Radar',
@@ -436,6 +450,10 @@ export const translations = {
     noCorrelationData: 'No hi ha dades de correlacions per a aquest trimestre.',
     csvInstructions: 'Exporta les dades des del full EXPORTAR del teu Excel en format CSV, o importa un arxiu JSON prèviament guardat.',
     trimestersLoadedLabel: 'Trimestres carregats:',
+    errorParsingJSON: 'Error en parsejar l\'arxiu JSON',
+    noDataForReport: 'No hi ha dades carregades per a generar l\'informe',
+    errorGeneratingPDF: 'Error en generar l\'informe PDF',
+    errorNoTrimesterMetadata: 'Error: El CSV no conté informació de trimestre en METADATA',
 
     // Informes
     generateReport: 'Generar Informe',
@@ -452,6 +470,10 @@ export const translations = {
     reportFor: 'Informe per a',
     difficultyReason: 'Anàlisi Detallada',
     easySubjects: 'Assignatures Fàcils',
+
+    // Ajuda
+    help: 'Ajuda',
+    helpButton: 'Ajuda',
 
     // Footer
     designedBy: 'App dissenyada per',
