@@ -64,10 +64,12 @@ export const useDifficultyAnalysis = (
             nivel,
             asignatura: nombreAsig,
             notaMedia: data.stats.notaMedia,
+            moda: data.stats.moda,
             suspendidos: data.stats.suspendidos,
             aprobados: data.stats.aprobados,
             registros: data.stats.registros,
             resultado,
+            categoria: resultado || 'NEUTRAL',
             razones: razones.join(', ')
           });
         });
@@ -101,10 +103,12 @@ export const useDifficultyAnalysis = (
           nivel: 'GLOBAL',
           asignatura: nombreAsig,
           notaMedia: data.stats.notaMedia,
+          moda: data.stats.moda,
           suspendidos: data.stats.suspendidos,
           aprobados: data.stats.aprobados,
           registros: data.stats.registros,
           resultado,
+          categoria: resultado || 'NEUTRAL',
           razones: razones.join(', ')
         });
       });
