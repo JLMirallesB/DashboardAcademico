@@ -13,12 +13,11 @@ import { useKPICalculation } from './hooks/useKPICalculation.js';
 import KPICentro from './components/kpi/KPICentro.jsx';
 import KPIDetalle from './components/kpi/KPIDetalle.jsx';
 import KPIComparativa from './components/kpi/KPIComparativa.jsx';
-import { jsPDF } from 'jspdf';
-import { applyPlugin } from 'jspdf-autotable';
 import { HelpModal } from './components/modals/HelpModal.jsx';
-
-// Aplicar el plugin autoTable a jsPDF
-applyPlugin(jsPDF);
+import { ReportModal } from './components/modals/ReportModal.jsx';
+import { PDFChartRenderer } from './components/pdf/PDFChartRenderer.jsx';
+import { generarInformePDF } from './services/pdfGenerator.js';
+import { captureChartAsImage, waitForRender } from './utils/chartCapture.js';
 
 const DashboardAcademico = () => {
   // Estado de idioma
@@ -91,13 +90,27 @@ const DashboardAcademico = () => {
   // Estado para generación de informes
   const [mostrarModalInforme, setMostrarModalInforme] = useState(false);
   const [generandoInforme, setGenerandoInforme] = useState(false);
+  const [progresoInforme, setProgresoInforme] = useState('');
+  const [renderPDFCharts, setRenderPDFCharts] = useState(false);
   const [configInforme, setConfigInforme] = useState({
     nombreCentro: 'Conservatorio Profesional de Música',
     cursoAcademico: '2024-2025',
+    incluirPortada: true,
+    incluirAnalisisGlobal: true,
     incluirKPIs: true,
-    incluirDificultad: true,
+    incluirMapaDispersion: true,
+    incluirEvolucionCorrelaciones: true,
     incluirCorrelaciones: true,
-    incluirEvolucion: true
+    incluirComparativaTransversal: true,
+    incluirDatosAsignaturas: true,
+    incluirDificultad: true
+  });
+
+  // Refs para captura de gráficas para PDF
+  const pdfChartRefs = useRef({
+    scatterRef: null,
+    correlationRef: null,
+    transversalRef: null
   });
 
   const fileInputRef = useRef(null);
@@ -1101,8 +1114,8 @@ const DashboardAcademico = () => {
     return { dificiles, neutrales, faciles, todas: asignaturas };
   }, [trimestreSeleccionado, datosCompletos, calcularResultado, umbrales, vistaDificultad, modoEtapa, detectarEtapa]);
 
-  // Función para generar informe PDF
-  const generarInformePDF = useCallback(() => {
+  // Función para generar informe PDF (versión mejorada con gráficas)
+  const handleGenerarInformePDF = useCallback(async () => {
     console.log('[PDF] Iniciando generación de informe...');
 
     if (!trimestreSeleccionado || !datosCompletos[trimestreSeleccionado]) {
@@ -1111,351 +1124,182 @@ const DashboardAcademico = () => {
     }
 
     setGenerandoInforme(true);
+    setProgresoInforme(t('pdfCapturingCharts'));
 
-    // Usar setTimeout para permitir que el UI se actualice
-    setTimeout(() => {
-      try {
-        console.log('[PDF] Creando documento PDF...');
-        const pdf = new jsPDF('p', 'mm', 'a4');
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const margin = 15;
-      let currentPage = 1;
+    try {
+      // Activar renderizado de gráficas ocultas
+      setRenderPDFCharts(true);
 
-      // Función auxiliar para añadir encabezado
-      const addHeader = (pageNum) => {
-        pdf.setFontSize(8);
-        pdf.setTextColor(150);
-        pdf.text(configInforme.nombreCentro, margin, 10);
-        pdf.text(`${t('reportTitle')} - ${trimestreSeleccionado}`, pageWidth - margin, 10, { align: 'right' });
-        pdf.setTextColor(0);
-      };
+      // Esperar a que las gráficas se rendericen
+      await waitForRender(800);
 
-      // Función auxiliar para añadir pie de página
-      const addFooter = (pageNum) => {
-        pdf.setFontSize(8);
-        pdf.setTextColor(150);
-        pdf.text(`Página ${pageNum}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
-        pdf.text(new Date().toLocaleDateString(), pageWidth - margin, pageHeight - 10, { align: 'right' });
-        pdf.setTextColor(0);
-      };
+      // Capturar gráficas como imágenes
+      const chartImages = {};
 
-        // ========== PÁGINA DE PORTADA ==========
-        console.log('[PDF] Generando portada...');
-        pdf.setFillColor(30, 58, 138); // Azul oscuro
-        pdf.rect(0, 0, pageWidth, 100, 'F');
-
-        pdf.setTextColor(255, 255, 255);
-        pdf.setFontSize(28);
-        pdf.text(configInforme.nombreCentro, pageWidth / 2, 40, { align: 'center' });
-
-        pdf.setFontSize(20);
-        pdf.text(t('reportTitle'), pageWidth / 2, 55, { align: 'center' });
-
-        pdf.setFontSize(14);
-        pdf.text(trimestreSeleccionado, pageWidth / 2, 70, { align: 'center' });
-
-        pdf.setTextColor(0);
-        pdf.setFontSize(12);
-        pdf.text(`${t('academicYear')}: ${configInforme.cursoAcademico}`, pageWidth / 2, 120, { align: 'center' });
-
-        pdf.setFontSize(10);
-        pdf.setTextColor(100);
-        pdf.text(`${t('reportFor')} ${new Date().toLocaleDateString()}`, pageWidth / 2, 270, { align: 'center' });
-        pdf.setTextColor(0);
-
-        // ========== TABLA DE KPIs ==========
-        if (configInforme.incluirKPIs && kpisGlobales) {
-          console.log('[PDF] Generando tabla de KPIs...');
-        pdf.addPage();
-        currentPage++;
-        addHeader(currentPage);
-
-        pdf.setFontSize(16);
-        pdf.setTextColor(30, 58, 138);
-        pdf.text(t('kpis'), margin, 25);
-        pdf.setTextColor(0);
-
-        // Construir datos de KPIs, incluyendo múltiples filas de referencia si hay
-        const kpisData = [
-          [t('kpiCenterAvg'), (kpisGlobales.notaMediaCentro || 0).toFixed(2)],
-        ];
-
-        // Agregar filas de notas medias de referencia
-        kpisGlobales.notasMediasRef.forEach(ref => {
-          kpisData.push([
-            ref.asignatura === 'Teórica Troncal' ? t('kpiTTAvg') : t('kpiLMAvg'),
-            (ref.notaMedia || 0).toFixed(2)
-          ]);
-        });
-
-        kpisData.push(
-          [t('kpiInstrAvg'), (kpisGlobales.notaMediaEspecialidades || 0).toFixed(2)],
-          [t('kpiDifficult'), (kpisGlobales.asignaturasDificiles || 0).toString()],
-          [t('kpiEasy'), (kpisGlobales.asignaturasFaciles || 0).toString()],
-          [t('kpiPassedAvg'), `${(kpisGlobales.aprobadosCentro || 0).toFixed(1)}%`]
-        );
-
-        // Agregar filas de aprobados de referencia
-        kpisGlobales.notasMediasRef.forEach(ref => {
-          kpisData.push([
-            ref.asignatura === 'Teórica Troncal' ? t('kpiPassedTT') : t('kpiPassedLM'),
-            `${(ref.aprobados || 0).toFixed(1)}%`
-          ]);
-        });
-
-        kpisData.push(
-          [t('kpiPassedInstr'), `${(kpisGlobales.aprobadosEspecialidades || 0).toFixed(1)}%`],
-          [t('kpiFailedAvg'), `${(kpisGlobales.suspendidosCentro || 0).toFixed(1)}%`]
-        );
-
-        // Agregar filas de suspendidos de referencia
-        kpisGlobales.notasMediasRef.forEach(ref => {
-          kpisData.push([
-            ref.asignatura === 'Teórica Troncal' ? t('kpiFailedTT') : t('kpiFailedLM'),
-            `${(ref.suspendidos || 0).toFixed(1)}%`
-          ]);
-        });
-
-        kpisData.push([t('kpiFailedInstr'), `${(kpisGlobales.suspendidosEspecialidades || 0).toFixed(1)}%`]);
-
-        pdf.autoTable({
-          startY: 35,
-          head: [['Indicador', 'Valor']],
-          body: kpisData,
-          theme: 'striped',
-          headStyles: { fillColor: [30, 58, 138], fontSize: 11, fontStyle: 'bold' },
-          styles: { fontSize: 10, cellPadding: 5 },
-          columnStyles: {
-            0: { cellWidth: 120 },
-            1: { cellWidth: 40, halign: 'right', fontStyle: 'bold' }
-          },
-          margin: { left: margin, right: margin }
-        });
-
-          addFooter(currentPage);
-        }
-
-        // ========== TABLA DE CORRELACIONES ==========
-        if (configInforme.incluirCorrelaciones && correlacionesTrimestre.length > 0) {
-          console.log('[PDF] Generando tabla de correlaciones...');
-        pdf.addPage();
-        currentPage++;
-        addHeader(currentPage);
-
-        pdf.setFontSize(16);
-        pdf.setTextColor(30, 58, 138);
-        pdf.text(t('correlationsTitle'), margin, 25);
-        pdf.setTextColor(0);
-
-        const correlacionesData = correlacionesTrimestre.map((corr, idx) => [
-          (idx + 1).toString(),
-          corr.Nivel,
-          corr.Asignatura1,
-          corr.Asignatura2,
-          (corr.Correlacion || 0).toFixed(3)
-        ]);
-
-        pdf.autoTable({
-          startY: 35,
-          head: [['#', 'Nivel', 'Asignatura 1', 'Asignatura 2', 'Corr.']],
-          body: correlacionesData,
-          theme: 'grid',
-          headStyles: { fillColor: [30, 58, 138], fontSize: 10, fontStyle: 'bold' },
-          styles: { fontSize: 9, cellPadding: 3 },
-          columnStyles: {
-            0: { cellWidth: 12, halign: 'center' },
-            1: { cellWidth: 22, halign: 'center' },
-            2: { cellWidth: 60 },
-            3: { cellWidth: 60 },
-            4: { cellWidth: 20, halign: 'right', fontStyle: 'bold' }
-          },
-          margin: { left: margin, right: margin },
-          didDrawPage: (data) => {
-            if (data.pageNumber > currentPage) {
-              currentPage = data.pageNumber;
-              addHeader(currentPage);
-            }
-            addFooter(data.pageNumber);
-            }
-          });
-        }
-
-        // ========== TABLA DE TODAS LAS ASIGNATURAS CON ANÁLISIS ==========
-        if (configInforme.incluirDificultad && analisisDificultad) {
-          console.log('[PDF] Generando tabla de asignaturas...');
-        pdf.addPage();
-        currentPage++;
-        addHeader(currentPage);
-
-        pdf.setFontSize(16);
-        pdf.setTextColor(30, 58, 138);
-        pdf.text(t('subjectsData'), margin, 25);
-        pdf.setTextColor(0);
-
-        // Función para obtener color según categoría
-        const getCategoryColor = (categoria) => {
-          switch (categoria) {
-            case 'DIFÍCIL': return [220, 38, 38]; // Rojo
-            case 'FÁCIL': return [34, 197, 94]; // Verde
-            default: return [148, 163, 184]; // Gris
-          }
-        };
-
-        // Preparar datos de todas las asignaturas
-        const asignaturasData = analisisDificultad.todas.map(asig => ({
-          nivel: asig.nivel,
-          asignatura: asig.asignatura,
-          categoria: asig.categoria,
-          notaMedia: (asig.notaMedia || 0).toFixed(2),
-          aprobados: `${(asig.aprobados || 0).toFixed(1)}%`,
-          suspendidos: `${(asig.suspendidos || 0).toFixed(1)}%`,
-          razon: asig.razon
-        }));
-
-        // Generar tabla con todas las asignaturas
-        pdf.autoTable({
-          startY: 35,
-          head: [['Nivel', 'Asignatura', 'Cat.', 'Media', 'Apr.', 'Susp.']],
-          body: asignaturasData.map(asig => [
-            asig.nivel,
-            asig.asignatura,
-            asig.categoria,
-            asig.notaMedia,
-            asig.aprobados,
-            asig.suspendidos
-          ]),
-          theme: 'striped',
-          headStyles: { fillColor: [30, 58, 138], fontSize: 9, fontStyle: 'bold' },
-          styles: { fontSize: 8, cellPadding: 2.5 },
-          columnStyles: {
-            0: { cellWidth: 20, halign: 'center' },
-            1: { cellWidth: 70 },
-            2: { cellWidth: 22, halign: 'center', fontStyle: 'bold' },
-            3: { cellWidth: 18, halign: 'right' },
-            4: { cellWidth: 18, halign: 'right' },
-            5: { cellWidth: 18, halign: 'right' }
-          },
-          margin: { left: margin, right: margin },
-          didParseCell: (data) => {
-            // Colorear la celda de categoría
-            if (data.column.index === 2 && data.section === 'body') {
-              const categoria = data.cell.raw;
-              const color = getCategoryColor(categoria);
-              data.cell.styles.textColor = color;
-            }
-          },
-          didDrawPage: (data) => {
-            if (data.pageNumber > currentPage) {
-              currentPage = data.pageNumber;
-              addHeader(currentPage);
-            }
-            addFooter(data.pageNumber);
-          }
-        });
-
-        // Añadir sección de análisis detallado por categoría
-        pdf.addPage();
-        currentPage++;
-        addHeader(currentPage);
-
-        pdf.setFontSize(16);
-        pdf.setTextColor(30, 58, 138);
-        pdf.text(t('difficulty') + ' - ' + t('difficultyReason'), margin, 25);
-        pdf.setTextColor(0);
-
-        let yPos = 35;
-
-        // Asignaturas Difíciles
-        if (analisisDificultad.dificiles.length > 0) {
-          pdf.setFontSize(12);
-          pdf.setTextColor(220, 38, 38);
-          pdf.text(`${t('difficultSubjects')} (${analisisDificultad.dificiles.length})`, margin, yPos);
-          pdf.setTextColor(0);
-          yPos += 8;
-
-          analisisDificultad.dificiles.forEach(asig => {
-            if (yPos > pageHeight - 40) {
-              pdf.addPage();
-              currentPage++;
-              addHeader(currentPage);
-              yPos = 25;
-            }
-
-            pdf.setFontSize(10);
-            pdf.setFont(undefined, 'bold');
-            pdf.text(`${asig.nivel} - ${asig.asignatura}`, margin + 5, yPos);
-            pdf.setFont(undefined, 'normal');
-            yPos += 5;
-
-            pdf.setFontSize(9);
-            pdf.setTextColor(80);
-            const razonLines = pdf.splitTextToSize(asig.razon, pageWidth - 2 * margin - 10);
-            pdf.text(razonLines, margin + 5, yPos);
-            yPos += razonLines.length * 4 + 4;
-            pdf.setTextColor(0);
-          });
-
-          yPos += 5;
-        }
-
-        // Asignaturas Fáciles
-        if (analisisDificultad.faciles.length > 0) {
-          if (yPos > pageHeight - 60) {
-            pdf.addPage();
-            currentPage++;
-            addHeader(currentPage);
-            yPos = 25;
-          }
-
-          pdf.setFontSize(12);
-          pdf.setTextColor(34, 197, 94);
-          pdf.text(`${t('easySubjects')} (${analisisDificultad.faciles.length})`, margin, yPos);
-          pdf.setTextColor(0);
-          yPos += 8;
-
-          analisisDificultad.faciles.forEach(asig => {
-            if (yPos > pageHeight - 40) {
-              pdf.addPage();
-              currentPage++;
-              addHeader(currentPage);
-              yPos = 25;
-            }
-
-            pdf.setFontSize(10);
-            pdf.setFont(undefined, 'bold');
-            pdf.text(`${asig.nivel} - ${asig.asignatura}`, margin + 5, yPos);
-            pdf.setFont(undefined, 'normal');
-            yPos += 5;
-
-            pdf.setFontSize(9);
-            pdf.setTextColor(80);
-            const razonLines = pdf.splitTextToSize(asig.razon, pageWidth - 2 * margin - 10);
-            pdf.text(razonLines, margin + 5, yPos);
-            yPos += razonLines.length * 4 + 4;
-            pdf.setTextColor(0);
-          });
-        }
-
-        addFooter(currentPage);
+      if (configInforme.incluirMapaDispersion && pdfChartRefs.current?.scatterRef?.current) {
+        setProgresoInforme(t('pdfCapturingCharts') + ' (1/3)');
+        chartImages.scatter = await captureChartAsImage(pdfChartRefs.current.scatterRef.current);
       }
 
-        // Guardar PDF
-        console.log('[PDF] Guardando archivo PDF...');
-        const nombreArchivo = `Informe_${configInforme.nombreCentro.replace(/\s+/g, '_')}_${trimestreSeleccionado}_${new Date().toISOString().split('T')[0]}.pdf`;
-        pdf.save(nombreArchivo);
-        console.log('[PDF] PDF generado exitosamente:', nombreArchivo);
-
-        setMostrarModalInforme(false);
-        setGenerandoInforme(false);
-      } catch (error) {
-        console.error('[PDF] Error al generar PDF:', error);
-        console.error('[PDF] Stack trace:', error.stack);
-        alert(`Error al generar el informe PDF: ${error.message}`);
-        setGenerandoInforme(false);
+      if (configInforme.incluirEvolucionCorrelaciones && pdfChartRefs.current?.correlationRef?.current) {
+        setProgresoInforme(t('pdfCapturingCharts') + ' (2/3)');
+        chartImages.correlationEvolution = await captureChartAsImage(pdfChartRefs.current.correlationRef.current);
       }
-    }, 100);
-  }, [trimestreSeleccionado, datosCompletos, configInforme, kpisGlobales, correlacionesTrimestre, analisisDificultad, t]);
+
+      // Capturar múltiples gráficas transversales
+      console.log('[PDF] Transversal capture check:', {
+        incluir: configInforme.incluirComparativaTransversal,
+        hasRefs: !!pdfChartRefs.current?.transversalRefs,
+        numRefs: pdfChartRefs.current?.transversalRefs?.length
+      });
+      if (configInforme.incluirComparativaTransversal && pdfChartRefs.current?.transversalRefs?.length > 0) {
+        chartImages.transversalArray = [];
+        const totalTransversal = pdfChartRefs.current.transversalRefs.length;
+        for (let i = 0; i < totalTransversal; i++) {
+          const refObj = pdfChartRefs.current.transversalRefs[i];
+          if (refObj?.current) {
+            setProgresoInforme(t('pdfCapturingCharts') + ` (${3 + i}/${2 + totalTransversal})`);
+            const img = await captureChartAsImage(refObj.current);
+            if (img) {
+              chartImages.transversalArray.push(img);
+            }
+          }
+        }
+        console.log('[PDF] Transversal captured:', chartImages.transversalArray.length, 'gráficas');
+      }
+
+      // Desactivar renderizado de gráficas ocultas
+      setRenderPDFCharts(false);
+
+      // Generar PDF con el nuevo servicio
+      await generarInformePDF({
+        trimestreSeleccionado,
+        datosCompletos,
+        configInforme: { ...configInforme, modoEtapa },
+        kpisGlobales,
+        correlacionesTrimestre,
+        analisisDificultad,
+        agrupacionesCompletas: agrupacionesCompletas[trimestreSeleccionado] || {},
+        chartImages,
+        t,
+        onProgress: (msg) => setProgresoInforme(msg),
+        onSuccess: () => {
+          setMostrarModalInforme(false);
+          setGenerandoInforme(false);
+          setProgresoInforme('');
+        },
+        onError: (error) => {
+          console.error('[PDF] Error:', error);
+          alert(`${t('errorGeneratingPDF')}: ${error.message}`);
+          setGenerandoInforme(false);
+          setProgresoInforme('');
+        }
+      });
+    } catch (error) {
+      console.error('[PDF] Error al generar PDF:', error);
+      alert(`${t('errorGeneratingPDF')}: ${error.message}`);
+      setGenerandoInforme(false);
+      setProgresoInforme('');
+      setRenderPDFCharts(false);
+    }
+  }, [trimestreSeleccionado, datosCompletos, configInforme, modoEtapa, kpisGlobales, correlacionesTrimestre, analisisDificultad, agrupacionesCompletas, t]);
+
+  // Datos calculados para las gráficas del PDF
+  const datosDispersionPDF = useMemo(() => {
+    if (!trimestreSeleccionado || !datosCompletos[trimestreSeleccionado]) return [];
+
+    const datos = [];
+    const datosTrimestre = datosCompletos[trimestreSeleccionado];
+
+    // Obtener datos GLOBAL
+    if (datosTrimestre?.['GLOBAL']) {
+      Object.entries(datosTrimestre['GLOBAL']).forEach(([asig, data]) => {
+        if (asig !== 'Total' && asig !== 'Total Especialidad' && asig !== 'Total no Especialidad' && data?.stats) {
+          datos.push({
+            asignatura: asig,
+            notaMedia: data.stats.notaMedia || 0,
+            desviacion: data.stats.desviacion || 0,
+            alumnos: data.stats.registros || 1
+          });
+        }
+      });
+    }
+
+    return datos;
+  }, [trimestreSeleccionado, datosCompletos]);
+
+  // Agrupaciones disponibles de todos los trimestres (para filtro en informe PDF)
+  const agrupacionesDisponiblesPDF = useMemo(() => {
+    const gruposSet = new Set();
+    Object.values(agrupacionesCompletas).forEach(agrupacionesTrimestre => {
+      if (!agrupacionesTrimestre) return;
+      Object.values(agrupacionesTrimestre).forEach(grupos => {
+        if (Array.isArray(grupos)) {
+          grupos.forEach(grupo => gruposSet.add(grupo));
+        }
+      });
+    });
+    // Filtrar agrupaciones vacías o "0"
+    return Array.from(gruposSet)
+      .filter(grupo => grupo && grupo !== '0' && grupo.trim() !== '')
+      .sort();
+  }, [agrupacionesCompletas]);
+
+  // Datos para gráficas de Comparativa Transversal (grupos de 10 asignaturas)
+  const datosTransversalPDF = useMemo(() => {
+    if (!trimestreSeleccionado || !datosCompletos[trimestreSeleccionado]) return [];
+
+    // Obtener asignaturas y niveles disponibles
+    const asignaturasSet = new Set();
+    const nivelesDisponibles = nivelesSinGlobalEtapa.filter(nivel => datosCompletos[trimestreSeleccionado]?.[nivel]);
+
+    // Recopilar todas las asignaturas
+    nivelesDisponibles.forEach(nivel => {
+      const datosNivel = datosCompletos[trimestreSeleccionado]?.[nivel];
+      if (datosNivel) {
+        Object.keys(datosNivel).forEach(asig => {
+          if (asig !== 'Total' && asig !== 'Total Especialidad' && asig !== 'Total no Especialidad') {
+            asignaturasSet.add(asig);
+          }
+        });
+      }
+    });
+
+    const todasAsignaturas = Array.from(asignaturasSet).sort();
+    if (todasAsignaturas.length === 0) return [];
+
+    // Crear datos por nivel (con todas las asignaturas)
+    const datosCompleto = nivelesDisponibles.map(nivel => {
+      const punto = { nivel };
+      todasAsignaturas.forEach(asig => {
+        const datosAsig = datosCompletos[trimestreSeleccionado]?.[nivel]?.[asig];
+        punto[asig] = datosAsig?.stats?.notaMedia || null;
+      });
+      return punto;
+    });
+
+    // Filtrar asignaturas que tienen al menos un dato
+    const asignaturasConDatos = todasAsignaturas.filter(asig =>
+      datosCompleto.some(d => d[asig] !== null)
+    );
+
+    // Dividir en grupos de 10 asignaturas
+    const ASIGNATURAS_POR_GRUPO = 10;
+    const grupos = [];
+    for (let i = 0; i < asignaturasConDatos.length; i += ASIGNATURAS_POR_GRUPO) {
+      const asignaturasGrupo = asignaturasConDatos.slice(i, i + ASIGNATURAS_POR_GRUPO);
+      const numGrupo = Math.floor(i / ASIGNATURAS_POR_GRUPO) + 1;
+      const totalGrupos = Math.ceil(asignaturasConDatos.length / ASIGNATURAS_POR_GRUPO);
+
+      grupos.push({
+        datos: datosCompleto,
+        asignaturas: asignaturasGrupo,
+        titulo: `Comparativa Transversal (${numGrupo}/${totalGrupos})`
+      });
+    }
+
+    return grupos;
+  }, [trimestreSeleccionado, datosCompletos, nivelesSinGlobalEtapa]);
 
   // Si no hay datos, mostrar pantalla de carga
   if (trimestresDisponibles.length === 0) {
@@ -4406,111 +4250,29 @@ const DashboardAcademico = () => {
       )}
 
       {/* Modal de configuración de informe */}
-      {mostrarModalInforme && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-slate-200">
-              <h2 className="text-2xl font-bold text-slate-800">{t('reportConfig')}</h2>
-            </div>
+      <ReportModal
+        isOpen={mostrarModalInforme}
+        onClose={() => setMostrarModalInforme(false)}
+        config={configInforme}
+        onConfigChange={setConfigInforme}
+        onGeneratePDF={handleGenerarInformePDF}
+        isGenerating={generandoInforme}
+        progressMessage={progresoInforme}
+        agrupacionesDisponibles={agrupacionesDisponiblesPDF}
+        t={t}
+      />
 
-            <div className="p-6 space-y-6">
-              {/* Nombre del centro */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  {t('centerName')}
-                </label>
-                <input
-                  type="text"
-                  value={configInforme.nombreCentro}
-                  onChange={(e) => setConfigInforme(prev => ({ ...prev, nombreCentro: e.target.value }))}
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              {/* Curso académico */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  {t('academicYear')}
-                </label>
-                <input
-                  type="text"
-                  value={configInforme.cursoAcademico}
-                  onChange={(e) => setConfigInforme(prev => ({ ...prev, cursoAcademico: e.target.value }))}
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              {/* Opciones de contenido */}
-              <div className="space-y-3">
-                <h3 className="font-semibold text-slate-800">Contenido del informe</h3>
-
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={configInforme.incluirKPIs}
-                    onChange={(e) => setConfigInforme(prev => ({ ...prev, incluirKPIs: e.target.checked }))}
-                    className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                  />
-                  <span className="text-sm text-slate-700">{t('includeKPIs')}</span>
-                </label>
-
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={configInforme.incluirDificultad}
-                    onChange={(e) => setConfigInforme(prev => ({ ...prev, incluirDificultad: e.target.checked }))}
-                    className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                  />
-                  <span className="text-sm text-slate-700">{t('includeDifficulty')}</span>
-                </label>
-
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={configInforme.incluirCorrelaciones}
-                    onChange={(e) => setConfigInforme(prev => ({ ...prev, incluirCorrelaciones: e.target.checked }))}
-                    className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                  />
-                  <span className="text-sm text-slate-700">{t('includeCorrelations')}</span>
-                </label>
-              </div>
-            </div>
-
-            {/* Botones */}
-            <div className="p-6 border-t border-slate-200 flex gap-3 justify-end">
-              <button
-                onClick={() => setMostrarModalInforme(false)}
-                disabled={generandoInforme}
-                className="px-4 py-2 text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200 transition-all font-medium disabled:opacity-50"
-              >
-                {t('cancel')}
-              </button>
-              <button
-                onClick={generarInformePDF}
-                disabled={generandoInforme}
-                className="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all font-medium disabled:opacity-50 flex items-center gap-2"
-              >
-                {generandoInforme ? (
-                  <>
-                    <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    {t('generating')}
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    {t('generatePDF')}
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Renderizador de gráficas para PDF (oculto) */}
+      <PDFChartRenderer
+        ref={pdfChartRefs}
+        isGenerating={renderPDFCharts}
+        datosDispersion={datosDispersionPDF}
+        datosEvolucionCorrelaciones={datosEvolucionCorrelaciones}
+        nivelesCorrelaciones={nivelesSinGlobalEtapa}
+        datosTransversal={datosTransversalPDF}
+        idioma={idioma}
+        t={t}
+      />
 
       {/* Modal de Ayuda */}
       <HelpModal
