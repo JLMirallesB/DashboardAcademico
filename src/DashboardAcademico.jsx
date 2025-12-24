@@ -627,6 +627,13 @@ const DashboardAcademico = () => {
     }
   }, [modoEtapa, compararNiveles, trimestreSeleccionado, nivelesSinGlobalEtapa, asignaturaComparada, datosCompletos, trimestresDisponibles, detectarEtapa]);
 
+  // Cambiar vista de KPI si está en comparativa y cambia a modo TODOS
+  useEffect(() => {
+    if (modoEtapa === 'TODOS' && vistaKPI === 'comparativa') {
+      setVistaKPI('centro');
+    }
+  }, [modoEtapa, vistaKPI]);
+
   // Activar comparación de niveles
   const activarCompararNiveles = useCallback(() => {
     if (!trimestreSeleccionado) return;
@@ -1027,7 +1034,8 @@ const DashboardAcademico = () => {
     umbrales,
     modoEtapa,
     esAsignaturaEspecialidad,
-    detectarEtapa
+    detectarEtapa,
+    trimestresDisponibles
   );
 
   // Análisis de dificultad de asignaturas
@@ -1789,21 +1797,23 @@ const DashboardAcademico = () => {
                   >
                     {t('detail') || 'Detalle'}
                   </button>
-                  <button
-                    onClick={() => setVistaKPI('comparativa')}
-                    className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                      vistaKPI === 'comparativa'
-                        ? 'bg-white text-blue-700 shadow-sm'
-                        : 'text-slate-600 hover:text-slate-800'
-                    }`}
-                  >
-                    {t('comparison') || 'Comparativa'}
-                  </button>
+                  {modoEtapa !== 'TODOS' && (
+                    <button
+                      onClick={() => setVistaKPI('comparativa')}
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                        vistaKPI === 'comparativa'
+                          ? 'bg-white text-blue-700 shadow-sm'
+                          : 'text-slate-600 hover:text-slate-800'
+                      }`}
+                    >
+                      {t('comparison') || 'Comparativa'}
+                    </button>
+                  )}
                 </div>
               </div>
 
               {/* Renderizar componente según vista seleccionada */}
-              {vistaKPI === 'centro' && <KPICentro kpis={kpisGlobales} t={t} />}
+              {vistaKPI === 'centro' && <KPICentro kpis={kpisGlobales} t={t} modoEtapa={modoEtapa} />}
               {vistaKPI === 'detalle' && <KPIDetalle kpis={kpisGlobales} t={t} modoEtapa={modoEtapa} />}
               {vistaKPI === 'comparativa' && <KPIComparativa kpis={kpisGlobales} t={t} modoEtapa={modoEtapa} />}
             </div>

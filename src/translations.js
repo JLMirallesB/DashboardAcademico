@@ -48,6 +48,15 @@ export const translations = {
     kpiDetail: 'KPIs - Detalle por Tipo',
     kpiComparison: 'KPIs - Comparativa',
     studentsPerCourse: 'Alumnos por Curso',
+    totalStudents: 'Total Alumnos',
+    noDataAvailable: 'No hay datos disponibles para esta evaluación',
+    metric: 'Métrica',
+    specialties: 'Especialidades',
+    nonSpecialties: 'No Especialidades',
+    specialtiesComparison: 'Comparativa de Especialidades',
+    specialtiesEEM: 'Especialidades EEM',
+    specialtiesEPM: 'Especialidades EPM',
+    center: 'Centro',
 
     // Selecciones
     selections: 'Selecciones para comparar',
@@ -318,6 +327,15 @@ export const translations = {
     kpiDetail: 'KPIs - Detall per Tipus',
     kpiComparison: 'KPIs - Comparativa',
     studentsPerCourse: 'Alumnes per Curs',
+    totalStudents: 'Total Alumnes',
+    noDataAvailable: 'No hi ha dades disponibles per a aquesta avaluació',
+    metric: 'Mètrica',
+    specialties: 'Especialitats',
+    nonSpecialties: 'No Especialitats',
+    specialtiesComparison: 'Comparativa d\'Especialitats',
+    specialtiesEEM: 'Especialitats EEM',
+    specialtiesEPM: 'Especialitats EPM',
+    center: 'Centre',
 
     // Seleccions
     selections: 'Seleccions per a comparar',
