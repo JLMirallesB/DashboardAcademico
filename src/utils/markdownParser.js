@@ -4,6 +4,20 @@
  */
 
 /**
+ * Generate a URL-friendly ID from text
+ * @param {string} text - Text to convert to ID
+ * @returns {string} URL-friendly ID
+ */
+function generateId(text) {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .trim();
+}
+
+/**
  * Parse markdown to HTML
  * Supports: headers, bold, lists, links, blockquotes, horizontal rules
  * @param {string} markdown - Markdown text to parse
@@ -57,7 +71,8 @@ export function parseMarkdown(markdown) {
 
       const level = trimmedLine.match(/^#+/)[0].length;
       const text = trimmedLine.substring(level).trim();
-      result.push(`<h${level}>${processInlineMarkdown(text)}</h${level}>`);
+      const id = generateId(text);
+      result.push(`<h${level} id="${id}">${processInlineMarkdown(text)}</h${level}>`);
       continue;
     }
 
@@ -185,4 +200,40 @@ export function extractLanguageSection(content, language) {
     // Extract between the two markers
     return content.substring(startIndex, endIndex);
   }
+}
+
+/**
+ * Extract table of contents from markdown
+ * @param {string} markdown - Markdown text to parse
+ * @returns {Array<{level: number, text: string, id: string}>} TOC entries
+ */
+export function extractTableOfContents(markdown) {
+  if (!markdown) return [];
+
+  const lines = markdown.split('\n');
+  const toc = [];
+
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+
+    // Only process headers (###, ##, #)
+    if (trimmedLine.startsWith('#')) {
+      const level = trimmedLine.match(/^#+/)[0].length;
+
+      // Skip h1 (main title) and only include h2, h3, h4
+      if (level >= 2 && level <= 4) {
+        const text = trimmedLine.substring(level).trim();
+        // Remove markdown formatting from text
+        const cleanText = text
+          .replace(/\*\*([^*]+)\*\*/g, '$1')
+          .replace(/`([^`]+)`/g, '$1')
+          .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+
+        const id = generateId(text);
+        toc.push({ level, text: cleanText, id });
+      }
+    }
+  }
+
+  return toc;
 }
