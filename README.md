@@ -345,6 +345,140 @@ Esta sección define los términos técnicos utilizados en el dashboard sin inte
 
 ---
 
+### 📈 Guía de Interpretación de Indicadores
+
+> **Nota sobre umbrales**: Los valores de referencia mencionados en esta sección (media alta = 7, dispersión = 1.5, % suspensos crítico = 30%, etc.) son los umbrales por defecto de la aplicación. Pueden ajustarse según el contexto del centro mediante la configuración de umbrales disponible en la vista de Dificultad.
+
+#### Indicadores globales (KPIs)
+
+**Nota media del centro**
+
+Mide el rendimiento agregado del alumnado y ofrece una primera señal sobre la situación general.
+
+- Una nota media igual o superior a 7 suele indicar que el alumnado alcanza los objetivos previstos con relativa solvencia. No obstante, conviene contrastar este dato con la exigencia de los criterios de evaluación, la dispersión de las calificaciones y la comparativa con cursos anteriores, para descartar efectos de evaluación poco discriminante o inflación de notas.
+- Una nota media en torno a 6 o inferior puede señalar dificultades en la asimilación de contenidos, sobrecarga de tareas o desajustes metodológicos. Alternativamente, puede reflejar:
+  - Un aumento deliberado de la exigencia.
+  - Un perfil de cohorte distinto (menor base previa).
+  - Cambios recientes en criterios o instrumentos de evaluación.
+
+Por tanto, la media debe interpretarse como señal de alerta o confirmación, no como diagnóstico en sí misma.
+
+**Nota media de Lenguaje Musical / Teórica Troncal**
+
+Actúa como referencia del "tronco común" y de los fundamentos teóricos.
+
+- Si estas medias se sitúan claramente por debajo de la media del centro, puede indicar la necesidad de refuerzo en fundamentos, ajustes en la secuenciación o mayor coordinación metodológica.
+- No obstante, también es frecuente que las troncales:
+  - Se evalúen con criterios más homogéneos y objetivos.
+  - Sean menos tolerantes a lagunas previas.
+  - Reciban menor prioridad por parte del alumnado frente a las especialidades.
+
+Por ello, diferencias moderadas entre troncales y media global no implican necesariamente un problema estructural, pero sí justifican un análisis más detallado.
+
+**Nota media de especialidades**
+
+Refleja el progreso en la práctica instrumental o vocal.
+
+- Si la media de especialidades está por encima del tronco común, suele interpretarse como buen progreso práctico, motivación y transferencia efectiva de aprendizajes.
+- Si está por debajo, puede sugerir dificultades técnicas, necesidad de mayor acompañamiento o desajustes entre repertorio, expectativas y tiempo de trabajo disponible.
+
+Alternativamente, medias más bajas pueden deberse a:
+- Mayor heterogeneidad del punto de partida.
+- Criterios de evaluación más individualizados y exigentes.
+- Condiciones externas (acceso a instrumento, práctica autónoma, apoyo familiar).
+
+**% de aprobados y % de suspensos (total, troncales, especialidades)**
+
+Ofrecen una visión complementaria sobre la "salud" del trimestre.
+
+- Porcentajes de aprobados muy altos (p. ej. >90 %) junto con medias altas pueden indicar objetivos asequibles y buen acompañamiento, pero también invitan a revisar si la evaluación discrimina adecuadamente los distintos niveles de logro.
+- Incrementos en los suspensos pueden alertar sobre desajustes de ritmo, prerequisitos no consolidados o necesidad de apoyos adicionales. También pueden reflejar:
+  - Cambios en criterios de promoción.
+  - Evaluaciones acumulativas sin suficiente recuperación.
+  - Incidencias de asistencia o contexto personal del alumnado.
+
+#### Visualizaciones
+
+**Mapa de dispersión (Nota media vs. desviación)**
+
+El mapa permite observar simultáneamente el nivel medio y la heterogeneidad de resultados.
+
+- **Eje X (nota media)**: nivel general de logro.
+- **Eje Y (desviación)**: grado de dispersión entre el alumnado.
+
+**Lectura de cuadrantes** (orientativa, no prescriptiva):
+
+- **Media alta, dispersión baja**: rendimiento elevado y homogéneo. Puede reflejar buen alineamiento didáctico, aunque conviene comprobar que la homogeneidad no oculte falta de profundidad.
+- **Media alta, dispersión alta**: buen promedio con brecha interna. Suele justificar apoyos focalizados, aunque también puede indicar evaluación sensible a diferencias reales de nivel.
+- **Media baja, dispersión baja**: resultados ajustados de forma generalizada. Puede apuntar a dificultad compartida, pero también a cohortes homogéneas con menor base o a estándares exigentes.
+- **Media baja, dispersión alta**: gran variabilidad. Requiere diagnóstico más fino (asistencia, práctica, adaptación de materiales), evitando intervenciones uniformes.
+
+El tamaño del punto (número de alumnos) ayuda a priorizar, aunque grupos pequeños con resultados extremos también pueden requerir atención específica.
+
+Las líneas de referencia (p. ej. media = 7, desviación ≈ 1.5) facilitan la lectura comparativa, pero no deben interpretarse como umbrales rígidos.
+
+**Distribución de notas**
+
+La distribución muestra cómo se reparten las calificaciones y complementa la media y la desviación.
+
+**Escenarios habituales** (con lecturas alternativas):
+
+- **Campana centrada en 6–7 con poca cola baja**: grupo equilibrado. Puede bastar con refuerzos ligeros o ajustes puntuales.
+- **Pico en 5 y cola larga hacia abajo**: muchos aprobados justos y riesgo de suspensos. Puede indicar base frágil, pero también una cultura evaluativa muy criterial.
+- **Distribución bimodal**: dos velocidades claras. Suele justificar diferenciación, aunque también puede responder a subgrupos con trayectorias previas distintas.
+- **Cola alta pronunciada (muchos 9–10)**: posible facilidad de objetivos o evaluación generosa, aunque también puede reflejar un grupo especialmente fuerte.
+- **Cola baja larga y pocos sobresalientes**: posible desajuste de contenidos o ritmo, pero conviene descartar primero factores externos o cambios recientes.
+
+Los heatmaps y porcentajes por rangos permiten identificar rápidamente concentraciones críticas, siempre interpretadas junto con el contexto del nivel y la asignatura.
+
+**Comparativa transversal (misma asignatura en distintos niveles)**
+
+Permite observar tendencias a lo largo de los cursos en nota media y suspensos.
+
+- **Tendencia creciente**: puede indicar progresión curricular adecuada; conviene confirmar que no se deba solo a selección o abandono del alumnado con más dificultades.
+- **Tendencia decreciente**: puede señalar un escalón mal calibrado o prerequisitos débiles, aunque también cambios de criterios o docencia.
+- **Valle en un curso intermedio**: sugiere un "cuello de botella", pero conviene analizar si es estructural o coyuntural.
+- **Pico puntual**: puede reflejar diferencias de exigencia o evaluación entre cursos.
+- **Oscilaciones**: pueden deberse a heterogeneidad de grupos o enfoques docentes distintos; no siempre implican un problema, pero sí merecen seguimiento.
+
+**Correlaciones entre asignaturas**
+
+La correlación indica hasta qué punto los resultados del alumnado tienden a moverse conjuntamente entre materias. No implica causalidad, sino coexistencia de patrones.
+
+**Lectura orientativa**:
+
+- **Correlación positiva alta**: puede reflejar competencias base compartidas, hábitos de estudio comunes o criterios evaluativos similares. La coordinación puede ser útil, aunque conviene evitar asumir dependencia directa entre contenidos.
+- **Correlación negativa**: puede sugerir conflictos de carga o priorización del alumnado, pero también estrategias compensatorias o diferencias en el tipo de exigencia.
+- **Correlación cercana a cero**: indica independencia aparente; no descarta relaciones no lineales o efectos en subgrupos.
+
+**Uso práctico**: Ordenar las correlaciones ayuda a priorizar dónde la coordinación puede tener mayor impacto, siempre interpretando los datos como punto de partida para indagación, no como prueba concluyente.
+
+#### Análisis de dificultad
+
+La vista de dificultad clasifica cada asignatura según criterios configurables:
+
+- **DIFÍCIL**: Asignaturas con % de suspensos ≥ umbral de alerta O nota media < umbral crítico.
+- **FÁCIL**: Asignaturas con % de aprobados ≥ umbral mínimo O nota media ≥ umbral fácil.
+- **NEUTRAL**: Asignaturas que no cumplen ninguno de los criterios anteriores.
+
+**Interpretación** (no prescriptiva):
+
+- Una asignatura clasificada como **DIFÍCIL** puede indicar contenidos complejos, prerequisitos no consolidados, o desajustes metodológicos. Alternativamente, puede reflejar criterios de evaluación más exigentes, una cohorte con menor base previa, o factores externos (asistencia, práctica autónoma).
+- Una asignatura clasificada como **FÁCIL** puede indicar buen alineamiento didáctico, objetivos asequibles o alta motivación del alumnado. También puede reflejar criterios de evaluación poco discriminantes, por lo que conviene revisar si la evaluación diferencia adecuadamente los distintos niveles de logro.
+- Las asignaturas **NEUTRALES** se sitúan en zona intermedia y merecen seguimiento, especialmente si sus valores se aproximan a los umbrales críticos.
+
+La clasificación debe entenderse como señal para profundizar el análisis, no como etiqueta definitiva.
+
+#### Cierre interpretativo
+
+En conjunto, estos indicadores permiten detectar señales tempranas y orientar la toma de decisiones. Dado que el objetivo es evitar falsos negativos, se recomienda:
+
+- Tratar los resultados como hipótesis plausibles, no como diagnósticos cerrados.
+- Contrastar siempre con información cualitativa (observación docente, asistencia, cambios organizativos).
+- Priorizar intervenciones proporcionales y reversibles antes de cambios estructurales.
+
+---
+
 ## [VA] VALENCIÀ
 
 ### 📊 Visió General
@@ -685,6 +819,140 @@ Esta secció defineix els termes tècnics utilitzats en el dashboard sense inter
 > - **Eix Y**: Coeficient de correlació [-0.2, 0.8]
 >
 > En termes simples: permet detectar si la relació entre dos assignatures es fortifica o s'afebleix amb el temps.
+
+---
+
+### 📈 Guia d'Interpretació d'Indicadors
+
+> **Nota sobre llindars**: Els valors de referència esmentats en esta secció (mitjana alta = 7, dispersió = 1.5, % suspesos crític = 30%, etc.) són els llindars per defecte de l'aplicació. Poden ajustar-se segons el context del centre mitjançant la configuració de llindars disponible en la vista de Dificultat.
+
+#### Indicadors globals (KPIs)
+
+**Nota mitjana del centre**
+
+Mesura el rendiment agregat de l'alumnat i ofereix una primera senyal sobre la situació general.
+
+- Una nota mitjana igual o superior a 7 sol indicar que l'alumnat aconsegueix els objectius previstos amb relativa solvència. No obstant això, convé contrastar esta dada amb l'exigència dels criteris d'avaluació, la dispersió de les qualificacions i la comparativa amb cursos anteriors, per a descartar efectes d'avaluació poc discriminant o inflació de notes.
+- Una nota mitjana entorn de 6 o inferior pot assenyalar dificultats en l'assimilació de continguts, sobrecàrrega de tasques o desajustos metodològics. Alternativament, pot reflectir:
+  - Un augment deliberat de l'exigència.
+  - Un perfil de cohort diferent (menor base prèvia).
+  - Canvis recents en criteris o instruments d'avaluació.
+
+Per tant, la mitjana ha d'interpretar-se com a senyal d'alerta o confirmació, no com a diagnòstic en si mateixa.
+
+**Nota mitjana de Llenguatge Musical / Teòrica Troncal**
+
+Actua com a referència del "tronc comú" i dels fonaments teòrics.
+
+- Si estes mitjanes se situen clarament per davall de la mitjana del centre, pot indicar la necessitat de reforç en fonaments, ajustos en la seqüenciació o major coordinació metodològica.
+- No obstant això, també és freqüent que les troncals:
+  - S'avaluen amb criteris més homogenis i objectius.
+  - Siguen menys tolerants a llacunes prèvies.
+  - Reben menor prioritat per part de l'alumnat enfront de les especialitats.
+
+Per això, diferències moderades entre troncals i mitjana global no impliquen necessàriament un problema estructural, però sí justifiquen una anàlisi més detallada.
+
+**Nota mitjana d'especialitats**
+
+Reflecteix el progrés en la pràctica instrumental o vocal.
+
+- Si la mitjana d'especialitats està per damunt del tronc comú, sol interpretar-se com a bon progrés pràctic, motivació i transferència efectiva d'aprenentatges.
+- Si està per davall, pot suggerir dificultats tècniques, necessitat de major acompanyament o desajustos entre repertori, expectatives i temps de treball disponible.
+
+Alternativament, mitjanes més baixes poden deure's a:
+- Major heterogeneïtat del punt de partida.
+- Criteris d'avaluació més individualitzats i exigents.
+- Condicions externes (accés a instrument, pràctica autònoma, suport familiar).
+
+**% d'aprovats i % de suspesos (total, troncals, especialitats)**
+
+Ofereixen una visió complementària sobre la "salut" del trimestre.
+
+- Percentatges d'aprovats molt alts (p. ex. >90 %) juntament amb mitjanes altes poden indicar objectius assequibles i bon acompanyament, però també conviden a revisar si l'avaluació discrimina adequadament els diferents nivells d'assoliment.
+- Increments en els suspesos poden alertar sobre desajustos de ritme, prerequisits no consolidats o necessitat de suports addicionals. També poden reflectir:
+  - Canvis en criteris de promoció.
+  - Avaluacions acumulatives sense suficient recuperació.
+  - Incidències d'assistència o context personal de l'alumnat.
+
+#### Visualitzacions
+
+**Mapa de dispersió (Nota mitjana vs. desviació)**
+
+El mapa permet observar simultàniament el nivell mitjà i l'heterogeneïtat de resultats.
+
+- **Eix X (nota mitjana)**: nivell general d'assoliment.
+- **Eix Y (desviació)**: grau de dispersió entre l'alumnat.
+
+**Lectura de quadrants** (orientativa, no prescriptiva):
+
+- **Mitjana alta, dispersió baixa**: rendiment elevat i homogeni. Pot reflectir bon alineament didàctic, encara que convé comprovar que l'homogeneïtat no oculte falta de profunditat.
+- **Mitjana alta, dispersió alta**: bon promig amb bretxa interna. Sol justificar suports focalitzats, encara que també pot indicar avaluació sensible a diferències reals de nivell.
+- **Mitjana baixa, dispersió baixa**: resultats ajustats de forma generalitzada. Pot apuntar a dificultat compartida, però també a cohorts homogènies amb menor base o a estàndards exigents.
+- **Mitjana baixa, dispersió alta**: gran variabilitat. Requereix diagnòstic més fi (assistència, pràctica, adaptació de materials), evitant intervencions uniformes.
+
+La grandària del punt (nombre d'alumnes) ajuda a prioritzar, encara que grups xicotets amb resultats extrems també poden requerir atenció específica.
+
+Les línies de referència (p. ex. mitjana = 7, desviació ≈ 1.5) faciliten la lectura comparativa, però no han d'interpretar-se com a llindars rígids.
+
+**Distribució de notes**
+
+La distribució mostra com es reparteixen les qualificacions i complementa la mitjana i la desviació.
+
+**Escenaris habituals** (amb lectures alternatives):
+
+- **Campana centrada en 6–7 amb poca cua baixa**: grup equilibrat. Pot bastar amb reforços lleugers o ajustos puntuals.
+- **Pic en 5 i cua llarga cap avall**: molts aprovats justs i risc de suspesos. Pot indicar base fràgil, però també una cultura avaluativa molt criterial.
+- **Distribució bimodal**: dos velocitats clares. Sol justificar diferenciació, encara que també pot respondre a subgrups amb trajectòries prèvies diferents.
+- **Cua alta pronunciada (molts 9–10)**: possible facilitat d'objectius o avaluació generosa, encara que també pot reflectir un grup especialment fort.
+- **Cua baixa llarga i pocs excel·lents**: possible desajust de continguts o ritme, però convé descartar primer factors externs o canvis recents.
+
+Els heatmaps i percentatges per rangs permeten identificar ràpidament concentracions crítiques, sempre interpretades juntament amb el context del nivell i l'assignatura.
+
+**Comparativa transversal (mateixa assignatura en diferents nivells)**
+
+Permet observar tendències al llarg dels cursos en nota mitjana i suspesos.
+
+- **Tendència creixent**: pot indicar progressió curricular adequada; convé confirmar que no es dega només a selecció o abandó de l'alumnat amb més dificultats.
+- **Tendència decreixent**: pot assenyalar un escaló mal calibrat o prerequisits dèbils, encara que també canvis de criteris o docència.
+- **Vall en un curs intermedi**: suggereix un "coll de botella", però convé analitzar si és estructural o conjuntural.
+- **Pic puntual**: pot reflectir diferències d'exigència o avaluació entre cursos.
+- **Oscil·lacions**: poden deure's a heterogeneïtat de grups o enfocaments docents diferents; no sempre impliquen un problema, però sí mereixen seguiment.
+
+**Correlacions entre assignatures**
+
+La correlació indica fins a quin punt els resultats de l'alumnat tendeixen a moure's conjuntament entre matèries. No implica causalitat, sinó coexistència de patrons.
+
+**Lectura orientativa**:
+
+- **Correlació positiva alta**: pot reflectir competències base compartides, hàbits d'estudi comuns o criteris avaluatius similars. La coordinació pot ser útil, encara que convé evitar assumir dependència directa entre continguts.
+- **Correlació negativa**: pot suggerir conflictes de càrrega o priorització de l'alumnat, però també estratègies compensatòries o diferències en el tipus d'exigència.
+- **Correlació pròxima a zero**: indica independència aparent; no descarta relacions no lineals o efectes en subgrups.
+
+**Ús pràctic**: Ordenar les correlacions ajuda a prioritzar on la coordinació pot tindre major impacte, sempre interpretant les dades com a punt de partida per a indagació, no com a prova concloent.
+
+#### Anàlisi de dificultat
+
+La vista de dificultat classifica cada assignatura segons criteris configurables:
+
+- **DIFÍCIL**: Assignatures amb % de suspesos ≥ llindar d'alerta O nota mitjana < llindar crític.
+- **FÀCIL**: Assignatures amb % d'aprovats ≥ llindar mínim O nota mitjana ≥ llindar fàcil.
+- **NEUTRAL**: Assignatures que no compleixen cap dels criteris anteriors.
+
+**Interpretació** (no prescriptiva):
+
+- Una assignatura classificada com a **DIFÍCIL** pot indicar continguts complexos, prerequisits no consolidats, o desajustos metodològics. Alternativament, pot reflectir criteris d'avaluació més exigents, una cohort amb menor base prèvia, o factors externs (assistència, pràctica autònoma).
+- Una assignatura classificada com a **FÀCIL** pot indicar bon alineament didàctic, objectius assequibles o alta motivació de l'alumnat. També pot reflectir criteris d'avaluació poc discriminants, per la qual cosa convé revisar si l'avaluació diferencia adequadament els diferents nivells d'assoliment.
+- Les assignatures **NEUTRALS** se situen en zona intermèdia i mereixen seguiment, especialment si els seus valors s'aproximen als llindars crítics.
+
+La classificació ha d'entendre's com a senyal per a aprofundir l'anàlisi, no com a etiqueta definitiva.
+
+#### Tancament interpretatiu
+
+En conjunt, estos indicadors permeten detectar senyals primerencs i orientar la presa de decisions. Atés que l'objectiu és evitar falsos negatius, es recomana:
+
+- Tractar els resultats com a hipòtesis plausibles, no com a diagnòstics tancats.
+- Contrastar sempre amb informació qualitativa (observació docent, assistència, canvis organitzatius).
+- Prioritzar intervencions proporcionals i reversibles abans de canvis estructurals.
 
 ---
 
