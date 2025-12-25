@@ -1,4 +1,4 @@
-# Dashboard Académico v2.3.0
+# Dashboard Académico v2.4.0
 
 ---
 
