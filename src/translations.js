@@ -20,6 +20,8 @@ export const translations = {
     loadFirstDataset: 'Carga tu primer conjunto de datos usando el botón superior',
 
     // Navegación
+    kpisNav: 'Indicadores',
+    dispersionNav: 'Dispersión',
     statistics: 'Estadísticas',
     correlations: 'Correlaciones',
     evolution: 'Evolución',
@@ -274,6 +276,16 @@ export const translations = {
     help: 'Ayuda',
     helpButton: 'Ayuda',
 
+    // Sidebar
+    collapseSidebar: 'Colapsar menú',
+    expandSidebar: 'Expandir menú',
+    navigation: 'Navegación',
+    actions: 'Acciones',
+    openMenu: 'Abrir menú',
+    closeMenu: 'Cerrar menú',
+    thresholds: 'Umbrales',
+    language: 'Idioma',
+
     // Footer
     designedBy: 'App diseñada por',
     withHelpOf: 'con ayuda de Claude',
@@ -299,6 +311,8 @@ export const translations = {
     loadFirstDataset: 'Carrega el teu primer conjunt de dades usant el botó superior',
 
     // Navegació
+    kpisNav: 'Indicadors',
+    dispersionNav: 'Dispersió',
     statistics: 'Estadístiques',
     correlations: 'Correlacions',
     evolution: 'Evolució',
@@ -552,6 +566,16 @@ export const translations = {
     // Ajuda
     help: 'Ajuda',
     helpButton: 'Ajuda',
+
+    // Sidebar
+    collapseSidebar: 'Plegar menú',
+    expandSidebar: 'Desplegar menú',
+    navigation: 'Navegació',
+    actions: 'Accions',
+    openMenu: 'Obrir menú',
+    closeMenu: 'Tancar menú',
+    thresholds: 'Llindars',
+    language: 'Idioma',
 
     // Footer
     designedBy: 'App dissenyada per',

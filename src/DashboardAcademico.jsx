@@ -15,6 +15,7 @@ import KPIDetalle from './components/kpi/KPIDetalle.jsx';
 import KPIComparativa from './components/kpi/KPIComparativa.jsx';
 import { HelpModal } from './components/modals/HelpModal.jsx';
 import { ReportModal } from './components/modals/ReportModal.jsx';
+import { MainLayout } from './components/layout/MainLayout.jsx';
 import { PDFChartRenderer } from './components/pdf/PDFChartRenderer.jsx';
 import { generarInformePDF } from './services/pdfGenerator.js';
 import { captureChartAsImage, waitForRender } from './utils/chartCapture.js';
@@ -36,13 +37,13 @@ const DashboardAcademico = () => {
   
   // UI State
   const [trimestreSeleccionado, setTrimestreSeleccionado] = useState(null);
-  const [vistaActual, setVistaActual] = useState('estadisticas'); // 'estadisticas', 'correlaciones', 'evolucion', 'dificultad', 'asignaturas'
+  const [vistaActual, setVistaActual] = useState('kpis'); // 'kpis', 'dispersion', 'estadisticas', 'correlaciones', 'evolucion', 'dificultad', 'asignaturas'
   const [vistaKPI, setVistaKPI] = useState('centro'); // 'centro', 'detalle', 'comparativa'
   const [selecciones, setSelecciones] = useState([]);
   const [mostrarModalConfirm, setMostrarModalConfirm] = useState(false);
   const [trimestrePendiente, setTrimestrePendiente] = useState(null);
   const [datosPendientes, setDatosPendientes] = useState(null);
-  const [mostrarPanelUmbrales, setMostrarPanelUmbrales] = useState(false);
+  // Estado mostrarPanelUmbrales eliminado - ahora manejado internamente por SidebarThresholds
   const [mostrarPanelCarga, setMostrarPanelCarga] = useState(true);
   const [mostrarModalGestionDatos, setMostrarModalGestionDatos] = useState(false);
   const [mostrarModalAyuda, setMostrarModalAyuda] = useState(false);
@@ -1458,7 +1459,7 @@ const DashboardAcademico = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+    <div className="min-h-screen">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display&display=swap');
         * { font-family: 'DM Sans', sans-serif; }
@@ -1616,217 +1617,38 @@ const DashboardAcademico = () => {
         </div>
       )}
 
-      {/* Header */}
-      <div className="max-w-7xl mx-auto mb-8">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div>
-              <h1 className="text-5xl text-slate-800 mb-2">{t('appTitle')}</h1>
-              <p className="text-xl text-slate-600 font-medium">
-                {trimestresDisponibles.length > 0 ? (metadata[trimestresDisponibles[0]]?.Centro || 'EEM') : 'EEM'} ·
-                Curso {trimestresDisponibles.length > 0 ? (metadata[trimestresDisponibles[0]]?.CursoAcademico || '') : ''}
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              {/* Selector de idioma */}
-              <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
-                <button
-                  onClick={() => setIdioma('es')}
-                  className={`px-2 py-1 text-xs font-medium rounded transition-all ${
-                    idioma === 'es' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-                  }`}
-                >
-                  ES
-                </button>
-                <button
-                  onClick={() => setIdioma('va')}
-                  className={`px-2 py-1 text-xs font-medium rounded transition-all ${
-                    idioma === 'va' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-                  }`}
-                >
-                  VA
-                </button>
-              </div>
+      {/* Inputs ocultos para carga de archivos */}
+      <input ref={fileInputRef} type="file" accept=".csv" onChange={handleCargarCSV} className="hidden" />
+      <input ref={jsonInputRef} type="file" accept=".json" onChange={handleImportarJSON} className="hidden" />
 
-              {/* Selector de modo de etapa (EEM/EPM/TODOS) */}
-              {etapasDisponibles.length > 1 && (
-                <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
-                  {etapasDisponibles.map(etapa => (
-                    <button
-                      key={etapa}
-                      onClick={() => setModoEtapa(etapa)}
-                      className={`px-3 py-1.5 text-xs font-medium rounded transition-all ${
-                        modoEtapa === etapa ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-                      }`}
-                    >
-                      {etapa === 'TODOS' ? t('allStages') : t(`${etapa.toLowerCase()}Short`)}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setMostrarModalGestionDatos(true)}
-              className="py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all text-sm font-medium flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
-              </svg>
-              {t('manageData')}
-            </button>
-            <button
-              onClick={exportarJSON}
-              className="py-2 px-4 bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition-all text-sm font-medium"
-            >
-              {t('exportJSON')}
-            </button>
-            <button
-              onClick={() => setMostrarModalInforme(true)}
-              className="py-2 px-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all text-sm font-medium flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              {t('generateReport')}
-            </button>
-            <button
-              onClick={() => setMostrarModalAyuda(true)}
-              className="py-2 px-4 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-all text-sm font-medium flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              {t('helpButton')}
-            </button>
-          </div>
-        </div>
-
-        <input ref={fileInputRef} type="file" accept=".csv" onChange={handleCargarCSV} className="hidden" />
-        <input ref={jsonInputRef} type="file" accept=".json" onChange={handleImportarJSON} className="hidden" />
-      </div>
-
-      {/* Navegación de vistas */}
-      <div className="max-w-7xl mx-auto mb-6">
-        <div className="flex gap-1 p-1 bg-white rounded-xl border border-slate-200 w-fit">
-          {[
-            { id: 'estadisticas', label: t('statistics') },
-            { id: 'correlaciones', label: t('correlations') },
-            { id: 'evolucion', label: t('evolution') },
-            { id: 'dificultad', label: t('difficulty') },
-            { id: 'asignaturas', label: t('subjectsData') }
-          ].map(vista => (
-            <button
-              key={vista.id}
-              onClick={() => setVistaActual(vista.id)}
-              className={`py-2 px-4 rounded-lg text-sm font-medium transition-all ${
-                vistaActual === vista.id
-                  ? 'bg-slate-800 text-white'
-                  : 'text-slate-600 hover:bg-slate-100'
-              }`}
-            >
-              {vista.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Panel de Umbrales */}
-      <div className="max-w-7xl mx-auto mb-6">
-        <button
-          onClick={() => setMostrarPanelUmbrales(!mostrarPanelUmbrales)}
-          className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-800 transition-all"
-        >
-          <svg className={`w-4 h-4 transition-transform ${mostrarPanelUmbrales ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-          {t('configureThresholds')}
-        </button>
-
-        {mostrarPanelUmbrales && (
-          <div className="mt-4 p-6 bg-white rounded-xl border border-slate-200">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-sm font-medium text-slate-700">{t('thresholdConfig')}</span>
-              <button
-                onClick={() => setUmbrales({
-                  suspensosAlerta: 30,
-                  mediaCritica: 6,
-                  mediaFacil: 8,
-                  aprobadosMinimo: 90,
-                  alumnosMinimo: 3
-                })}
-                className="text-xs py-1 px-3 bg-slate-100 text-slate-600 rounded hover:bg-slate-200 transition-all"
-              >
-                {t('restoreDefaults')}
-              </button>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">{t('failedAlert')}</label>
-                <input
-                  type="number"
-                  value={umbrales.suspensosAlerta}
-                  onChange={(e) => setUmbrales(prev => ({ ...prev, suspensosAlerta: parseFloat(e.target.value) || 0 }))}
-                  className="w-full py-2 px-3 border border-slate-300 rounded-lg text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">{t('criticalAvg')}</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={umbrales.mediaCritica}
-                  onChange={(e) => setUmbrales(prev => ({ ...prev, mediaCritica: parseFloat(e.target.value) || 0 }))}
-                  className="w-full py-2 px-3 border border-slate-300 rounded-lg text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">{t('easyAvg')}</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={umbrales.mediaFacil}
-                  onChange={(e) => setUmbrales(prev => ({ ...prev, mediaFacil: parseFloat(e.target.value) || 0 }))}
-                  className="w-full py-2 px-3 border border-slate-300 rounded-lg text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">{t('minPassed')}</label>
-                <input
-                  type="number"
-                  value={umbrales.aprobadosMinimo}
-                  onChange={(e) => setUmbrales(prev => ({ ...prev, aprobadosMinimo: parseFloat(e.target.value) || 0 }))}
-                  className="w-full py-2 px-3 border border-slate-300 rounded-lg text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">{t('minStudents')}</label>
-                <input
-                  type="number"
-                  value={umbrales.alumnosMinimo}
-                  onChange={(e) => setUmbrales(prev => ({ ...prev, alumnosMinimo: parseInt(e.target.value) || 0 }))}
-                  className="w-full py-2 px-3 border border-slate-300 rounded-lg text-sm"
-                />
-              </div>
-            </div>
-            <div className="mt-4 text-xs text-slate-500">
-              <span className="inline-block px-2 py-0.5 bg-red-100 text-red-700 rounded mr-2">{t('difficult')}</span>
-              {t('failed')} ≥ {umbrales.suspensosAlerta}% o {t('average')} &lt; {umbrales.mediaCritica}
-              <span className="mx-4">|</span>
-              <span className="inline-block px-2 py-0.5 bg-green-100 text-green-700 rounded mr-2">{t('easy')}</span>
-              {t('passed')} ≥ {umbrales.aprobadosMinimo}% o {t('average')} ≥ {umbrales.mediaFacil}
-              <span className="mx-4">|</span>
-              <span className="inline-block px-2 py-0.5 bg-slate-100 text-slate-700 rounded mr-2">{t('filter')}</span>
-              {t('minStudentsFilter').replace('{min}', umbrales.alumnosMinimo)}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* VISTA: ESTADÍSTICAS */}
-      {vistaActual === 'estadisticas' && (
+      {/* Layout principal con Sidebar */}
+      <MainLayout
+        sidebarProps={{
+          currentView: vistaActual,
+          onViewChange: setVistaActual,
+          currentStage: modoEtapa,
+          availableStages: etapasDisponibles,
+          onStageChange: setModoEtapa,
+          thresholds: umbrales,
+          onThresholdsChange: setUmbrales,
+          language: idioma,
+          onLanguageChange: setIdioma,
+          actions: {
+            onManageData: () => setMostrarModalGestionDatos(true),
+            onExport: exportarJSON,
+            onReport: () => setMostrarModalInforme(true),
+            onHelp: () => setMostrarModalAyuda(true)
+          },
+          t
+        }}
+        headerProps={{
+          centerName: trimestresDisponibles.length > 0 ? (metadata[trimestresDisponibles[0]]?.Centro || '') : '',
+          academicYear: trimestresDisponibles.length > 0 ? (metadata[trimestresDisponibles[0]]?.CursoAcademico || '') : '',
+          currentTrimester: trimestreSeleccionado ? formatearNombreTrimestre(trimestreSeleccionado) : ''
+        }}
+      >
+      {/* VISTA: INDICADORES (KPIs) */}
+      {vistaActual === 'kpis' && (
         <div className="max-w-7xl mx-auto">
           {/* Panel de KPIs Globales con Navegación por Pestañas */}
           {kpisGlobales && (
@@ -2051,7 +1873,12 @@ const DashboardAcademico = () => {
               </div>
             </div>
           )}
+        </div>
+      )}
 
+      {/* VISTA: DISPERSIÓN */}
+      {vistaActual === 'dispersion' && (
+        <div className="max-w-7xl mx-auto">
           {/* Mapa de Dispersión: Nota Media vs Desviación Estándar */}
           {trimestreSeleccionado && (() => {
             // Recopilar datos de todas las asignaturas desde el nivel seleccionado
@@ -2216,7 +2043,33 @@ const DashboardAcademico = () => {
             };
 
             // Obtener niveles disponibles para el selector
-            const nivelesParaDispersion = ['GLOBAL', ...Object.keys(datosCompletos[trimestreSeleccionado] || {}).filter(n => n !== 'GLOBAL')];
+            // En modo TODOS, combinar niveles de todos los trimestres de la misma evaluación
+            const obtenerNivelesDispersion = () => {
+              if (modoEtapa === 'TODOS') {
+                const nivelesSet = new Set();
+                const trimestreBase = getTrimestreBase(trimestreSeleccionado);
+                // Buscar en todos los trimestres de la misma evaluación
+                trimestresDisponibles.forEach(trim => {
+                  if (trim.startsWith(trimestreBase) && datosCompletos[trim]) {
+                    Object.keys(datosCompletos[trim]).forEach(nivel => {
+                      if (nivel !== 'GLOBAL') nivelesSet.add(nivel);
+                    });
+                  }
+                });
+                // Ordenar niveles: primero EEM (1-4), luego EPM (1-6)
+                const niveles = Array.from(nivelesSet).sort((a, b) => {
+                  const esEEM_A = a.includes('EEM');
+                  const esEEM_B = b.includes('EEM');
+                  if (esEEM_A && !esEEM_B) return -1;
+                  if (!esEEM_A && esEEM_B) return 1;
+                  return a.localeCompare(b, undefined, { numeric: true });
+                });
+                return ['GLOBAL', ...niveles];
+              }
+              // En modos EEM/EPM, solo niveles del trimestre seleccionado
+              return ['GLOBAL', ...Object.keys(datosCompletos[trimestreSeleccionado] || {}).filter(n => n !== 'GLOBAL')];
+            };
+            const nivelesParaDispersion = obtenerNivelesDispersion();
 
             return (
               <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
@@ -2322,20 +2175,50 @@ const DashboardAcademico = () => {
                       />
                       <span className="text-xs text-slate-700 font-mono">{zoomDispersion.rangoDesviacion.min.toFixed(1)}</span>
                       <span className="text-xs text-slate-500">-</span>
+                      <input
+                        type="range"
+                        min="0"
+                        max={Math.max(3, Math.ceil(maxDesviacion * 1.2))}
+                        step="0.1"
+                        value={desviacionMax}
+                        onChange={(e) => setZoomDispersion({
+                          ...zoomDispersion,
+                          rangoDesviacion: { ...zoomDispersion.rangoDesviacion, max: parseFloat(e.target.value) }
+                        })}
+                        className="w-24"
+                      />
                       <span className="text-xs text-slate-700 font-mono">{desviacionMax.toFixed(1)}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-slate-600 whitespace-nowrap">{t('students')} ≥:</span>
+                      {/* Botones rápidos para valores bajos */}
+                      <div className="flex gap-1">
+                        {[0, 3, 5, 10].map(val => (
+                          <button
+                            key={val}
+                            onClick={() => setMinAlumnosDispersion(val)}
+                            className={`px-2 py-1 text-xs rounded transition-colors ${
+                              minAlumnosDispersion === val
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                            }`}
+                          >
+                            {val}
+                          </button>
+                        ))}
+                      </div>
+                      {/* Input numérico directo */}
                       <input
-                        type="range"
+                        type="number"
                         min="0"
                         max={Math.max(50, maxAlumnos)}
-                        step="1"
                         value={minAlumnosDispersion}
-                        onChange={(e) => setMinAlumnosDispersion(parseInt(e.target.value))}
-                        className="w-32"
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value) || 0;
+                          setMinAlumnosDispersion(Math.max(0, Math.min(val, Math.max(50, maxAlumnos))));
+                        }}
+                        className="w-16 px-2 py-1 text-xs text-center border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                       />
-                      <span className="text-xs text-slate-700 font-mono w-8">{minAlumnosDispersion}</span>
                       {minAlumnosDispersion > 0 && (
                         <span className="text-xs text-emerald-600">✓</span>
                       )}
@@ -2462,7 +2345,12 @@ const DashboardAcademico = () => {
               </div>
             );
           })()}
+        </div>
+      )}
 
+      {/* VISTA: ESTADÍSTICAS (Selecciones y comparativas) */}
+      {vistaActual === 'estadisticas' && (
+        <div className="max-w-7xl mx-auto">
           {/* Selectores */}
           <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
             <div className="flex items-center justify-between mb-4">
@@ -2556,9 +2444,15 @@ const DashboardAcademico = () => {
                         disabled={compararNiveles}
                         className="w-full py-2 px-3 bg-white border border-slate-300 rounded-lg text-sm disabled:bg-slate-100 disabled:cursor-not-allowed"
                       >
-                        {trimestresDisponibles.map(t => (
-                          <option key={t} value={t}>{formatearNombreTrimestre(t)}</option>
-                        ))}
+                        {trimestresDisponibles
+                          .filter(t => {
+                            if (modoEtapa === 'TODOS') return true;
+                            const parsed = parseTrimestre(t);
+                            return parsed && parsed.etapa === modoEtapa;
+                          })
+                          .map(t => (
+                            <option key={t} value={t}>{formatearNombreTrimestre(t)}</option>
+                          ))}
                       </select>
                     </div>
                     <div>
@@ -3295,9 +3189,15 @@ const DashboardAcademico = () => {
                   onChange={(e) => setTrimestreSeleccionado(e.target.value)}
                   className="py-2 px-4 border border-slate-300 rounded-lg text-sm"
                 >
-                  {trimestresDisponibles.map(t => (
-                    <option key={t} value={t}>{formatearNombreTrimestre(t)}</option>
-                  ))}
+                  {trimestresDisponibles
+                    .filter(t => {
+                      if (modoEtapa === 'TODOS') return true;
+                      const parsed = parseTrimestre(t);
+                      return parsed && parsed.etapa === modoEtapa;
+                    })
+                    .map(t => (
+                      <option key={t} value={t}>{formatearNombreTrimestre(t)}</option>
+                    ))}
                 </select>
                 <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
                   <button
@@ -3597,7 +3497,13 @@ const DashboardAcademico = () => {
                   const colores = ['#1a1a2e', '#3b82f6', '#ef4444', '#22c55e', '#f59e0b', '#ec4899', '#06b6d4', '#8b5cf6', '#14b8a6', '#f97316', '#a855f7', '#f43f5e', '#84cc16', '#0ea5e9', '#f472b6'];
 
                   // Preparar datos combinados de todas las selecciones
-                  const datosEvolucion = trimestresDisponibles.map(trim => {
+                  // Filtrar trimestres según modoEtapa
+                  const trimestresFiltrados = trimestresDisponibles.filter(t => {
+                    if (modoEtapa === 'TODOS') return true;
+                    const parsed = parseTrimestre(t);
+                    return parsed && parsed.etapa === modoEtapa;
+                  });
+                  const datosEvolucion = trimestresFiltrados.map(trim => {
                     const punto = { trimestre: trim };
                     seleccionesEvolucion.forEach((sel, idx) => {
                       const d = datosCompletos[trim]?.[sel.nivel]?.[sel.asignatura];
@@ -4145,9 +4051,15 @@ const DashboardAcademico = () => {
                   className="w-full py-2 px-3 border border-slate-300 rounded-lg text-sm bg-white"
                 >
                   <option value="ALL">{t('allTrimesters')}</option>
-                  {trimestresDisponibles.map(trim => (
-                    <option key={trim} value={trim}>{formatearNombreTrimestre(trim)}</option>
-                  ))}
+                  {trimestresDisponibles
+                    .filter(t => {
+                      if (modoEtapa === 'TODOS') return true;
+                      const parsed = parseTrimestre(t);
+                      return parsed && parsed.etapa === modoEtapa;
+                    })
+                    .map(trim => (
+                      <option key={trim} value={trim}>{formatearNombreTrimestre(trim)}</option>
+                    ))}
                 </select>
               </div>
               <div className="flex-1">
@@ -4317,6 +4229,14 @@ const DashboardAcademico = () => {
         </div>
       )}
 
+      {/* Footer */}
+      <footer className="max-w-7xl mx-auto mt-12 py-6 border-t border-slate-200">
+        <p className="text-center text-sm text-slate-400">
+          {t('designedBy')} <a href="https://jlmirall.es" target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:text-slate-800 underline">José Luis Miralles Bono</a> {t('withHelpOf')}
+        </p>
+      </footer>
+      </MainLayout>
+
       {/* Modal de configuración de informe */}
       <ReportModal
         isOpen={mostrarModalInforme}
@@ -4349,13 +4269,6 @@ const DashboardAcademico = () => {
         idioma={idioma}
         t={t}
       />
-
-      {/* Footer */}
-      <footer className="max-w-7xl mx-auto mt-12 py-6 border-t border-slate-200">
-        <p className="text-center text-sm text-slate-400">
-          {t('designedBy')} <a href="https://jlmirall.es" target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:text-slate-800 underline">José Luis Miralles Bono</a> {t('withHelpOf')}
-        </p>
-      </footer>
     </div>
   );
 };
