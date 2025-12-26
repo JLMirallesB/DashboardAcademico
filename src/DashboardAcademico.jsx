@@ -429,7 +429,10 @@ const DashboardAcademico = () => {
 
     // Ordenar según criterio: Totales > Teórica Troncal > Especialidades > No Especialidades > Optativas
     const listaAsignaturas = Array.from(asignaturas);
-    const totales = ['Total', 'Total Especialidad', 'Total no Especialidad'];
+
+    // Helper para verificar si es un total (case-insensitive)
+    const totalesNorm = ['total', 'total especialidad', 'total no especialidad'];
+    const esTotalAsig = (asig) => totalesNorm.includes(normalizar(asig));
 
     // Obtener agrupaciones del trimestre actual
     const agrupaciones = agrupacionesCompletas[trimestreSeleccionado] || {};
@@ -443,8 +446,20 @@ const DashboardAcademico = () => {
       optativas: []
     };
 
+    // Helper para verificar grupos (acepta variantes con/sin espacio)
+    const tieneGrupo = (grupos, nombreGrupo) => {
+      const variantes = {
+        'especialidad': ['especialidad'],
+        'noespecialidad': ['noespecialidad', 'no especialidad', 'noesp'],
+        'optativas': ['optativas', 'optativa'],
+        'teoricatroncal': ['teoricatroncal', 'teórica troncal', 'teorica troncal']
+      };
+      const vars = variantes[nombreGrupo] || [nombreGrupo];
+      return grupos.some(g => vars.includes(normalizar(g)));
+    };
+
     listaAsignaturas.forEach(asig => {
-      if (totales.includes(asig)) {
+      if (esTotalAsig(asig)) {
         clasificadas.totales.push(asig);
       } else if (normalizar(asig) === 'teórica troncal') {
         clasificadas.teoricaTroncal.push(asig);
@@ -453,24 +468,43 @@ const DashboardAcademico = () => {
         const asigNorm = normalizar(asig);
         const grupos = agrupaciones[asigNorm] || [];
 
-        if (grupos.some(g => normalizar(g) === 'especialidad')) {
+        if (tieneGrupo(grupos, 'especialidad')) {
           clasificadas.especialidades.push(asig);
-        } else if (grupos.some(g => normalizar(g) === 'no especialidad')) {
+        } else if (tieneGrupo(grupos, 'noespecialidad')) {
           clasificadas.noEspecialidades.push(asig);
+        } else if (tieneGrupo(grupos, 'teoricatroncal')) {
+          clasificadas.teoricaTroncal.push(asig);
+        } else if (tieneGrupo(grupos, 'optativas') || grupos.length === 0) {
+          // Si tiene grupo 'optativas' o no tiene ningún grupo conocido
+          clasificadas.optativas.push(asig);
         } else {
+          // Fallback: cualquier otra cosa va a optativas
           clasificadas.optativas.push(asig);
         }
       }
     });
 
-    // Ordenar los totales en el orden específico
-    const totalesOrdenados = totales.filter(t => clasificadas.totales.includes(t));
+    // Ordenar los totales en el orden específico: Total > Total Especialidad > Total No Especialidad
+    const ordenTotales = ['total', 'total especialidad', 'total no especialidad'];
+    const totalesOrdenados = clasificadas.totales.sort((a, b) => {
+      const idxA = ordenTotales.indexOf(normalizar(a));
+      const idxB = ordenTotales.indexOf(normalizar(b));
+      return idxA - idxB;
+    });
 
     // Ordenar alfabéticamente cada grupo
     clasificadas.teoricaTroncal.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
     clasificadas.especialidades.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
     clasificadas.noEspecialidades.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
     clasificadas.optativas.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+
+    // DEBUG: Ver clasificación
+    console.log('[DEBUG asignaturasGlobal] Clasificación:', {
+      trimestre: trimestreSeleccionado,
+      totalAsignaturas: listaAsignaturas.length,
+      agrupacionesKeys: Object.keys(agrupaciones).length,
+      optativas: clasificadas.optativas
+    });
 
     return [
       ...totalesOrdenados,
@@ -757,7 +791,10 @@ const DashboardAcademico = () => {
   const getAsignaturas = useCallback((trimestre, nivel) => {
     if (!trimestre || !nivel || !datosCompletos[trimestre]?.[nivel]) return [];
     const asignaturas = Object.keys(datosCompletos[trimestre][nivel]);
-    const totales = ['Total', 'Total Especialidad', 'Total no Especialidad'];
+
+    // Helper para verificar si es un total (case-insensitive)
+    const totalesNorm = ['total', 'total especialidad', 'total no especialidad'];
+    const esTotalAsig = (asig) => totalesNorm.includes(normalizar(asig));
 
     // Obtener agrupaciones del trimestre
     const agrupaciones = agrupacionesCompletas[trimestre] || {};
@@ -771,8 +808,20 @@ const DashboardAcademico = () => {
       optativas: []
     };
 
+    // Helper para verificar grupos (acepta variantes con/sin espacio)
+    const tieneGrupo = (grupos, nombreGrupo) => {
+      const variantes = {
+        'especialidad': ['especialidad'],
+        'noespecialidad': ['noespecialidad', 'no especialidad', 'noesp'],
+        'optativas': ['optativas', 'optativa'],
+        'teoricatroncal': ['teoricatroncal', 'teórica troncal', 'teorica troncal']
+      };
+      const vars = variantes[nombreGrupo] || [nombreGrupo];
+      return grupos.some(g => vars.includes(normalizar(g)));
+    };
+
     asignaturas.forEach(asig => {
-      if (totales.includes(asig)) {
+      if (esTotalAsig(asig)) {
         clasificadas.totales.push(asig);
       } else if (normalizar(asig) === 'teórica troncal') {
         clasificadas.teoricaTroncal.push(asig);
@@ -780,18 +829,27 @@ const DashboardAcademico = () => {
         const asigNorm = normalizar(asig);
         const grupos = agrupaciones[asigNorm] || [];
 
-        if (grupos.some(g => normalizar(g) === 'especialidad')) {
+        if (tieneGrupo(grupos, 'especialidad')) {
           clasificadas.especialidades.push(asig);
-        } else if (grupos.some(g => normalizar(g) === 'no especialidad')) {
+        } else if (tieneGrupo(grupos, 'noespecialidad')) {
           clasificadas.noEspecialidades.push(asig);
+        } else if (tieneGrupo(grupos, 'teoricatroncal')) {
+          clasificadas.teoricaTroncal.push(asig);
+        } else if (tieneGrupo(grupos, 'optativas') || grupos.length === 0) {
+          clasificadas.optativas.push(asig);
         } else {
           clasificadas.optativas.push(asig);
         }
       }
     });
 
-    // Ordenar los totales en el orden específico
-    const totalesOrdenados = totales.filter(t => clasificadas.totales.includes(t));
+    // Ordenar los totales en el orden específico: Total > Total Especialidad > Total No Especialidad
+    const ordenTotales = ['total', 'total especialidad', 'total no especialidad'];
+    const totalesOrdenados = clasificadas.totales.sort((a, b) => {
+      const idxA = ordenTotales.indexOf(normalizar(a));
+      const idxB = ordenTotales.indexOf(normalizar(b));
+      return idxA - idxB;
+    });
 
     // Ordenar alfabéticamente cada grupo
     clasificadas.teoricaTroncal.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));

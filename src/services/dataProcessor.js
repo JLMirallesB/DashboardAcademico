@@ -7,6 +7,7 @@ import { normalizar } from '../utils.js';
 
 /**
  * Procesa datos parseados del CSV y los estructura para el dashboard
+ * Soporta tanto el formato antiguo (sin columna Tipo) como el nuevo (con columna Tipo)
  * @param {Object} parsed - Datos parseados del CSV (metadata, estadisticas, correlaciones, agrupaciones)
  * @returns {Object|null} Objeto procesado con trimestre, metadata, datos, correlaciones y agrupaciones
  */
@@ -19,7 +20,34 @@ export const procesarDatos = (parsed) => {
 
   // Estructurar datos
   const datosEstructurados = {};
+
+  // Detectar si es nuevo formato (tiene columna Tipo)
+  const tieneFormatoNuevo = parsed.estadisticas.length > 0 && parsed.estadisticas[0].Tipo !== undefined;
+
   parsed.estadisticas.forEach(fila => {
+    // En nuevo formato, filtrar solo los tipos que nos interesan para la estructura principal
+    // GLOBAL: estadísticas globales, CURSO_ASIG: asignaturas por curso
+    // CURSO_TOTAL, CURSO_ESP, CURSO_NOESP: totales agregados por nivel
+    if (tieneFormatoNuevo) {
+      const tipo = fila.Tipo;
+      // Tipos válidos del nuevo formato CSV:
+      // - GLOBAL: Total general
+      // - GLOBAL_ESP: Total especialidades global
+      // - GLOBAL_NOESP: Total no-especialidades global
+      // - GLOBAL_ASIG: Asignaturas a nivel global
+      // - CURSO_TOTAL: Total por curso
+      // - CURSO_ESP: Especialidades por curso
+      // - CURSO_NOESP: No-especialidades por curso
+      // - CURSO_ASIG: Asignaturas por curso
+      const tiposValidos = [
+        'GLOBAL', 'GLOBAL_ESP', 'GLOBAL_NOESP', 'GLOBAL_ASIG',
+        'CURSO_TOTAL', 'CURSO_ESP', 'CURSO_NOESP', 'CURSO_ASIG'
+      ];
+      if (!tiposValidos.includes(tipo)) {
+        return;
+      }
+    }
+
     const nivel = fila.Nivel;
     const asignatura = fila.Asignatura;
 
@@ -71,6 +99,7 @@ export const procesarDatos = (parsed) => {
   // Procesar agrupaciones: convertir array a mapa { asignatura → [grupos] }
   const agrupacionesMapa = {};
   if (parsed.agrupaciones && parsed.agrupaciones.length > 0) {
+    console.log('[DEBUG] Agrupaciones parseadas:', parsed.agrupaciones.length);
     parsed.agrupaciones.forEach(({ Asignatura, Grupos }) => {
       if (Asignatura && Grupos) {
         const asigNorm = normalizar(Asignatura);
@@ -79,8 +108,15 @@ export const procesarDatos = (parsed) => {
           .map(g => normalizar(g))
           .filter(g => g); // Eliminar vacíos
         agrupacionesMapa[asigNorm] = gruposArray;
+        // Log optativas
+        if (gruposArray.includes('optativas')) {
+          console.log('[DEBUG] Optativa encontrada:', Asignatura, '→', gruposArray);
+        }
       }
     });
+    console.log('[DEBUG] Total agrupaciones mapeadas:', Object.keys(agrupacionesMapa).length);
+  } else {
+    console.log('[DEBUG] No hay agrupaciones o están vacías');
   }
 
   return {

@@ -97,7 +97,8 @@ export const parseCSV = (csvText) => {
         resultado.metadata[campos[0]] = campos[1];
       }
     } else if (seccionActual === 'estadisticas') {
-      if (campos[0] === 'Nivel') {
+      // Nuevo formato: primera columna es 'Tipo', soportar también formato antiguo con 'Nivel'
+      if (campos[0] === 'Tipo' || campos[0] === 'Nivel') {
         encabezadosStats = campos;
         continue;
       }
@@ -105,20 +106,38 @@ export const parseCSV = (csvText) => {
         const fila = {};
         encabezadosStats.forEach((h, idx) => {
           let valor = campos[idx] || '';
-          // Convertir números (columnas desde la 3ª en adelante)
-          if (idx >= 2 && valor !== '') {
+          // Normalizar nombres de columnas del nuevo formato
+          let nombreColumna = h;
+          if (h === 'PctAprobados') nombreColumna = 'Aprobados';
+          if (h === 'PctSuspendidos') nombreColumna = 'Suspendidos';
+
+          // Tratar guión largo (—) como valor vacío/nulo
+          if (valor === '—' || valor === '-' || valor === '–') {
+            valor = '';
+          }
+
+          // Convertir números (columnas desde la 3ª en adelante, o 4ª si hay columna Tipo)
+          const inicioNumericos = encabezadosStats[0] === 'Tipo' ? 3 : 2;
+          if (idx >= inicioNumericos && valor !== '') {
+            // Quitar símbolo de porcentaje si existe
+            const esPorc = valor.toString().includes('%');
+            if (esPorc) {
+              valor = valor.replace('%', '');
+            }
             valor = parseNumero(valor);
-            // Si es porcentaje (Aprobados o Suspendidos) y viene como decimal, convertir
-            if ((h === 'Aprobados' || h === 'Suspendidos') && valor !== null && valor <= 1) {
+            // Si es porcentaje (Aprobados o Suspendidos) y viene como decimal (<=1), convertir a porcentaje
+            // Nota: si ya viene con %, ya está en formato porcentaje, no multiplicar
+            if ((nombreColumna === 'Aprobados' || nombreColumna === 'Suspendidos') && valor !== null && !esPorc && valor <= 1) {
               valor = valor * 100;
             }
           }
-          fila[h] = valor;
+          fila[nombreColumna] = valor;
         });
         resultado.estadisticas.push(fila);
       }
     } else if (seccionActual === 'correlaciones') {
-      if (campos[0] === 'Nivel') {
+      // Nuevo formato: primera columna es 'Tipo', soportar también formato antiguo con 'Nivel'
+      if (campos[0] === 'Tipo' || campos[0] === 'Nivel') {
         encabezadosCorr = campos;
         continue;
       }
@@ -129,21 +148,28 @@ export const parseCSV = (csvText) => {
           if (h === 'Correlacion' && valor !== '') {
             valor = parseNumero(valor);
           }
-          fila[h] = valor;
+          // Saltar la columna Tipo en el resultado final
+          if (h !== 'Tipo') {
+            fila[h] = valor;
+          }
         });
         if (fila.Correlacion !== null && fila.Correlacion !== undefined) {
           resultado.correlaciones.push(fila);
         }
       }
     } else if (seccionActual === 'agrupaciones') {
-      if (campos[0] === 'Asignatura') {
+      // Nuevo formato: primera columna es 'Tipo', soportar también formato antiguo con 'Asignatura'
+      if (campos[0] === 'Tipo' || campos[0] === 'Asignatura') {
         encabezadosAgrup = campos;
         continue;
       }
       if (campos[0] && encabezadosAgrup.length > 0) {
         const fila = {};
         encabezadosAgrup.forEach((h, idx) => {
-          fila[h] = campos[idx] || '';
+          // Saltar la columna Tipo en el resultado final
+          if (h !== 'Tipo') {
+            fila[h] = campos[idx] || '';
+          }
         });
         // Solo añadir si tiene asignatura
         if (fila.Asignatura) {
