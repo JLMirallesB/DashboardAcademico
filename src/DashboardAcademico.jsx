@@ -49,7 +49,6 @@ const DashboardAcademico = () => {
   const [mostrarModalAyuda, setMostrarModalAyuda] = useState(false);
   const [compararNiveles, setCompararNiveles] = useState(false);
   const [asignaturaComparada, setAsignaturaComparada] = useState('Lenguaje Musical');
-  const [tipoComparativa, setTipoComparativa] = useState('longitudinal'); // 'longitudinal' o 'transversal'
   const [ordenCorrelaciones, setOrdenCorrelaciones] = useState('desc'); // 'desc', 'asc', 'none'
   const [ejeCorrelaciones, setEjeCorrelaciones] = useState('niveles'); // 'pares' o 'niveles'
   const [modoHeatmap, setModoHeatmap] = useState('relativo'); // 'absoluto' o 'relativo'
@@ -1062,8 +1061,11 @@ const DashboardAcademico = () => {
 
   // Interpretar nivel de correlación
   const interpretarCorrelacion = useCallback((valor) => {
-    if (valor < 0) return { nivel: t('inverse'), color: '#1a1a2e', textColor: 'white' };
-    const abs = Math.abs(valor);
+    // Convertir a número si es string
+    const numValor = typeof valor === 'number' ? valor : parseFloat(valor);
+    if (isNaN(numValor)) return { nivel: 'N/A', color: '#94a3b8', textColor: 'white' };
+    if (numValor < 0) return { nivel: t('inverse'), color: '#1a1a2e', textColor: 'white' };
+    const abs = Math.abs(numValor);
     if (abs >= 0.8) return { nivel: t('veryStrong'), color: '#065f46', textColor: 'white' };
     if (abs >= 0.6) return { nivel: t('strong'), color: '#059669', textColor: 'white' };
     if (abs >= 0.4) return { nivel: t('moderate'), color: '#fbbf24', textColor: 'black' };
@@ -2675,128 +2677,8 @@ const DashboardAcademico = () => {
             </div>
           )}
 
-          {/* Vista de Comparativa Transversal */}
+          {/* Gráficas de evolución para comparativa de misma asignatura en todos los niveles */}
           {compararNiveles && (
-            <div className="mt-6">
-              <h2 className="text-2xl font-bold text-slate-800 mb-6">{t('transversalComparison')} - {asignaturaComparada}</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[asignaturaComparada].map(asignatura => {
-                  // Calcular datos de evolución para esta asignatura
-                  const datosNotaMedia = nivelesSinGlobalEtapa.map(nivel => {
-                    const datos = datosCompletos[trimestreSeleccionado]?.[nivel]?.[asignatura];
-                    return datos?.stats?.notaMedia || null;
-                  }).filter(v => v !== null);
-
-                  const datosSuspensos = nivelesSinGlobalEtapa.map(nivel => {
-                    const datos = datosCompletos[trimestreSeleccionado]?.[nivel]?.[asignatura];
-                    return datos?.stats?.suspendidos || null;
-                  }).filter(v => v !== null);
-
-                  // Calcular tendencias
-                  const tendenciaMedia = calcularTendencia(datosNotaMedia);
-                  const tendenciaSuspensos = calcularTendencia(datosSuspensos);
-
-                  // Obtener info de tendencias
-                  const infoMedia = getTrendInfo(tendenciaMedia.tipo);
-                  const infoSuspensos = getTrendInfo(tendenciaSuspensos.tipo);
-
-                  // Datos para los mini gráficos
-                  const datosGraficoMedia = nivelesSinGlobalEtapa.map(nivel => {
-                    const datos = datosCompletos[trimestreSeleccionado]?.[nivel]?.[asignatura];
-                    return {
-                      nivel,
-                      valor: datos?.stats?.notaMedia || null
-                    };
-                  }).filter(d => d.valor !== null);
-
-                  const datosGraficoSuspensos = nivelesSinGlobalEtapa.map(nivel => {
-                    const datos = datosCompletos[trimestreSeleccionado]?.[nivel]?.[asignatura];
-                    return {
-                      nivel,
-                      valor: datos?.stats?.suspendidos || null
-                    };
-                  }).filter(d => d.valor !== null);
-
-                  if (datosNotaMedia.length === 0 && datosSuspensos.length === 0) return null;
-
-                  return (
-                    <div key={asignatura} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow">
-                      <h3 className="text-lg font-semibold text-slate-800 mb-4">{asignatura}</h3>
-
-                      {/* Nota Media */}
-                      <div className="mb-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium text-slate-600">{t('averageEvolution')}</span>
-                          <span className={`text-xs font-semibold px-2 py-0.5 rounded ${infoMedia.color} flex items-center gap-1`} title={infoMedia.desc}>
-                            <span>{tendenciaMedia.icono}</span>
-                            <span>{infoMedia.label}</span>
-                          </span>
-                        </div>
-                        <ResponsiveContainer width="100%" height={120}>
-                          <LineChart data={datosGraficoMedia}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                            <XAxis dataKey="nivel" stroke="#64748b" tick={{ fontSize: 10 }} />
-                            <YAxis stroke="#64748b" domain={[0, 10]} tick={{ fontSize: 10 }} />
-                            <Tooltip
-                              contentStyle={{
-                                backgroundColor: 'white',
-                                border: '1px solid #e2e8f0',
-                                borderRadius: '6px',
-                                fontSize: '12px'
-                              }}
-                            />
-                            <Line
-                              type="monotone"
-                              dataKey="valor"
-                              stroke="#2563eb"
-                              strokeWidth={2}
-                              dot={{ fill: '#2563eb', r: 3 }}
-                            />
-                          </LineChart>
-                        </ResponsiveContainer>
-                      </div>
-
-                      {/* % Suspensos */}
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium text-slate-600">{t('failedEvolution')}</span>
-                          <span className={`text-xs font-semibold px-2 py-0.5 rounded ${infoSuspensos.color} flex items-center gap-1`} title={infoSuspensos.desc}>
-                            <span>{tendenciaSuspensos.icono}</span>
-                            <span>{infoSuspensos.label}</span>
-                          </span>
-                        </div>
-                        <ResponsiveContainer width="100%" height={120}>
-                          <LineChart data={datosGraficoSuspensos}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                            <XAxis dataKey="nivel" stroke="#64748b" tick={{ fontSize: 10 }} />
-                            <YAxis stroke="#64748b" domain={[0, 100]} tick={{ fontSize: 10 }} />
-                            <Tooltip
-                              contentStyle={{
-                                backgroundColor: 'white',
-                                border: '1px solid #e2e8f0',
-                                borderRadius: '6px',
-                                fontSize: '12px'
-                              }}
-                            />
-                            <Line
-                              type="monotone"
-                              dataKey="valor"
-                              stroke="#dc2626"
-                              strokeWidth={2}
-                              dot={{ fill: '#dc2626', r: 3 }}
-                            />
-                          </LineChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Gráficas de evolución para comparativa longitudinal */}
-          {!compararNiveles && tipoComparativa === 'longitudinal' && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
               {/* Evolución de la Nota Media */}
               <div className="bg-white rounded-xl border border-slate-200 p-6">
@@ -3251,7 +3133,7 @@ const DashboardAcademico = () => {
                       style={{ borderLeftWidth: '4px', borderLeftColor: interp.color }}
                     >
                       <div className="text-xs text-slate-400 mb-1">{corr.Nivel}</div>
-                      <div className="text-sm font-semibold text-slate-800 leading-tight mb-2">
+                      <div className="text-sm font-semibold text-slate-800 leading-tight mb-2 break-words overflow-hidden">
                         {corr.Asignatura1}
                         <span className="text-slate-400 mx-1">↔</span>
                         {corr.Asignatura2}
@@ -3261,7 +3143,7 @@ const DashboardAcademico = () => {
                           className="text-lg font-bold font-mono"
                           style={{ color: interp.color }}
                         >
-                          {corr.Correlacion?.toFixed(2)}
+                          {typeof corr.Correlacion === 'number' ? corr.Correlacion.toFixed(2) : parseFloat(corr.Correlacion)?.toFixed(2) || 'N/A'}
                         </span>
                         <span
                           className="text-xs px-1.5 py-0.5 rounded"
