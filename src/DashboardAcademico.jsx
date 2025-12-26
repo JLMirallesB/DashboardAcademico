@@ -4082,6 +4082,10 @@ const DashboardAcademico = () => {
                               <span className="text-sm font-semibold text-slate-800">{(stats.notaMedia || 0).toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between items-center">
+                              <span className="text-xs text-slate-600">{t('standardDeviation')}:</span>
+                              <span className="text-sm font-semibold text-slate-800">{stats.desviacion != null ? stats.desviacion.toFixed(2) : '-'}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
                               <span className="text-xs text-slate-600">{t('mode')}:</span>
                               <span className="text-sm font-semibold text-slate-800">{stats.moda || '-'}</span>
                             </div>
@@ -4090,8 +4094,16 @@ const DashboardAcademico = () => {
                               <span className="text-sm font-semibold text-green-700">{(stats.aprobados || 0).toFixed(1)}%</span>
                             </div>
                             <div className="flex justify-between items-center">
+                              <span className="text-xs text-green-600">{t('passedMode')}:</span>
+                              <span className="text-sm font-semibold text-green-700">{stats.modaAprobados || '-'}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
                               <span className="text-xs text-red-600">{t('failed')}:</span>
                               <span className="text-sm font-semibold text-red-700">{(stats.suspendidos || 0).toFixed(1)}%</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs text-red-600">{t('failedMode')}:</span>
+                              <span className="text-sm font-semibold text-red-700">{stats.modaSuspendidos || '-'}</span>
                             </div>
                           </div>
                         </div>
