@@ -3217,7 +3217,7 @@ const DashboardAcademico = () => {
                         border: '1px solid #e2e8f0',
                         borderRadius: '8px'
                       }}
-                      formatter={(value, name) => [value?.toFixed(2), name]}
+                      formatter={(value, name) => [typeof value === 'number' ? value.toFixed(2) : 'N/A', name]}
                       labelFormatter={(label, payload) => {
                         if (payload && payload[0]) {
                           return payload[0].payload.parCompleto;
@@ -3264,7 +3264,7 @@ const DashboardAcademico = () => {
                         border: '1px solid #e2e8f0',
                         borderRadius: '8px'
                       }}
-                      formatter={(value, name) => [value?.toFixed(2), name]}
+                      formatter={(value, name) => [typeof value === 'number' ? value.toFixed(2) : 'N/A', name]}
                     />
                     <Legend />
                     {paresCorrelacionesAlt.map((par, idx) => {
@@ -3661,7 +3661,7 @@ const DashboardAcademico = () => {
                                   padding: '12px',
                                   fontSize: '14px'
                                 }}
-                                formatter={(value) => [value?.toFixed(2), t('average')]}
+                                formatter={(value) => [typeof value === 'number' ? value.toFixed(2) : 'N/A', t('average')]}
                                 labelStyle={{ fontWeight: 'bold', marginBottom: '8px' }}
                               />
                               <Line
@@ -3716,7 +3716,7 @@ const DashboardAcademico = () => {
                                   padding: '12px',
                                   fontSize: '14px'
                                 }}
-                                formatter={(value) => [`${value?.toFixed(1)}%`, '% ' + t('failed')]}
+                                formatter={(value) => [`${typeof value === 'number' ? value.toFixed(1) : 'N/A'}%`, '% ' + t('failed')]}
                                 labelStyle={{ fontWeight: 'bold', marginBottom: '8px' }}
                               />
                               <Line
