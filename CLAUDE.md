@@ -169,3 +169,220 @@ When adding new features or making significant changes to the application, you m
    - Use the same heading levels (###, ##, #)
    - Keep bullet point structures identical
    - Preserve emoji usage across both versions
+
+## Design System - Minimalist Aesthetic
+
+The application follows a **minimalist design philosophy** with a monochromatic color palette. Color is reserved exclusively for data visualization and critical alerts.
+
+### Color Palette
+
+**Base Colors (Monochromatic)**
+```javascript
+const PALETTE = {
+  // Backgrounds
+  background: {
+    primary: '#FFFFFF',      // Pure white - main backgrounds
+    secondary: '#F8F9FA',    // Gray 50 - secondary backgrounds
+    tertiary: '#F1F3F5',     // Gray 100 - tertiary/hover backgrounds
+  },
+
+  // Borders
+  border: {
+    light: '#E9ECEF',        // Gray 200 - subtle borders
+    medium: '#DEE2E6',       // Gray 300 - main borders
+    dark: '#ADB5BD',         // Gray 400 - important separators
+  },
+
+  // Text
+  text: {
+    primary: '#212529',      // Near black - titles
+    secondary: '#495057',    // Gray 700 - main text
+    tertiary: '#6C757D',     // Gray 600 - secondary text
+    quaternary: '#ADB5BD',   // Gray 400 - disabled/hints
+  },
+
+  // Interactive elements (monochrome)
+  interactive: {
+    primary: '#212529',      // Black - primary buttons
+    hover: '#000000',        // Pure black - hover state
+    focus: '#495057',        // Dark gray - focus/active
+  }
+}
+```
+
+**Accent Colors (Data & Alerts Only)**
+```javascript
+// ONLY use for charts, graphs, and critical alerts
+const DATA_COLORS = {
+  success: '#10B981',      // Green - positive data/high pass rates
+  warning: '#F59E0B',      // Amber - warnings
+  danger: '#EF4444',       // Red - critical alerts/high fail rates
+
+  // Chart colors (for data visualization)
+  charts: [
+    '#212529',  // Black - primary line
+    '#6C757D',  // Gray - secondary line
+    '#ADB5BD',  // Light gray - tertiary
+    '#EF4444',  // Red - alerts only
+    '#10B981',  // Green - success only
+  ]
+}
+```
+
+### Typography System
+
+**Font Family**: DM Sans (400, 500, 700 weights only)
+
+**Type Scale** (Modular scale ratio 1.25 - Major Third)
+```css
+--text-xs: 0.75rem;      /* 12px - Small labels */
+--text-sm: 0.875rem;     /* 14px - Secondary text */
+--text-base: 1rem;       /* 16px - Body text */
+--text-lg: 1.25rem;      /* 20px - Subtitles */
+--text-xl: 1.5rem;       /* 24px - Section titles */
+--text-2xl: 2rem;        /* 32px - Main titles */
+--text-3xl: 3rem;        /* 48px - Large numbers (KPIs) */
+
+/* Font weights (only 3 variants) */
+--font-normal: 400;      /* Regular text */
+--font-medium: 500;      /* Soft emphasis */
+--font-bold: 700;        /* Titles and important numbers */
+```
+
+**Typography Hierarchy**
+- H1 (Dashboard titles): `text-2xl font-bold text-gray-900`
+- H2 (Section headers): `text-xl font-bold text-gray-900`
+- H3 (Card titles): `text-lg font-medium text-gray-900`
+- Body: `text-base font-normal text-gray-700`
+- Labels: `text-sm font-medium text-gray-600 uppercase tracking-wide`
+- Hints: `text-xs font-normal text-gray-500`
+- KPI Numbers: `text-3xl font-bold text-gray-900`
+
+### Component Styling Rules
+
+#### KPI Cards
+```jsx
+// Standard KPI card (NO gradients, NO colors)
+<div className="bg-white border border-gray-300 rounded-lg p-6 hover:border-gray-900 transition-colors">
+  <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">Label</span>
+  <div className="text-3xl font-bold text-gray-900 mt-2">7.45</div>
+  <div className="mt-3 h-0.5 bg-gray-900"></div>
+</div>
+
+// Critical alert variant (only when thresholds exceeded)
+<div className="bg-white border-l-4 border-l-red-500 border-r border-t border-b border-gray-300 rounded-lg p-6">
+  <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">% Suspendidos</span>
+  <div className="text-3xl font-bold text-gray-900 mt-2">35.2%</div>
+  <span className="text-xs text-red-600 mt-1">Por encima del umbral</span>
+</div>
+```
+
+#### Buttons
+```jsx
+// Primary (main actions)
+<button className="px-6 py-3 bg-gray-900 text-white font-medium rounded-lg hover:bg-black transition-colors">
+
+// Secondary (secondary actions)
+<button className="px-6 py-3 bg-white border-2 border-gray-900 text-gray-900 font-medium rounded-lg hover:bg-gray-50 transition-colors">
+
+// Tertiary (subtle actions)
+<button className="px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
+
+// Destructive (delete only)
+<button className="px-6 py-3 bg-white border-2 border-red-600 text-red-600 font-medium rounded-lg hover:bg-red-50 transition-colors">
+```
+
+#### Tables
+```jsx
+// Table headers - bold black border
+<thead>
+  <tr className="border-b-2 border-gray-900">
+    <th className="text-left py-4 px-4 text-xs font-bold text-gray-900 uppercase tracking-wide">
+
+// Table rows - subtle gray borders, hover effect
+<tbody>
+  <tr className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+
+// Critical row (alerts only)
+<tr className="border-b border-gray-200 hover:bg-gray-50 transition-colors border-l-4 border-l-red-500">
+```
+
+#### Navigation (Sidebar)
+```jsx
+// Active state - left border + white background
+<button className="w-full px-4 py-3 text-left bg-white text-gray-900 border-l-4 border-l-gray-900 font-medium">
+
+// Inactive state - hover to white
+<button className="w-full px-4 py-3 text-left text-gray-700 hover:bg-white hover:text-gray-900 transition-colors font-medium">
+```
+
+### Spacing System
+
+Use multiples of 4px for all spacing:
+```javascript
+const SPACING = {
+  xs: '0.25rem',   // 4px
+  sm: '0.5rem',    // 8px
+  md: '1rem',      // 16px
+  lg: '1.5rem',    // 24px
+  xl: '2rem',      // 32px
+  '2xl': '3rem',   // 48px
+  '3xl': '4rem',   // 64px
+}
+```
+
+### Borders and Shadows
+
+**Borders** (consistent thickness)
+- Standard: `border border-gray-300` (1px)
+- Emphasis: `border-2 border-gray-900` (2px)
+- Critical: `border-l-4 border-l-red-500` (4px left border for alerts)
+
+**NO SHADOWS**: Eliminate all `shadow-*` classes. Use borders only for depth.
+
+**Border Radius**
+- Cards/Buttons: `rounded-lg` (0.5rem)
+- Modals/Large containers: `rounded-xl` (0.75rem)
+
+### Color Usage Rules
+
+**When to use color:**
+1. ✅ Charts and data visualizations (Recharts components)
+2. ✅ Critical alerts (fail rates > threshold, low averages)
+3. ✅ Success indicators (pass rates > 90%)
+4. ✅ Status badges (EEM/EPM stage indicators)
+
+**When NOT to use color:**
+1. ❌ KPI card backgrounds (no gradients)
+2. ❌ Navigation elements (use gray/black)
+3. ❌ Headers and titles
+4. ❌ Buttons (except destructive red)
+5. ❌ Table backgrounds
+6. ❌ Decorative elements
+
+### Interactive States
+
+```css
+/* Hover - always darker */
+hover:bg-gray-50
+hover:border-gray-900
+hover:text-gray-900
+
+/* Focus - black ring */
+focus:outline-none
+focus:ring-2
+focus:ring-gray-900
+focus:ring-offset-2
+
+/* Active - slightly darker */
+active:bg-gray-100
+
+/* Disabled - light gray */
+disabled:bg-gray-100
+disabled:text-gray-400
+disabled:cursor-not-allowed
+```
+
+### Reference Example
+
+See `ejemplo-rediseno-minimalista.html` for complete visual examples of all components following this design system.
