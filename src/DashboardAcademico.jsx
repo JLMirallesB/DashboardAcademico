@@ -4083,7 +4083,7 @@ const DashboardAcademico = () => {
                             </div>
                             <div className="flex justify-between items-center">
                               <span className="text-xs text-slate-600">{t('standardDeviation')}:</span>
-                              <span className="text-sm font-semibold text-slate-800">{stats.desviacion != null ? stats.desviacion.toFixed(2) : '-'}</span>
+                              <span className="text-sm font-semibold text-slate-800">{typeof stats.desviacion === 'number' ? stats.desviacion.toFixed(2) : '-'}</span>
                             </div>
                             <div className="flex justify-between items-center">
                               <span className="text-xs text-slate-600">{t('mode')}:</span>
