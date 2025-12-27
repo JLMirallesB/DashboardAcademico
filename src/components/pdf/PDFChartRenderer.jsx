@@ -55,6 +55,7 @@ export const PDFChartRenderer = forwardRef(({
   nivelesCorrelaciones,
   datosTransversal, // Ahora es un array de grupos: [{datos, asignaturas, titulo}, ...]
   datosEvolucionNotas, // Datos para evolución de notas por trimestre: {datos: [...], niveles: [...]}
+  datosDistribucion, // Datos para distribución de notas por asignatura: [{asignatura, datos, niveles}, ...]
   idioma = 'es',
   t = (key) => key
 }, ref) => {
@@ -63,14 +64,22 @@ export const PDFChartRenderer = forwardRef(({
   const evolutionRef = useRef(null);
   // Array de refs para múltiples gráficas transversales
   const transversalRefs = useRef([]);
+  // Array de refs para gráficas de distribución
+  const distributionRefs = useRef([]);
 
   // Calcular número de grupos transversales
   const numGruposTransversal = Array.isArray(datosTransversal) ? datosTransversal.length : 0;
+  const numDistribuciones = Array.isArray(datosDistribucion) ? datosDistribucion.length : 0;
 
   // Asegurar que tenemos suficientes refs
   if (transversalRefs.current.length !== numGruposTransversal) {
     transversalRefs.current = Array(numGruposTransversal).fill(null).map((_, i) =>
       transversalRefs.current[i] || { current: null }
+    );
+  }
+  if (distributionRefs.current.length !== numDistribuciones) {
+    distributionRefs.current = Array(numDistribuciones).fill(null).map((_, i) =>
+      distributionRefs.current[i] || { current: null }
     );
   }
 
@@ -79,7 +88,8 @@ export const PDFChartRenderer = forwardRef(({
     scatterRef,
     correlationRef,
     evolutionRef,
-    transversalRefs: transversalRefs.current
+    transversalRefs: transversalRefs.current,
+    distributionRefs: distributionRefs.current
   }));
 
   // No renderizar si no está generando PDF
@@ -422,6 +432,77 @@ export const PDFChartRenderer = forwardRef(({
           </ResponsiveContainer>
         </div>
       )}
+
+      {/* Distribución de Notas por Asignatura - Una gráfica por asignatura con líneas por curso */}
+      {Array.isArray(datosDistribucion) && datosDistribucion.map((item, itemIdx) => (
+        item?.datos?.length > 0 && item?.niveles?.length > 0 && (
+          <div
+            key={itemIdx}
+            ref={(el) => {
+              if (distributionRefs.current[itemIdx]) {
+                distributionRefs.current[itemIdx].current = el;
+              }
+            }}
+            style={{ width: '1200px', height: '550px', background: 'white', padding: '20px', marginTop: '40px' }}
+          >
+            <h2 style={{ fontSize: '22px', fontWeight: 'bold', color: '#1e293b', marginBottom: '15px', textAlign: 'center' }}>
+              {idioma === 'es' ? 'Distribución de Notas: ' : 'Distribució de Notes: '}{item.asignatura}
+            </h2>
+            <ResponsiveContainer width="100%" height={470}>
+              <LineChart
+                data={item.datos}
+                margin={{ top: 20, right: 30, left: 20, bottom: 50 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis
+                  dataKey="nota"
+                  stroke="#64748b"
+                  tick={{ fontSize: 12 }}
+                  label={{
+                    value: idioma === 'es' ? 'Nota' : 'Nota',
+                    position: 'bottom',
+                    offset: 35,
+                    style: { fill: '#475569', fontSize: 14, fontWeight: 600 }
+                  }}
+                />
+                <YAxis
+                  stroke="#64748b"
+                  domain={[0, 'auto']}
+                  label={{
+                    value: idioma === 'es' ? '% Alumnos' : '% Alumnes',
+                    angle: -90,
+                    position: 'insideLeft',
+                    style: { textAnchor: 'middle', fill: '#64748b' }
+                  }}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'white',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px'
+                  }}
+                  formatter={(value, name) => [`${value?.toFixed(1)}%`, name]}
+                />
+                <Legend wrapperStyle={{ paddingTop: '10px' }} />
+                {/* Línea vertical de referencia para el aprobado (nota 5) */}
+                <ReferenceLine x={5} stroke="#dc2626" strokeDasharray="5 5" strokeWidth={2} />
+                {item.niveles.map((nivel, idx) => (
+                  <Line
+                    key={nivel}
+                    type="monotone"
+                    dataKey={nivel}
+                    name={nivel}
+                    stroke={COLORES_LINEAS[idx % COLORES_LINEAS.length]}
+                    strokeWidth={2}
+                    dot={{ fill: COLORES_LINEAS[idx % COLORES_LINEAS.length], r: 4 }}
+                    connectNulls
+                  />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )
+      ))}
     </div>
   );
 });

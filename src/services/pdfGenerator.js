@@ -100,6 +100,53 @@ export const generarInformePDF = async ({
         .trim();
     };
 
+    // Función para detectar la etapa educativa de un nivel
+    const detectarEtapa = (nivel) => {
+      if (!nivel) return null;
+      const nivelUpper = nivel.toUpperCase();
+      if (nivelUpper.includes('EEM') || /^[1-4]EEM$/i.test(nivelUpper)) return 'EEM';
+      if (nivelUpper.includes('EPM') || /^[1-6]EPM$/i.test(nivelUpper)) return 'EPM';
+      return null;
+    };
+
+    // Determinar qué etapas hay en los datos
+    const etapasEnDatos = new Set();
+    Object.keys(datosCompletos[trimestreSeleccionado] || {}).forEach(nivel => {
+      if (nivel !== 'GLOBAL') {
+        const etapa = detectarEtapa(nivel);
+        if (etapa) etapasEnDatos.add(etapa);
+      }
+    });
+    const etapasArray = Array.from(etapasEnDatos).sort(); // ['EEM', 'EPM'] o solo una
+
+    // Determinar modo efectivo
+    const modoEtapaConfig = configInforme.modoEtapa || 'TODOS';
+    const generarPorEtapas = modoEtapaConfig === 'TODOS' && etapasArray.length > 1;
+
+    // Función para generar página separadora de etapa
+    const addStageSeparator = (etapa) => {
+      addNewPage();
+
+      // Fondo de color según etapa
+      const bgColor = etapa === 'EEM' ? [6, 78, 59] : [88, 28, 135]; // green-900 / purple-900
+      pdf.setFillColor(...bgColor);
+      pdf.rect(0, PAGE.height / 2 - 40, PAGE.width, 80, 'F');
+
+      // Título de la etapa
+      pdf.setTextColor(...COLORS.white);
+      pdf.setFontSize(36);
+      const nombreEtapa = etapa === 'EEM'
+        ? (t('elementaryEducation') || 'Enseñanzas Elementales')
+        : (t('professionalEducation') || 'Enseñanzas Profesionales');
+      pdf.text(nombreEtapa, PAGE.width / 2, PAGE.height / 2 - 10, { align: 'center' });
+
+      pdf.setFontSize(24);
+      pdf.text(`(${etapa})`, PAGE.width / 2, PAGE.height / 2 + 15, { align: 'center' });
+
+      pdf.setTextColor(...COLORS.text);
+      addFooter(currentPage);
+    };
+
     // Función para verificar si una asignatura pertenece a las agrupaciones filtradas
     const perteneceAGruposFiltrados = (asignatura) => {
       const filtroAgrupaciones = configInforme.filtroAgrupaciones;
@@ -166,14 +213,32 @@ export const generarInformePDF = async ({
         pdf.setFontSize(24);
         pdf.text(t('reportTitle'), PAGE.width / 2, 50, { align: 'center' });
 
+        // Mostrar etapa o "ambas etapas" si es TODOS
+        pdf.setFontSize(14);
+        let etapaTexto = '';
+        if (generarPorEtapas) {
+          etapaTexto = t('bothStages') || 'Enseñanzas Elementales y Profesionales';
+        } else if (modoEtapaConfig === 'EEM') {
+          etapaTexto = t('elementaryEducation') || 'Enseñanzas Elementales';
+        } else if (modoEtapaConfig === 'EPM') {
+          etapaTexto = t('professionalEducation') || 'Enseñanzas Profesionales';
+        } else if (etapasArray.length === 1) {
+          etapaTexto = etapasArray[0] === 'EEM'
+            ? (t('elementaryEducation') || 'Enseñanzas Elementales')
+            : (t('professionalEducation') || 'Enseñanzas Profesionales');
+        }
+        if (etapaTexto) {
+          pdf.text(etapaTexto, PAGE.width / 2, 62, { align: 'center' });
+        }
+
         pdf.setFontSize(16);
-        pdf.text(trimestreSeleccionado, PAGE.width / 2, 65, { align: 'center' });
+        pdf.text(trimestreSeleccionado, PAGE.width / 2, etapaTexto ? 74 : 65, { align: 'center' });
       }
 
       // Info adicional
       pdf.setTextColor(...COLORS.text);
       pdf.setFontSize(14);
-      const infoY = esInformeDeGrupo ? 115 : 110;
+      const infoY = esInformeDeGrupo ? 115 : (generarPorEtapas || etapasArray.length === 1 ? 115 : 110);
       pdf.text(`${t('academicYear')}: ${configInforme.cursoAcademico || ''}`, PAGE.width / 2, infoY, { align: 'center' });
 
       // Mostrar info del grupo
@@ -577,13 +642,17 @@ export const generarInformePDF = async ({
       pdf.text(t('subjectVsCenter') || 'Comparativa Asignaturas vs Centro', PAGE.margin, contentStartY);
       pdf.setTextColor(...COLORS.text);
 
-      // Obtener nota media del centro
-      const datosGlobal = datosCompletos[trimestreSeleccionado]?.['GLOBAL']?.['Total'];
-      const notaMediaCentro = datosGlobal?.stats?.notaMedia || kpisGlobales?.notaMediaCentro || 0;
-      const aprobadosCentro = datosGlobal?.stats?.aprobados || kpisGlobales?.porcentajeAprobados || 0;
+      // Obtener nota media del centro (GLOBAL)
+      const datosGlobalCentro = datosCompletos[trimestreSeleccionado]?.['GLOBAL']?.['Total'];
+      const notaMediaCentro = datosGlobalCentro?.stats?.notaMedia || kpisGlobales?.notaMediaCentro || 0;
+      const aprobadosCentro = datosGlobalCentro?.stats?.aprobados || kpisGlobales?.porcentajeAprobados || 0;
 
-      // Recopilar datos de asignaturas del grupo
-      const asignaturasGrupo = [];
+      // Helper para obtener número de nivel
+      const getNivelNum = (n) => parseInt(n.match(/\d+/)?.[0] || '0');
+
+      // ========== PARTE 1: COMPARATIVA GLOBAL (asignatura agregada vs centro) ==========
+      // Calcular medias globales por asignatura (agregando todos los niveles)
+      const asignaturasTotales = {};
       Object.keys(datosCompletos[trimestreSeleccionado] || {}).forEach(nivel => {
         if (nivel === 'GLOBAL') return;
         const datosNivel = datosCompletos[trimestreSeleccionado]?.[nivel];
@@ -591,46 +660,41 @@ export const generarInformePDF = async ({
           Object.entries(datosNivel).forEach(([asig, data]) => {
             if (asig !== 'Total' && asig !== 'Total Especialidad' && asig !== 'Total no Especialidad') {
               if (perteneceAGruposFiltrados(asig) && data?.stats) {
-                asignaturasGrupo.push({
-                  asignatura: asig,
-                  nivel,
-                  notaMedia: data.stats.notaMedia || 0,
-                  aprobados: data.stats.aprobados || 0,
-                  diffMedia: (data.stats.notaMedia || 0) - notaMediaCentro,
-                  diffAprobados: (data.stats.aprobados || 0) - aprobadosCentro
-                });
+                if (!asignaturasTotales[asig]) {
+                  asignaturasTotales[asig] = { sumMedia: 0, sumAprobados: 0, count: 0, registros: 0 };
+                }
+                const registros = data.stats.registros || 1;
+                asignaturasTotales[asig].sumMedia += (data.stats.notaMedia || 0) * registros;
+                asignaturasTotales[asig].sumAprobados += (data.stats.aprobados || 0) * registros;
+                asignaturasTotales[asig].registros += registros;
+                asignaturasTotales[asig].count++;
               }
             }
           });
         }
       });
 
-      // Ordenar por asignatura y nivel
-      asignaturasGrupo.sort((a, b) => {
-        const asigCompare = a.asignatura.localeCompare(b.asignatura, 'es', { sensitivity: 'base' });
-        if (asigCompare !== 0) return asigCompare;
-        const getNivelNum = (n) => parseInt(n.match(/\d+/)?.[0] || '0');
-        return getNivelNum(a.nivel) - getNivelNum(b.nivel);
-      });
-
-      // Preparar datos para la tabla
-      const tableData = asignaturasGrupo.map(asig => {
-        const diffMediaStr = asig.diffMedia >= 0 ? `+${asig.diffMedia.toFixed(2)}` : asig.diffMedia.toFixed(2);
-        const diffAprobStr = asig.diffAprobados >= 0 ? `+${asig.diffAprobados.toFixed(1)}pp` : `${asig.diffAprobados.toFixed(1)}pp`;
-
-        return [
-          asig.asignatura,
-          asig.nivel,
-          asig.notaMedia.toFixed(2),
-          diffMediaStr,
-          `${asig.aprobados.toFixed(1)}%`,
-          diffAprobStr
-        ];
-      });
+      const globalesData = Object.entries(asignaturasTotales)
+        .filter(([, data]) => data.registros > 0)
+        .map(([asig, data]) => {
+          const mediaGlobal = data.sumMedia / data.registros;
+          const aprobadosGlobal = data.sumAprobados / data.registros;
+          const diffMedia = mediaGlobal - notaMediaCentro;
+          const diffAprobados = aprobadosGlobal - aprobadosCentro;
+          return [
+            asig,
+            t('globalAllLevels') || 'Todos los cursos',
+            mediaGlobal.toFixed(2),
+            diffMedia >= 0 ? `+${diffMedia.toFixed(2)}` : diffMedia.toFixed(2),
+            `${aprobadosGlobal.toFixed(1)}%`,
+            diffAprobados >= 0 ? `+${diffAprobados.toFixed(1)}pp` : `${diffAprobados.toFixed(1)}pp`
+          ];
+        })
+        .sort((a, b) => a[0].localeCompare(b[0], 'es', { sensitivity: 'base' }));
 
       // Añadir fila de referencia del centro
-      tableData.unshift([
-        `📊 ${t('center') || 'Centro'} (${t('reference') || 'referencia'})`,
+      globalesData.unshift([
+        `${t('center') || 'Centro'} (${t('reference') || 'ref.'})`,
         '-',
         notaMediaCentro.toFixed(2),
         '-',
@@ -638,68 +702,181 @@ export const generarInformePDF = async ({
         '-'
       ]);
 
+      pdf.setFontSize(12);
+      pdf.setTextColor(...COLORS.secondary);
+      pdf.text(t('globalComparison') || 'Comparativa Global (asignaturas agregadas vs centro)', PAGE.margin, contentStartY + 8);
+      pdf.setTextColor(...COLORS.text);
+
       autoTable(pdf, {
-        startY: contentStartY + 10,
+        startY: contentStartY + 12,
         head: [
           [
             t('subject') || 'Asignatura',
-            t('level') || 'Nivel',
+            t('scope') || 'Ámbito',
             t('average') || 'Nota Media',
             t('vsCenter') || 'vs Centro',
             t('passed') || '% Aprobados',
             t('vsCenter') || 'vs Centro'
           ]
         ],
-        body: tableData,
+        body: globalesData,
         theme: 'striped',
         headStyles: {
-          fillColor: [88, 28, 135], // purple-900 para consistencia con portada de grupo
+          fillColor: [88, 28, 135],
           fontSize: 9,
           fontStyle: 'bold'
         },
-        styles: {
-          fontSize: 8,
-          cellPadding: 3
-        },
+        styles: { fontSize: 8, cellPadding: 2 },
         columnStyles: {
           0: { cellWidth: 55 },
-          1: { cellWidth: 25, halign: 'center' },
-          2: { cellWidth: 30, halign: 'center' },
-          3: { cellWidth: 30, halign: 'center' },
-          4: { cellWidth: 30, halign: 'center' },
-          5: { cellWidth: 30, halign: 'center' }
+          1: { cellWidth: 40, halign: 'center' },
+          2: { cellWidth: 25, halign: 'center' },
+          3: { cellWidth: 25, halign: 'center' },
+          4: { cellWidth: 28, halign: 'center' },
+          5: { cellWidth: 28, halign: 'center' }
         },
         didParseCell: function(data) {
-          // Colorear fila de referencia del centro
           if (data.section === 'body' && data.row.index === 0) {
-            data.cell.styles.fillColor = [241, 245, 249]; // slate-100
+            data.cell.styles.fillColor = [241, 245, 249];
             data.cell.styles.fontStyle = 'bold';
           }
-          // Colorear diferencias
           if (data.section === 'body' && data.row.index > 0) {
-            if (data.column.index === 3) { // Diferencia nota media
+            if (data.column.index === 3) {
               const valor = parseFloat(data.cell.raw) || 0;
-              if (valor > 0) {
-                data.cell.styles.textColor = COLORS.success;
-              } else if (valor < 0) {
-                data.cell.styles.textColor = COLORS.danger;
-              }
+              data.cell.styles.textColor = valor > 0 ? COLORS.success : valor < 0 ? COLORS.danger : COLORS.text;
             }
-            if (data.column.index === 5) { // Diferencia aprobados
+            if (data.column.index === 5) {
               const texto = data.cell.raw || '';
               const valor = parseFloat(texto.replace('pp', '').replace('+', '')) || 0;
-              if (texto.startsWith('+') && valor > 0) {
-                data.cell.styles.textColor = COLORS.success;
-              } else if (valor < 0) {
-                data.cell.styles.textColor = COLORS.danger;
-              }
+              data.cell.styles.textColor = texto.startsWith('+') && valor > 0 ? COLORS.success : valor < 0 ? COLORS.danger : COLORS.text;
             }
           }
         },
         margin: { left: PAGE.margin, right: PAGE.margin }
       });
 
-      addFooter(currentPage);
+      // ========== PARTE 2: COMPARATIVA POR CURSO (asignatura por curso vs global del curso) ==========
+      addNewPage();
+
+      pdf.setFontSize(18);
+      pdf.setTextColor(...COLORS.primary);
+      pdf.text(t('subjectVsCourse') || 'Comparativa por Curso', PAGE.margin, contentStartY);
+      pdf.setTextColor(...COLORS.text);
+
+      pdf.setFontSize(10);
+      pdf.setTextColor(...COLORS.textLight);
+      pdf.text(t('subjectVsCourseDesc') || 'Cada asignatura comparada con la media global del mismo curso', PAGE.margin, contentStartY + 6);
+      pdf.setTextColor(...COLORS.text);
+
+      // Recopilar datos por curso, comparando con el Total de ese nivel
+      const asignaturasPorCurso = [];
+      Object.keys(datosCompletos[trimestreSeleccionado] || {}).forEach(nivel => {
+        if (nivel === 'GLOBAL') return;
+        const datosNivel = datosCompletos[trimestreSeleccionado]?.[nivel];
+        if (!datosNivel) return;
+
+        // Obtener referencia del nivel (Total del nivel)
+        const totalNivel = datosNivel['Total'];
+        const mediaRefNivel = totalNivel?.stats?.notaMedia || 0;
+        const aprobadosRefNivel = totalNivel?.stats?.aprobados || 0;
+
+        Object.entries(datosNivel).forEach(([asig, data]) => {
+          if (asig !== 'Total' && asig !== 'Total Especialidad' && asig !== 'Total no Especialidad') {
+            if (perteneceAGruposFiltrados(asig) && data?.stats) {
+              asignaturasPorCurso.push({
+                asignatura: asig,
+                nivel,
+                nivelNum: getNivelNum(nivel),
+                notaMedia: data.stats.notaMedia || 0,
+                aprobados: data.stats.aprobados || 0,
+                mediaRefNivel,
+                aprobadosRefNivel,
+                diffMedia: (data.stats.notaMedia || 0) - mediaRefNivel,
+                diffAprobados: (data.stats.aprobados || 0) - aprobadosRefNivel
+              });
+            }
+          }
+        });
+      });
+
+      // Ordenar por asignatura y luego por nivel
+      asignaturasPorCurso.sort((a, b) => {
+        const asigCompare = a.asignatura.localeCompare(b.asignatura, 'es', { sensitivity: 'base' });
+        if (asigCompare !== 0) return asigCompare;
+        return a.nivelNum - b.nivelNum;
+      });
+
+      // Preparar datos para la tabla
+      const tableDataPorCurso = asignaturasPorCurso.map(asig => {
+        const diffMediaStr = asig.diffMedia >= 0 ? `+${asig.diffMedia.toFixed(2)}` : asig.diffMedia.toFixed(2);
+        const diffAprobStr = asig.diffAprobados >= 0 ? `+${asig.diffAprobados.toFixed(1)}pp` : `${asig.diffAprobados.toFixed(1)}pp`;
+
+        return [
+          asig.asignatura,
+          asig.nivel,
+          asig.notaMedia.toFixed(2),
+          `${asig.mediaRefNivel.toFixed(2)}`,
+          diffMediaStr,
+          `${asig.aprobados.toFixed(1)}%`,
+          diffAprobStr
+        ];
+      });
+
+      autoTable(pdf, {
+        startY: contentStartY + 12,
+        head: [
+          [
+            t('subject') || 'Asignatura',
+            t('level') || 'Curso',
+            t('average') || 'Media',
+            t('courseAvg') || 'Media Curso',
+            t('difference') || 'Dif.',
+            t('passed') || '% Aprob.',
+            t('difference') || 'Dif.'
+          ]
+        ],
+        body: tableDataPorCurso,
+        theme: 'striped',
+        headStyles: {
+          fillColor: [88, 28, 135],
+          fontSize: 8,
+          fontStyle: 'bold'
+        },
+        styles: { fontSize: 7, cellPadding: 2 },
+        columnStyles: {
+          0: { cellWidth: 50 },
+          1: { cellWidth: 22, halign: 'center' },
+          2: { cellWidth: 22, halign: 'center' },
+          3: { cellWidth: 28, halign: 'center' },
+          4: { cellWidth: 22, halign: 'center' },
+          5: { cellWidth: 25, halign: 'center' },
+          6: { cellWidth: 22, halign: 'center' }
+        },
+        didParseCell: function(data) {
+          if (data.section === 'body') {
+            // Diferencia nota media
+            if (data.column.index === 4) {
+              const valor = parseFloat(data.cell.raw) || 0;
+              data.cell.styles.textColor = valor > 0 ? COLORS.success : valor < 0 ? COLORS.danger : COLORS.text;
+            }
+            // Diferencia aprobados
+            if (data.column.index === 6) {
+              const texto = data.cell.raw || '';
+              const valor = parseFloat(texto.replace('pp', '').replace('+', '')) || 0;
+              data.cell.styles.textColor = texto.startsWith('+') && valor > 0 ? COLORS.success : valor < 0 ? COLORS.danger : COLORS.text;
+            }
+          }
+        },
+        didDrawPage: (data) => {
+          if (data.pageNumber > currentPage) {
+            currentPage = data.pageNumber;
+            addHeader();
+          }
+          addFooter(data.pageNumber);
+        },
+        margin: { left: PAGE.margin, right: PAGE.margin }
+      });
+
       console.log('[PDF] Comparativa grupo vs centro completada');
     }
 
@@ -889,25 +1066,6 @@ export const generarInformePDF = async ({
       pdf.text(t('trendAnalysisTitle') || 'Análisis de Tendencias Transversales', PAGE.margin, contentStartY);
       pdf.setTextColor(...COLORS.text);
 
-      // Iconos Unicode para cada tipo de tendencia
-      const getTrendIcon = (tipo) => {
-        const iconos = {
-          'estable': '—',
-          'creciente_sostenido': '↗',
-          'decreciente_sostenido': '↘',
-          'creciente_acelerado': '⬈',
-          'creciente_desacelerado': '↗',
-          'decreciente_acelerado': '⬊',
-          'decreciente_desacelerado': '↘',
-          'valle': 'U',
-          'pico': '∩',
-          'oscilante': '~',
-          'irregular': '?',
-          'insuficiente': '-'
-        };
-        return iconos[tipo] || '?';
-      };
-
       // Colores para tipos de tendencia
       const getTrendColor = (tipo) => {
         if (tipo.includes('creciente')) return COLORS.success;
@@ -917,17 +1075,34 @@ export const generarInformePDF = async ({
         return COLORS.textLight;
       };
 
-      // Preparar datos de la tabla
+      // Helper para formatear nombre de tendencia (sin iconos, solo texto)
+      const formatTrendLabel = (tipo) => {
+        const labels = {
+          'estable': t('trendStable') || 'Estable',
+          'creciente_sostenido': t('trendIncreasingSustained') || 'Creciente sostenido',
+          'decreciente_sostenido': t('trendDecreasingSustained') || 'Decreciente sostenido',
+          'creciente_acelerado': t('trendIncreasingAccelerated') || 'Creciente acelerado',
+          'creciente_desacelerado': t('trendIncreasingDecelerated') || 'Creciente desacelerado',
+          'decreciente_acelerado': t('trendDecreasingAccelerated') || 'Decreciente acelerado',
+          'decreciente_desacelerado': t('trendDecreasingDecelerated') || 'Decreciente desacelerado',
+          'valle': t('trendValley') || 'Valle',
+          'pico': t('trendPeak') || 'Pico',
+          'oscilante': t('trendOscillating') || 'Oscilante',
+          'irregular': t('trendIrregular') || 'Irregular',
+          'insuficiente': t('trendInsufficient') || 'Datos insuficientes'
+        };
+        return labels[tipo] || tipo;
+      };
+
+      // Preparar datos de la tabla (solo texto, sin iconos Unicode problemáticos)
       const tendenciasData = tendenciasParaPDF.map(item => {
-        const iconMedia = getTrendIcon(item.tendenciaMedia.tipo);
-        const iconSusp = getTrendIcon(item.tendenciaSuspensos.tipo);
-        const labelMedia = t(`trend${item.tendenciaMedia.tipo.charAt(0).toUpperCase() + item.tendenciaMedia.tipo.slice(1).replace(/_([a-z])/g, (m, c) => c.toUpperCase())}`) || item.tendenciaMedia.tipo;
-        const labelSusp = t(`trend${item.tendenciaSuspensos.tipo.charAt(0).toUpperCase() + item.tendenciaSuspensos.tipo.slice(1).replace(/_([a-z])/g, (m, c) => c.toUpperCase())}`) || item.tendenciaSuspensos.tipo;
+        const labelMedia = formatTrendLabel(item.tendenciaMedia.tipo);
+        const labelSusp = formatTrendLabel(item.tendenciaSuspensos.tipo);
 
         return [
           item.asignatura,
-          `${iconMedia} ${labelMedia}`,
-          `${iconSusp} ${labelSusp}`,
+          labelMedia,
+          labelSusp,
           item.tendenciaMedia.confianza === 'alta' ? (t('confidenceHigh') || 'Alta') : (t('confidenceLow') || 'Baja'),
           item.numNiveles
         ];
@@ -1027,12 +1202,11 @@ export const generarInformePDF = async ({
       Object.entries(conteoTendencias)
         .sort((a, b) => (prioridadTendencia[a[0]] || 99) - (prioridadTendencia[b[0]] || 99))
         .forEach(([tipo, count]) => {
-          const icon = getTrendIcon(tipo);
-          const label = t(`trend${tipo.charAt(0).toUpperCase() + tipo.slice(1).replace(/_([a-z])/g, (m, c) => c.toUpperCase())}`) || tipo;
+          const label = formatTrendLabel(tipo);
           const color = getTrendColor(tipo);
 
           pdf.setTextColor(...color);
-          pdf.text(`${icon} ${label}: ${count}`, summaryX, summaryY);
+          pdf.text(`${label}: ${count}`, summaryX, summaryY);
           summaryX += 55;
 
           if (summaryX > PAGE.width - PAGE.margin - 50) {
@@ -1048,21 +1222,6 @@ export const generarInformePDF = async ({
     // ========== DATOS DE ASIGNATURAS ==========
     if (configInforme.incluirDatosAsignaturas !== false && analisisDificultad) {
       onProgress?.(t('pdfGeneratingSubjects'));
-      addNewPage();
-
-      pdf.setFontSize(18);
-      pdf.setTextColor(...COLORS.primary);
-      pdf.text(t('subjectsData'), PAGE.margin, contentStartY);
-      pdf.setTextColor(...COLORS.text);
-
-      // Función para obtener color según categoría
-      const getCategoryColor = (categoria) => {
-        switch (categoria) {
-          case 'DIFÍCIL': return COLORS.danger;
-          case 'FÁCIL': return COLORS.success;
-          default: return COLORS.textLight;
-        }
-      };
 
       // Función para extraer número de nivel para ordenar
       const getNivelOrder = (nivel) => {
@@ -1071,150 +1230,236 @@ export const generarInformePDF = async ({
         return match ? parseInt(match[1]) : 999;
       };
 
-      // Filtrar y ordenar: primero por asignatura (alfabético), luego por nivel (numérico)
-      const asignaturasOrdenadas = [...(analisisDificultad.todas || [])]
-        .filter(asig => perteneceAGruposFiltrados(asig.asignatura))
-        .sort((a, b) => {
-          // Primero ordenar por asignatura alfabéticamente
-          const asigCompare = (a.asignatura || '').localeCompare(b.asignatura || '', 'es', { sensitivity: 'base' });
-          if (asigCompare !== 0) return asigCompare;
-          // Luego por nivel numérico
-          return getNivelOrder(a.nivel) - getNivelOrder(b.nivel);
-        });
+      // Función para generar sección de datos de asignaturas para una etapa específica
+      const generarSeccionDatosAsignaturas = (etapaFiltro = null) => {
+        // Filtrar por etapa si es necesario
+        const filtrarPorEtapa = (asig) => {
+          if (!etapaFiltro) return true;
+          return detectarEtapa(asig.nivel) === etapaFiltro;
+        };
 
-      // Preparar datos
-      const asignaturasData = asignaturasOrdenadas.map(asig => [
-        asig.nivel || '',
-        asig.asignatura || '',
-        asig.categoria || 'NEUTRAL',
-        (asig.notaMedia || 0).toFixed(2),
-        (asig.moda != null ? asig.moda.toFixed(0) : '-'),
-        `${(asig.aprobados || 0).toFixed(1)}%`,
-        `${(asig.suspendidos || 0).toFixed(1)}%`
-      ]);
-
-      autoTable(pdf, {
-        startY: contentStartY + 10,
-        head: [[t('level') || 'Nivel', t('subject') || 'Asignatura', t('category') || 'Categoría', t('avgGrade') || 'Media', t('kpiMode') || 'Moda', t('passed') || 'Aprobados', t('failed') || 'Suspensos']],
-        body: asignaturasData,
-        theme: 'striped',
-        headStyles: { fillColor: COLORS.primary, fontSize: 10, fontStyle: 'bold' },
-        styles: { fontSize: 9, cellPadding: 3 },
-        columnStyles: {
-          0: { cellWidth: 22, halign: 'center' },
-          1: { cellWidth: 80 },
-          2: { cellWidth: 25, halign: 'center', fontStyle: 'bold' },
-          3: { cellWidth: 20, halign: 'right' },
-          4: { cellWidth: 18, halign: 'center' },
-          5: { cellWidth: 22, halign: 'right' },
-          6: { cellWidth: 22, halign: 'right' }
-        },
-        margin: { left: PAGE.margin, right: PAGE.margin },
-        didParseCell: (data) => {
-          if (data.column.index === 2 && data.section === 'body') {
-            const categoria = data.cell.raw;
-            data.cell.styles.textColor = getCategoryColor(categoria);
-          }
-        },
-        didDrawPage: (data) => {
-          if (data.pageNumber > currentPage) {
-            currentPage = data.pageNumber;
-            addHeader();
-          }
-          addFooter(data.pageNumber);
-        }
-      });
-
-      // Análisis de dificultad detallado
-      if (configInforme.incluirDificultad !== false) {
-        const finalY = pdf.lastAutoTable?.finalY || contentStartY + 10;
-
-        // Si queda espacio, añadir en la misma página, si no, nueva página
-        let yPos = finalY + 15;
-        if (yPos > PAGE.height - 60) {
-          addNewPage();
-          yPos = contentStartY + 10;
-        }
-
-        pdf.setFontSize(14);
-        pdf.setTextColor(...COLORS.primary);
-        pdf.text(`${t('difficulty')} - ${t('difficultyReason')}`, PAGE.margin, yPos);
-        pdf.setTextColor(...COLORS.text);
-        yPos += 10;
-
-        // Filtrar asignaturas según agrupaciones seleccionadas
-        const dificilesFiltradas = (analisisDificultad.dificiles || [])
-          .filter(asig => perteneceAGruposFiltrados(asig.asignatura));
-        const facilesFiltradas = (analisisDificultad.faciles || [])
-          .filter(asig => perteneceAGruposFiltrados(asig.asignatura));
-
-        // Asignaturas Difíciles
-        if (dificilesFiltradas.length > 0) {
-          pdf.setFontSize(11);
-          pdf.setTextColor(...COLORS.danger);
-          pdf.text(`${t('difficultSubjects')} (${dificilesFiltradas.length})`, PAGE.margin, yPos);
-          pdf.setTextColor(...COLORS.text);
-          yPos += 6;
-
-          dificilesFiltradas.forEach(asig => {
-            if (yPos > PAGE.height - 30) {
-              addNewPage();
-              yPos = contentStartY + 10;
-            }
-
-            pdf.setFontSize(9);
-            pdf.setFont(undefined, 'bold');
-            pdf.text(`${asig.nivel} - ${asig.asignatura}`, PAGE.margin + 3, yPos);
-            pdf.setFont(undefined, 'normal');
-            yPos += 4;
-
-            pdf.setFontSize(8);
-            pdf.setTextColor(...COLORS.textLight);
-            const razonLines = pdf.splitTextToSize(asig.razon || '', contentWidth - 6);
-            pdf.text(razonLines, PAGE.margin + 3, yPos);
-            yPos += razonLines.length * 3.5 + 3;
-            pdf.setTextColor(...COLORS.text);
+        // Filtrar y ordenar
+        const asignaturasOrdenadas = [...(analisisDificultad.todas || [])]
+          .filter(asig => perteneceAGruposFiltrados(asig.asignatura) && filtrarPorEtapa(asig))
+          .sort((a, b) => {
+            const asigCompare = (a.asignatura || '').localeCompare(b.asignatura || '', 'es', { sensitivity: 'base' });
+            if (asigCompare !== 0) return asigCompare;
+            return getNivelOrder(a.nivel) - getNivelOrder(b.nivel);
           });
 
-          yPos += 5;
-        }
+        if (asignaturasOrdenadas.length === 0) return; // No hay datos para esta etapa
 
-        // Asignaturas Fáciles
-        if (facilesFiltradas.length > 0) {
-          if (yPos > PAGE.height - 40) {
+        addNewPage();
+
+        pdf.setFontSize(18);
+        pdf.setTextColor(...COLORS.primary);
+        const titulo = etapaFiltro
+          ? `${t('subjectsData')} - ${etapaFiltro === 'EEM' ? (t('elementaryEducation') || 'Enseñanzas Elementales') : (t('professionalEducation') || 'Enseñanzas Profesionales')}`
+          : t('subjectsData');
+        pdf.text(titulo, PAGE.margin, contentStartY);
+        pdf.setTextColor(...COLORS.text);
+
+        // Preparar datos
+        const asignaturasData = asignaturasOrdenadas.map(asig => [
+          asig.nivel || '',
+          asig.asignatura || '',
+          asig.registros || 0,
+          (asig.notaMedia || 0).toFixed(2),
+          typeof asig.desviacion === 'number' ? asig.desviacion.toFixed(2) : '-',
+          asig.moda != null ? asig.moda.toString() : '-',
+          `${(asig.aprobados || 0).toFixed(1)}%`,
+          asig.modaAprobados || '-',
+          `${(asig.suspendidos || 0).toFixed(1)}%`,
+          asig.modaSuspendidos || '-'
+        ]);
+
+        autoTable(pdf, {
+          startY: contentStartY + 10,
+          head: [[
+            t('level') || 'Curso',
+            t('subject') || 'Asignatura',
+            t('records') || 'N',
+            t('average') || 'Media',
+            t('standardDeviationShort') || 'σ',
+            t('mode') || 'Moda',
+            t('passed') || '% Apr.',
+            t('passedMode') || 'Moda Apr.',
+            t('failed') || '% Susp.',
+            t('failedMode') || 'Moda Susp.'
+          ]],
+          body: asignaturasData,
+          theme: 'striped',
+          headStyles: { fillColor: etapaFiltro === 'EEM' ? [6, 78, 59] : (etapaFiltro === 'EPM' ? [88, 28, 135] : COLORS.primary), fontSize: 8, fontStyle: 'bold' },
+          styles: { fontSize: 7, cellPadding: 2 },
+          columnStyles: {
+            0: { cellWidth: 18, halign: 'center' },
+            1: { cellWidth: 55 },
+            2: { cellWidth: 14, halign: 'center' },
+            3: { cellWidth: 18, halign: 'center' },
+            4: { cellWidth: 16, halign: 'center' },
+            5: { cellWidth: 16, halign: 'center' },
+            6: { cellWidth: 18, halign: 'center' },
+            7: { cellWidth: 22, halign: 'center' },
+            8: { cellWidth: 18, halign: 'center' },
+            9: { cellWidth: 22, halign: 'center' }
+          },
+          margin: { left: PAGE.margin, right: PAGE.margin },
+          didParseCell: (data) => {
+            if ((data.column.index === 6 || data.column.index === 7) && data.section === 'body') {
+              data.cell.styles.textColor = COLORS.success;
+            }
+            if ((data.column.index === 8 || data.column.index === 9) && data.section === 'body') {
+              data.cell.styles.textColor = COLORS.danger;
+            }
+          },
+          didDrawPage: (data) => {
+            if (data.pageNumber > currentPage) {
+              currentPage = data.pageNumber;
+              addHeader();
+            }
+            addFooter(data.pageNumber);
+          }
+        });
+
+        // Análisis de dificultad detallado
+        if (configInforme.incluirDificultad !== false) {
+          const finalY = pdf.lastAutoTable?.finalY || contentStartY + 10;
+          let yPos = finalY + 15;
+          if (yPos > PAGE.height - 60) {
             addNewPage();
             yPos = contentStartY + 10;
           }
 
-          pdf.setFontSize(11);
-          pdf.setTextColor(...COLORS.success);
-          pdf.text(`${t('easySubjects')} (${facilesFiltradas.length})`, PAGE.margin, yPos);
+          pdf.setFontSize(14);
+          pdf.setTextColor(...COLORS.primary);
+          const tituloDificultad = etapaFiltro
+            ? `${t('difficulty')} - ${etapaFiltro}`
+            : `${t('difficulty')} - ${t('difficultyReason')}`;
+          pdf.text(tituloDificultad, PAGE.margin, yPos);
           pdf.setTextColor(...COLORS.text);
-          yPos += 6;
+          yPos += 10;
 
-          facilesFiltradas.forEach(asig => {
-            if (yPos > PAGE.height - 30) {
+          // Filtrar asignaturas según agrupaciones y etapa
+          const dificilesFiltradas = (analisisDificultad.dificiles || [])
+            .filter(asig => perteneceAGruposFiltrados(asig.asignatura) && filtrarPorEtapa(asig));
+          const facilesFiltradas = (analisisDificultad.faciles || [])
+            .filter(asig => perteneceAGruposFiltrados(asig.asignatura) && filtrarPorEtapa(asig));
+
+          // Asignaturas Difíciles
+          if (dificilesFiltradas.length > 0) {
+            pdf.setFontSize(11);
+            pdf.setTextColor(...COLORS.danger);
+            pdf.text(`${t('difficultSubjects')} (${dificilesFiltradas.length})`, PAGE.margin, yPos);
+            pdf.setTextColor(...COLORS.text);
+            yPos += 6;
+
+            dificilesFiltradas.forEach(asig => {
+              if (yPos > PAGE.height - 30) {
+                addNewPage();
+                yPos = contentStartY + 10;
+              }
+
+              pdf.setFontSize(9);
+              pdf.setFont(undefined, 'bold');
+              pdf.text(`${asig.nivel} - ${asig.asignatura}`, PAGE.margin + 3, yPos);
+              pdf.setFont(undefined, 'normal');
+              yPos += 4;
+
+              pdf.setFontSize(8);
+              pdf.setTextColor(...COLORS.textLight);
+              const razonLines = pdf.splitTextToSize(asig.razon || '', contentWidth - 6);
+              pdf.text(razonLines, PAGE.margin + 3, yPos);
+              yPos += razonLines.length * 3.5 + 3;
+              pdf.setTextColor(...COLORS.text);
+            });
+
+            yPos += 5;
+          }
+
+          // Asignaturas Fáciles
+          if (facilesFiltradas.length > 0) {
+            if (yPos > PAGE.height - 40) {
               addNewPage();
               yPos = contentStartY + 10;
             }
 
-            pdf.setFontSize(9);
-            pdf.setFont(undefined, 'bold');
-            pdf.text(`${asig.nivel} - ${asig.asignatura}`, PAGE.margin + 3, yPos);
-            pdf.setFont(undefined, 'normal');
-            yPos += 4;
-
-            pdf.setFontSize(8);
-            pdf.setTextColor(...COLORS.textLight);
-            const razonLines = pdf.splitTextToSize(asig.razon || '', contentWidth - 6);
-            pdf.text(razonLines, PAGE.margin + 3, yPos);
-            yPos += razonLines.length * 3.5 + 3;
+            pdf.setFontSize(11);
+            pdf.setTextColor(...COLORS.success);
+            pdf.text(`${t('easySubjects')} (${facilesFiltradas.length})`, PAGE.margin, yPos);
             pdf.setTextColor(...COLORS.text);
-          });
+            yPos += 6;
+
+            facilesFiltradas.forEach(asig => {
+              if (yPos > PAGE.height - 30) {
+                addNewPage();
+                yPos = contentStartY + 10;
+              }
+
+              pdf.setFontSize(9);
+              pdf.setFont(undefined, 'bold');
+              pdf.text(`${asig.nivel} - ${asig.asignatura}`, PAGE.margin + 3, yPos);
+              pdf.setFont(undefined, 'normal');
+              yPos += 4;
+
+              pdf.setFontSize(8);
+              pdf.setTextColor(...COLORS.textLight);
+              const razonLines = pdf.splitTextToSize(asig.razon || '', contentWidth - 6);
+              pdf.text(razonLines, PAGE.margin + 3, yPos);
+              yPos += razonLines.length * 3.5 + 3;
+              pdf.setTextColor(...COLORS.text);
+            });
+          }
+
+          addFooter(currentPage);
         }
+      };
+
+      // Generar secciones según modo de etapa
+      if (generarPorEtapas) {
+        // Modo TODOS con ambas etapas: generar separadamente
+        etapasArray.forEach(etapa => {
+          addStageSeparator(etapa);
+          generarSeccionDatosAsignaturas(etapa);
+        });
+      } else {
+        // Modo EEM, EPM o TODOS con una sola etapa
+        const etapaFiltro = modoEtapaConfig !== 'TODOS' ? modoEtapaConfig : null;
+        generarSeccionDatosAsignaturas(etapaFiltro);
+      }
+    }
+
+    // ========== DISTRIBUCIÓN DE NOTAS POR ASIGNATURA ==========
+    if (configInforme.incluirDistribucionNotas !== false && chartImages.distributionArray?.length > 0) {
+      onProgress?.(t('pdfGeneratingDistribution') || 'Generando distribución de notas...');
+
+      for (let i = 0; i < chartImages.distributionArray.length; i++) {
+        const { image, asignatura } = chartImages.distributionArray[i];
+        addNewPage();
+
+        pdf.setFontSize(16);
+        pdf.setTextColor(...COLORS.primary);
+        pdf.text(`${t('gradeDistribution') || 'Distribución de Notas'}: ${asignatura}`, PAGE.margin, contentStartY);
+        pdf.setTextColor(...COLORS.text);
+
+        pdf.setFontSize(10);
+        pdf.setTextColor(...COLORS.textLight);
+        pdf.text(t('distributionDesc') || 'Porcentaje de alumnos por nota en cada curso', PAGE.margin, contentStartY + 7);
+        pdf.setTextColor(...COLORS.text);
+
+        // Añadir imagen del gráfico de distribución
+        const imgWidth = contentWidth;
+        const imgHeight = imgWidth * (550 / 1200); // Mantener proporción
+        const maxHeight = PAGE.height - contentStartY - 30;
+        const finalHeight = Math.min(imgHeight, maxHeight);
+        const finalWidth = finalHeight * (1200 / 550);
+
+        const imgX = PAGE.margin + (contentWidth - finalWidth) / 2;
+        pdf.addImage(image, 'PNG', imgX, contentStartY + 12, finalWidth, finalHeight);
 
         addFooter(currentPage);
       }
+
+      console.log('[PDF] Distribución de notas completada');
     }
 
     // Guardar PDF

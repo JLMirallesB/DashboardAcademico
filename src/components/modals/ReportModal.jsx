@@ -190,6 +190,11 @@ export const ReportModal = ({
                   </span>
                 )}
               </div>
+              <CheckboxOption
+                checked={config.incluirDistribucionNotas !== false}
+                onChange={(e) => updateConfig('incluirDistribucionNotas', e.target.checked)}
+                label={t('includeDistributionCharts') || 'Distribución de notas por asignatura'}
+              />
             </div>
           </div>
 

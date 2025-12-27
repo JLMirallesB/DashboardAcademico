@@ -1159,8 +1159,13 @@ const DashboardAcademico = () => {
           categoria,
           razon,
           notaMedia: stats.notaMedia,
+          desviacion: stats.desviacion,
+          moda: stats.moda,
           aprobados: stats.aprobados,
-          suspendidos: stats.suspendidos
+          suspendidos: stats.suspendidos,
+          modaAprobados: stats.modaAprobados,
+          modaSuspendidos: stats.modaSuspendidos,
+          registros: stats.registros
         });
       });
     });
@@ -1262,6 +1267,67 @@ const DashboardAcademico = () => {
     return { datos, niveles };
   }, [trimestresDisponibles, datosCompletos]);
 
+  // Datos de distribución de notas por asignatura para el PDF
+  // Para cada asignatura, muestra la distribución (1-10) con una línea por cada curso
+  const datosDistribucionPDF = useMemo(() => {
+    if (!trimestreSeleccionado || !datosCompletos[trimestreSeleccionado]) return [];
+
+    // Obtener las asignaturas únicas (filtradas por grupo si aplica)
+    const filtroAgrupaciones = configInforme.filtroAgrupaciones;
+    const tieneFiltrActivo = filtroAgrupaciones != null && filtroAgrupaciones.length > 0;
+    const agrupacionesTrimestre = agrupacionesCompletas[trimestreSeleccionado] || {};
+
+    // Recopilar asignaturas únicas y sus datos por nivel
+    const asignaturasMap = {};
+    nivelesSinGlobalEtapa.forEach(nivel => {
+      const datosNivel = datosCompletos[trimestreSeleccionado]?.[nivel];
+      if (!datosNivel) return;
+
+      Object.entries(datosNivel).forEach(([asig, data]) => {
+        if (asig === 'Total' || asig === 'Total Especialidad' || asig === 'Total no Especialidad') return;
+        if (!data?.distribucion) return;
+
+        // Filtrar por grupo si hay filtro activo
+        if (tieneFiltrActivo && !filtroAgrupaciones.some(grupo => perteneceAGrupo(asig, grupo, agrupacionesTrimestre))) {
+          return;
+        }
+
+        if (!asignaturasMap[asig]) {
+          asignaturasMap[asig] = {};
+        }
+        asignaturasMap[asig][nivel] = data.distribucion;
+      });
+    });
+
+    // Convertir a formato para el gráfico
+    const resultado = Object.entries(asignaturasMap)
+      .filter(([, niveles]) => Object.keys(niveles).length >= 2) // Al menos 2 niveles para que tenga sentido
+      .map(([asignatura, nivelesData]) => {
+        const niveles = Object.keys(nivelesData).sort((a, b) => {
+          const numA = parseInt(a.match(/\d+/)?.[0] || '0');
+          const numB = parseInt(b.match(/\d+/)?.[0] || '0');
+          return numA - numB;
+        });
+
+        // Construir datos para cada nota (1-10)
+        const datos = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(nota => {
+          const punto = { nota };
+          niveles.forEach(nivel => {
+            const distribucion = nivelesData[nivel];
+            const total = Object.values(distribucion).reduce((a, b) => a + b, 0);
+            const valor = distribucion[nota] || 0;
+            punto[nivel] = total > 0 ? (valor / total * 100) : 0;
+          });
+          return punto;
+        });
+
+        return { asignatura, datos, niveles };
+      })
+      .sort((a, b) => a.asignatura.localeCompare(b.asignatura, 'es', { sensitivity: 'base' }));
+
+    return resultado;
+  }, [trimestreSeleccionado, datosCompletos, nivelesSinGlobalEtapa, configInforme.filtroAgrupaciones, agrupacionesCompletas]);
+
   // Función para generar informe PDF (versión mejorada con gráficas)
   const handleGenerarInformePDF = useCallback(async () => {
     console.log('[PDF] Iniciando generación de informe...');
@@ -1323,6 +1389,26 @@ const DashboardAcademico = () => {
         console.log('[PDF] Evolution captured:', !!chartImages.evolution);
       }
 
+      // Capturar gráficas de distribución por asignatura
+      if (configInforme.incluirDistribucionNotas && pdfChartRefs.current?.distributionRefs?.length > 0) {
+        chartImages.distributionArray = [];
+        const totalDistribution = pdfChartRefs.current.distributionRefs.length;
+        for (let i = 0; i < totalDistribution; i++) {
+          const refObj = pdfChartRefs.current.distributionRefs[i];
+          if (refObj?.current) {
+            setProgresoInforme(t('pdfCapturingCharts') + ` (distribución ${i + 1}/${totalDistribution})`);
+            const img = await captureChartAsImage(refObj.current);
+            if (img) {
+              chartImages.distributionArray.push({
+                image: img,
+                asignatura: datosDistribucionPDF[i]?.asignatura || `Asignatura ${i + 1}`
+              });
+            }
+          }
+        }
+        console.log('[PDF] Distribution captured:', chartImages.distributionArray.length, 'gráficas');
+      }
+
       // Desactivar renderizado de gráficas ocultas
       setRenderPDFCharts(false);
 
@@ -1359,7 +1445,7 @@ const DashboardAcademico = () => {
       setProgresoInforme('');
       setRenderPDFCharts(false);
     }
-  }, [trimestreSeleccionado, datosCompletos, configInforme, modoEtapa, kpisGlobales, correlacionesTrimestre, analisisDificultad, agrupacionesCompletas, tendenciasParaPDF, trimestresDisponibles, t]);
+  }, [trimestreSeleccionado, datosCompletos, configInforme, modoEtapa, kpisGlobales, correlacionesTrimestre, analisisDificultad, agrupacionesCompletas, tendenciasParaPDF, trimestresDisponibles, datosDistribucionPDF, t]);
 
   // Datos calculados para las gráficas del PDF
   const datosDispersionPDF = useMemo(() => {
@@ -4254,6 +4340,7 @@ const DashboardAcademico = () => {
         nivelesCorrelaciones={nivelesSinGlobalEtapa}
         datosTransversal={datosTransversalPDF}
         datosEvolucionNotas={datosEvolucionNotasPDF}
+        datosDistribucion={datosDistribucionPDF}
         idioma={idioma}
         t={t}
       />
