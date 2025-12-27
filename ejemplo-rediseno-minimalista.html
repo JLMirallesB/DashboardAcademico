@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Propuesta Rediseño Minimalista - Dashboard Académico</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    .comparison-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin-bottom: 3rem;
+    }
+    @media (max-width: 768px) {
+      .comparison-container {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body class="bg-gray-100 p-8">
+  <div class="max-w-7xl mx-auto">
+    <!-- Título Principal -->
+    <div class="text-center mb-12">
+      <h1 class="text-4xl font-bold text-gray-900 mb-3">Propuesta Rediseño Minimalista</h1>
+      <p class="text-lg text-gray-600">Dashboard Académico - Comparativa Antes/Después</p>
+    </div>
+
+    <!-- ========== 1. HEADER ========== -->
+    <section class="mb-16">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6 pb-2 border-b-2 border-gray-900">1. Header</h2>
+
+      <div class="comparison-container">
+        <!-- ANTES -->
+        <div>
+          <div class="bg-red-50 border-2 border-red-300 rounded-lg p-2 mb-3">
+            <p class="text-xs font-bold text-red-800 text-center">❌ ANTES (Colorido)</p>
+          </div>
+          <div class="bg-white border-b border-slate-200 px-4 py-3 rounded-lg shadow">
+            <h1 class="text-lg font-bold text-slate-800">Dashboard Académico</h1>
+            <div class="flex items-center gap-2 text-sm text-slate-500 mt-1">
+              <span>Conservatorio</span>
+              <span class="text-slate-300">|</span>
+              <span>2024-2025</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- DESPUÉS -->
+        <div>
+          <div class="bg-green-50 border-2 border-green-600 rounded-lg p-2 mb-3">
+            <p class="text-xs font-bold text-green-800 text-center">✅ DESPUÉS (Minimalista)</p>
+          </div>
+          <div class="bg-white border-b border-gray-200 px-6 py-5 rounded-lg">
+            <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Dashboard Académico</h1>
+            <p class="text-sm text-gray-600 mt-1">Conservatorio | 2024-2025 | 1EV-EEM</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 2. KPI CARDS ========== -->
+    <section class="mb-16">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6 pb-2 border-b-2 border-gray-900">2. KPI Cards</h2>
+
+      <div class="comparison-container">
+        <!-- ANTES -->
+        <div>
+          <div class="bg-red-50 border-2 border-red-300 rounded-lg p-2 mb-3">
+            <p class="text-xs font-bold text-red-800 text-center">❌ ANTES (Gradientes coloridos)</p>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <!-- Nota Media -->
+            <div class="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-4">
+              <div class="flex items-center gap-2 mb-2">
+                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                <span class="text-xs font-medium text-blue-700">Nota Media</span>
+              </div>
+              <div class="text-3xl font-bold text-blue-900">7.45</div>
+            </div>
+
+            <!-- Desviación -->
+            <div class="bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200 rounded-xl p-4">
+              <div class="flex items-center gap-2 mb-2">
+                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+                </svg>
+                <span class="text-xs font-medium text-indigo-700">Desviación</span>
+              </div>
+              <div class="text-3xl font-bold text-indigo-900">1.82</div>
+            </div>
+
+            <!-- Aprobados -->
+            <div class="bg-gradient-to-br from-teal-50 to-teal-100 border border-teal-200 rounded-xl p-4">
+              <div class="flex items-center gap-2 mb-2">
+                <svg class="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span class="text-xs font-medium text-teal-700">% Aprobados</span>
+              </div>
+              <div class="text-3xl font-bold text-teal-900">87.3%</div>
+            </div>
+
+            <!-- Suspendidos -->
+            <div class="bg-gradient-to-br from-rose-50 to-rose-100 border border-rose-200 rounded-xl p-4">
+              <div class="flex items-center gap-2 mb-2">
+                <svg class="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span class="text-xs font-medium text-rose-700">% Suspendidos</span>
+              </div>
+              <div class="text-3xl font-bold text-rose-900">12.7%</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DESPUÉS -->
+        <div>
+          <div class="bg-green-50 border-2 border-green-600 rounded-lg p-2 mb-3">
+            <p class="text-xs font-bold text-green-800 text-center">✅ DESPUÉS (Monocromo limpio)</p>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <!-- Nota Media -->
+            <div class="bg-white border border-gray-300 rounded-lg p-6 hover:border-gray-900 transition-colors cursor-pointer">
+              <span class="text-xs font-medium text-gray-600 uppercase tracking-wide">Nota Media</span>
+              <div class="text-3xl font-bold text-gray-900 mt-2">7.45</div>
+              <div class="mt-3 h-0.5 bg-gray-900"></div>
+            </div>
+
+            <!-- Desviación -->
+            <div class="bg-white border border-gray-300 rounded-lg p-6 hover:border-gray-900 transition-colors cursor-pointer">
+              <span class="text-xs font-medium text-gray-600 uppercase tracking-wide">Desviación</span>
+              <div class="text-3xl font-bold text-gray-900 mt-2">1.82</div>
+              <div class="mt-3 h-0.5 bg-gray-400"></div>
+            </div>
+
+            <!-- Aprobados (estado positivo) -->
+            <div class="bg-white border border-gray-300 rounded-lg p-6 hover:border-gray-900 transition-colors cursor-pointer">
+              <span class="text-xs font-medium text-gray-600 uppercase tracking-wide">% Aprobados</span>
+              <div class="text-3xl font-bold text-gray-900 mt-2">87.3%</div>
+              <div class="mt-3 h-0.5 bg-green-600"></div>
+            </div>
+
+            <!-- Suspendidos (estado crítico) -->
+            <div class="bg-white border-l-4 border-l-red-500 border-r border-t border-b border-gray-300 rounded-lg p-6">
+              <span class="text-xs font-medium text-gray-600 uppercase tracking-wide">% Suspendidos</span>
+              <div class="text-3xl font-bold text-gray-900 mt-2">12.7%</div>
+              <span class="text-xs text-red-600 mt-1 block">Normal</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ejemplo de KPI en alerta -->
+      <div class="mt-6 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded">
+        <p class="text-sm text-gray-700">
+          <strong>Nota:</strong> En la versión minimalista, el color solo se usa para indicar <strong>estados críticos</strong>.
+          Los bordes de color (verde/rojo) solo aparecen cuando hay alertas o éxitos significativos.
+        </p>
+      </div>
+    </section>
+
+    <!-- ========== 3. BOTONES ========== -->
+    <section class="mb-16">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6 pb-2 border-b-2 border-gray-900">3. Botones</h2>
+
+      <div class="comparison-container">
+        <!-- ANTES -->
+        <div>
+          <div class="bg-red-50 border-2 border-red-300 rounded-lg p-2 mb-3">
+            <p class="text-xs font-bold text-red-800 text-center">❌ ANTES (Colores variados)</p>
+          </div>
+          <div class="bg-white p-6 rounded-lg space-y-3">
+            <button class="w-full py-3 px-6 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
+              Generar Informe
+            </button>
+            <button class="w-full py-3 px-6 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 font-medium">
+              Exportar Datos
+            </button>
+            <button class="w-full py-3 px-6 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium">
+              Eliminar Trimestre
+            </button>
+            <button class="w-full py-3 px-6 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium">
+              Confirmar
+            </button>
+          </div>
+        </div>
+
+        <!-- DESPUÉS -->
+        <div>
+          <div class="bg-green-50 border-2 border-green-600 rounded-lg p-2 mb-3">
+            <p class="text-xs font-bold text-green-800 text-center">✅ DESPUÉS (Sistema unificado)</p>
+          </div>
+          <div class="bg-white p-6 rounded-lg space-y-3">
+            <!-- Primario -->
+            <button class="w-full px-6 py-3 bg-gray-900 text-white font-medium rounded-lg hover:bg-black transition-colors">
+              Generar Informe
+            </button>
+            <!-- Secundario -->
+            <button class="w-full px-6 py-3 bg-white border-2 border-gray-900 text-gray-900 font-medium rounded-lg hover:bg-gray-50 transition-colors">
+              Exportar Datos
+            </button>
+            <!-- Destructivo -->
+            <button class="w-full px-6 py-3 bg-white border-2 border-red-600 text-red-600 font-medium rounded-lg hover:bg-red-50 transition-colors">
+              Eliminar Trimestre
+            </button>
+            <!-- Terciario -->
+            <button class="w-full px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 4. SIDEBAR NAVIGATION ========== -->
+    <section class="mb-16">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6 pb-2 border-b-2 border-gray-900">4. Sidebar Navigation</h2>
+
+      <div class="comparison-container">
+        <!-- ANTES -->
+        <div>
+          <div class="bg-red-50 border-2 border-red-300 rounded-lg p-2 mb-3">
+            <p class="text-xs font-bold text-red-800 text-center">❌ ANTES</p>
+          </div>
+          <div class="bg-white border border-slate-200 rounded-lg p-3 space-y-1">
+            <button class="w-full px-4 py-3 text-left text-blue-600 bg-blue-50 rounded-lg font-medium text-sm">
+              📊 KPIs
+            </button>
+            <button class="w-full px-4 py-3 text-left text-slate-600 hover:bg-slate-50 rounded-lg font-medium text-sm">
+              📈 Estadísticas
+            </button>
+            <button class="w-full px-4 py-3 text-left text-slate-600 hover:bg-slate-50 rounded-lg font-medium text-sm">
+              🔗 Correlaciones
+            </button>
+            <button class="w-full px-4 py-3 text-left text-slate-600 hover:bg-slate-50 rounded-lg font-medium text-sm">
+              📉 Evolución
+            </button>
+          </div>
+        </div>
+
+        <!-- DESPUÉS -->
+        <div>
+          <div class="bg-green-50 border-2 border-green-600 rounded-lg p-2 mb-3">
+            <p class="text-xs font-bold text-green-800 text-center">✅ DESPUÉS</p>
+          </div>
+          <div class="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-1">
+            <!-- Activo -->
+            <button class="w-full px-4 py-3 text-left bg-white text-gray-900 border-l-4 border-l-gray-900 font-medium text-sm">
+              KPIs
+            </button>
+            <!-- Inactivos -->
+            <button class="w-full px-4 py-3 text-left text-gray-700 hover:bg-white hover:text-gray-900 transition-colors font-medium text-sm">
+              Estadísticas
+            </button>
+            <button class="w-full px-4 py-3 text-left text-gray-700 hover:bg-white hover:text-gray-900 transition-colors font-medium text-sm">
+              Correlaciones
+            </button>
+            <button class="w-full px-4 py-3 text-left text-gray-700 hover:bg-white hover:text-gray-900 transition-colors font-medium text-sm">
+              Evolución
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 5. TABLA DE DATOS ========== -->
+    <section class="mb-16">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6 pb-2 border-b-2 border-gray-900">5. Tabla de Datos</h2>
+
+      <div class="comparison-container">
+        <!-- ANTES -->
+        <div>
+          <div class="bg-red-50 border-2 border-red-300 rounded-lg p-2 mb-3">
+            <p class="text-xs font-bold text-red-800 text-center">❌ ANTES</p>
+          </div>
+          <div class="bg-white rounded-lg overflow-hidden shadow">
+            <table class="w-full">
+              <thead class="bg-slate-100">
+                <tr>
+                  <th class="text-left p-3 text-xs font-semibold text-slate-700">Asignatura</th>
+                  <th class="text-right p-3 text-xs font-semibold text-slate-700">Media</th>
+                  <th class="text-right p-3 text-xs font-semibold text-slate-700">Aprobados</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="border-b border-slate-200">
+                  <td class="p-3 text-sm text-slate-800">Piano</td>
+                  <td class="p-3 text-sm text-right text-slate-800">8.45</td>
+                  <td class="p-3 text-sm text-right text-green-600 font-medium">92%</td>
+                </tr>
+                <tr class="border-b border-slate-200 bg-slate-50">
+                  <td class="p-3 text-sm text-slate-800">Violín</td>
+                  <td class="p-3 text-sm text-right text-slate-800">7.23</td>
+                  <td class="p-3 text-sm text-right text-slate-600">78%</td>
+                </tr>
+                <tr class="border-b border-slate-200">
+                  <td class="p-3 text-sm text-slate-800">Lenguaje Musical</td>
+                  <td class="p-3 text-sm text-right text-red-600 font-medium">5.67</td>
+                  <td class="p-3 text-sm text-right text-red-600 font-medium">65%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- DESPUÉS -->
+        <div>
+          <div class="bg-green-50 border-2 border-green-600 rounded-lg p-2 mb-3">
+            <p class="text-xs font-bold text-green-800 text-center">✅ DESPUÉS</p>
+          </div>
+          <div class="bg-white rounded-lg overflow-hidden border border-gray-200">
+            <table class="w-full">
+              <thead>
+                <tr class="border-b-2 border-gray-900">
+                  <th class="text-left py-4 px-4 text-xs font-bold text-gray-900 uppercase tracking-wide">Asignatura</th>
+                  <th class="text-right py-4 px-4 text-xs font-bold text-gray-900 uppercase tracking-wide">Media</th>
+                  <th class="text-right py-4 px-4 text-xs font-bold text-gray-900 uppercase tracking-wide">Aprobados</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                  <td class="py-3 px-4 text-sm text-gray-900 font-medium">Piano</td>
+                  <td class="py-3 px-4 text-sm text-right text-gray-900">8.45</td>
+                  <td class="py-3 px-4 text-sm text-right text-gray-900">92%</td>
+                </tr>
+                <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                  <td class="py-3 px-4 text-sm text-gray-900 font-medium">Violín</td>
+                  <td class="py-3 px-4 text-sm text-right text-gray-900">7.23</td>
+                  <td class="py-3 px-4 text-sm text-right text-gray-900">78%</td>
+                </tr>
+                <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors border-l-4 border-l-red-500">
+                  <td class="py-3 px-4 text-sm text-gray-900 font-medium">Lenguaje Musical</td>
+                  <td class="py-3 px-4 text-sm text-right text-gray-900">5.67</td>
+                  <td class="py-3 px-4 text-sm text-right text-red-600 font-bold">65%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-6 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded">
+        <p class="text-sm text-gray-700">
+          <strong>Nota:</strong> En tablas, el color rojo solo se usa para valores críticos (< 70% aprobados).
+          El borde lateral izquierdo rojo indica una fila con alerta.
+        </p>
+      </div>
+    </section>
+
+    <!-- ========== 6. BADGES Y ETIQUETAS ========== -->
+    <section class="mb-16">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6 pb-2 border-b-2 border-gray-900">6. Badges y Etiquetas</h2>
+
+      <div class="comparison-container">
+        <!-- ANTES -->
+        <div>
+          <div class="bg-red-50 border-2 border-red-300 rounded-lg p-2 mb-3">
+            <p class="text-xs font-bold text-red-800 text-center">❌ ANTES</p>
+          </div>
+          <div class="bg-white p-6 rounded-lg space-y-3">
+            <div class="flex gap-2 flex-wrap">
+              <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">EEM</span>
+              <span class="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-semibold">EPM</span>
+              <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">1EV</span>
+              <span class="px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-semibold">DIFÍCIL</span>
+              <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">FÁCIL</span>
+              <span class="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-semibold">NEUTRAL</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- DESPUÉS -->
+        <div>
+          <div class="bg-green-50 border-2 border-green-600 rounded-lg p-2 mb-3">
+            <p class="text-xs font-bold text-green-800 text-center">✅ DESPUÉS</p>
+          </div>
+          <div class="bg-white p-6 rounded-lg space-y-3">
+            <div class="flex gap-2 flex-wrap">
+              <!-- Etapas (sin color, solo contraste) -->
+              <span class="px-3 py-1 bg-gray-100 text-gray-900 rounded text-xs font-bold uppercase tracking-wide">EEM</span>
+              <span class="px-3 py-1 bg-gray-900 text-white rounded text-xs font-bold uppercase tracking-wide">EPM</span>
+              <!-- Trimestre -->
+              <span class="px-3 py-1 bg-white border-2 border-gray-900 text-gray-900 rounded text-xs font-bold uppercase tracking-wide">1EV</span>
+              <!-- Dificultad (color solo si crítico) -->
+              <span class="px-3 py-1 bg-white border-2 border-red-600 text-red-600 rounded text-xs font-bold uppercase tracking-wide">DIFÍCIL</span>
+              <span class="px-3 py-1 bg-white border-2 border-green-600 text-green-600 rounded text-xs font-bold uppercase tracking-wide">FÁCIL</span>
+              <span class="px-3 py-1 bg-gray-100 text-gray-700 rounded text-xs font-bold uppercase tracking-wide">NEUTRAL</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 7. INPUTS Y FORMULARIOS ========== -->
+    <section class="mb-16">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6 pb-2 border-b-2 border-gray-900">7. Inputs y Formularios</h2>
+
+      <div class="comparison-container">
+        <!-- ANTES -->
+        <div>
+          <div class="bg-red-50 border-2 border-red-300 rounded-lg p-2 mb-3">
+            <p class="text-xs font-bold text-red-800 text-center">❌ ANTES</p>
+          </div>
+          <div class="bg-white p-6 rounded-lg space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Nombre del Centro</label>
+              <input type="text" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value="Conservatorio Profesional" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Curso Académico</label>
+              <select class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option>2024-2025</option>
+                <option>2023-2024</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- DESPUÉS -->
+        <div>
+          <div class="bg-green-50 border-2 border-green-600 rounded-lg p-2 mb-3">
+            <p class="text-xs font-bold text-green-800 text-center">✅ DESPUÉS</p>
+          </div>
+          <div class="bg-white p-6 rounded-lg space-y-4">
+            <div>
+              <label class="block text-xs font-bold text-gray-900 uppercase tracking-wide mb-2">Nombre del Centro</label>
+              <input type="text" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-gray-900 transition-colors text-gray-900" value="Conservatorio Profesional" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-900 uppercase tracking-wide mb-2">Curso Académico</label>
+              <select class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-gray-900 transition-colors text-gray-900">
+                <option>2024-2025</option>
+                <option>2023-2024</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 8. LAYOUT COMPLETO ========== -->
+    <section class="mb-16">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6 pb-2 border-b-2 border-gray-900">8. Vista Completa Minimalista</h2>
+
+      <div class="bg-green-50 border-2 border-green-600 rounded-lg p-2 mb-3">
+        <p class="text-xs font-bold text-green-800 text-center">✅ Ejemplo de Layout Completo con Estilo Minimalista</p>
+      </div>
+
+      <div class="bg-white rounded-lg overflow-hidden border-2 border-gray-900">
+        <!-- Header -->
+        <div class="bg-white border-b-2 border-gray-200 px-6 py-5">
+          <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Dashboard Académico</h1>
+          <p class="text-sm text-gray-600 mt-1">Conservatorio Profesional de Música | 2024-2025 | 1EV-EEM</p>
+        </div>
+
+        <!-- Content -->
+        <div class="p-6 bg-gray-50">
+          <!-- KPIs Grid -->
+          <div class="grid grid-cols-4 gap-4 mb-6">
+            <div class="bg-white border border-gray-300 rounded-lg p-6 hover:border-gray-900 transition-colors">
+              <span class="text-xs font-medium text-gray-600 uppercase tracking-wide">Nota Media</span>
+              <div class="text-3xl font-bold text-gray-900 mt-2">7.45</div>
+              <div class="mt-3 h-0.5 bg-gray-900"></div>
+            </div>
+            <div class="bg-white border border-gray-300 rounded-lg p-6 hover:border-gray-900 transition-colors">
+              <span class="text-xs font-medium text-gray-600 uppercase tracking-wide">Desviación</span>
+              <div class="text-3xl font-bold text-gray-900 mt-2">1.82</div>
+              <div class="mt-3 h-0.5 bg-gray-400"></div>
+            </div>
+            <div class="bg-white border border-gray-300 rounded-lg p-6 hover:border-gray-900 transition-colors">
+              <span class="text-xs font-medium text-gray-600 uppercase tracking-wide">% Aprobados</span>
+              <div class="text-3xl font-bold text-gray-900 mt-2">87.3%</div>
+              <div class="mt-3 h-0.5 bg-green-600"></div>
+            </div>
+            <div class="bg-white border-l-4 border-l-red-500 border-r border-t border-b border-gray-300 rounded-lg p-6">
+              <span class="text-xs font-medium text-gray-600 uppercase tracking-wide">% Suspendidos</span>
+              <div class="text-3xl font-bold text-gray-900 mt-2">12.7%</div>
+            </div>
+          </div>
+
+          <!-- Tabla -->
+          <div class="bg-white rounded-lg border border-gray-200">
+            <div class="px-6 py-4 border-b-2 border-gray-900">
+              <h2 class="text-xl font-bold text-gray-900">Rendimiento por Asignatura</h2>
+            </div>
+            <table class="w-full">
+              <thead>
+                <tr class="border-b-2 border-gray-900">
+                  <th class="text-left py-4 px-6 text-xs font-bold text-gray-900 uppercase tracking-wide">Asignatura</th>
+                  <th class="text-right py-4 px-6 text-xs font-bold text-gray-900 uppercase tracking-wide">Media</th>
+                  <th class="text-right py-4 px-6 text-xs font-bold text-gray-900 uppercase tracking-wide">Alumnos</th>
+                  <th class="text-right py-4 px-6 text-xs font-bold text-gray-900 uppercase tracking-wide">Aprobados</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                  <td class="py-3 px-6 text-sm text-gray-900 font-medium">Piano</td>
+                  <td class="py-3 px-6 text-sm text-right text-gray-900">8.45</td>
+                  <td class="py-3 px-6 text-sm text-right text-gray-900">24</td>
+                  <td class="py-3 px-6 text-sm text-right text-gray-900">92%</td>
+                </tr>
+                <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                  <td class="py-3 px-6 text-sm text-gray-900 font-medium">Violín</td>
+                  <td class="py-3 px-6 text-sm text-right text-gray-900">7.89</td>
+                  <td class="py-3 px-6 text-sm text-right text-gray-900">18</td>
+                  <td class="py-3 px-6 text-sm text-right text-gray-900">88%</td>
+                </tr>
+                <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors border-l-4 border-l-red-500">
+                  <td class="py-3 px-6 text-sm text-gray-900 font-medium">Lenguaje Musical</td>
+                  <td class="py-3 px-6 text-sm text-right text-gray-900">5.67</td>
+                  <td class="py-3 px-6 text-sm text-right text-gray-900">42</td>
+                  <td class="py-3 px-6 text-sm text-right text-red-600 font-bold">65%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Acciones -->
+          <div class="mt-6 flex gap-3">
+            <button class="px-6 py-3 bg-gray-900 text-white font-medium rounded-lg hover:bg-black transition-colors">
+              Generar Informe PDF
+            </button>
+            <button class="px-6 py-3 bg-white border-2 border-gray-900 text-gray-900 font-medium rounded-lg hover:bg-gray-50 transition-colors">
+              Exportar Datos
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== RESUMEN ========== -->
+    <section class="mt-16 bg-gray-900 text-white p-8 rounded-lg">
+      <h2 class="text-2xl font-bold mb-4">📊 Resumen de Cambios Clave</h2>
+      <div class="grid md:grid-cols-2 gap-6">
+        <div>
+          <h3 class="font-bold mb-2 text-lg">❌ Eliminar:</h3>
+          <ul class="space-y-1 text-sm text-gray-300">
+            <li>• Gradientes de color (from-blue-50 to-blue-100)</li>
+            <li>• 15+ colores diferentes en UI</li>
+            <li>• Sombras (shadow-md, shadow-lg)</li>
+            <li>• Iconos coloridos en KPIs</li>
+            <li>• Fondos de color en navegación</li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="font-bold mb-2 text-lg">✅ Añadir:</h3>
+          <ul class="space-y-1 text-sm text-gray-300">
+            <li>• Paleta monocromática (blanco/gris/negro)</li>
+            <li>• Bordes consistentes (gray-300)</li>
+            <li>• Tipografía más grande y espaciada</li>
+            <li>• Color SOLO para alertas críticas</li>
+            <li>• Mayor espacio en blanco (padding/gap)</li>
+          </ul>
+        </div>
+      </div>
+      <div class="mt-6 p-4 bg-white/10 rounded border border-white/20">
+        <p class="text-sm">
+          <strong>Filosofía:</strong> El color es un lujo que se reserva para comunicar información crítica.
+          Todo lo demás debe ser blanco, gris o negro. La jerarquía se logra con tamaño, peso y espaciado, no con color.
+        </p>
+      </div>
+    </section>
+  </div>
+</body>
+</html>
