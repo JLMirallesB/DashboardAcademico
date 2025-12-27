@@ -54,11 +54,13 @@ export const PDFChartRenderer = forwardRef(({
   datosEvolucionCorrelaciones,
   nivelesCorrelaciones,
   datosTransversal, // Ahora es un array de grupos: [{datos, asignaturas, titulo}, ...]
+  datosEvolucionNotas, // Datos para evolución de notas por trimestre: {datos: [...], niveles: [...]}
   idioma = 'es',
   t = (key) => key
 }, ref) => {
   const scatterRef = useRef(null);
   const correlationRef = useRef(null);
+  const evolutionRef = useRef(null);
   // Array de refs para múltiples gráficas transversales
   const transversalRefs = useRef([]);
 
@@ -76,6 +78,7 @@ export const PDFChartRenderer = forwardRef(({
   useImperativeHandle(ref, () => ({
     scatterRef,
     correlationRef,
+    evolutionRef,
     transversalRefs: transversalRefs.current
   }));
 
@@ -357,6 +360,68 @@ export const PDFChartRenderer = forwardRef(({
           </div>
         )
       ))}
+
+      {/* Evolución de Notas Medias por Trimestre */}
+      {datosEvolucionNotas && datosEvolucionNotas.datos && datosEvolucionNotas.datos.length >= 2 && (
+        <div
+          ref={evolutionRef}
+          style={{ width: '1200px', height: '600px', background: 'white', padding: '20px', marginTop: '40px' }}
+        >
+          <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', marginBottom: '20px', textAlign: 'center' }}>
+            {idioma === 'es' ? 'Evolución de Notas Medias por Trimestre' : 'Evolució de Notes Mitjanes per Trimestre'}
+          </h2>
+          <ResponsiveContainer width="100%" height={520}>
+            <LineChart
+              data={datosEvolucionNotas.datos}
+              margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+              <XAxis
+                dataKey="trimestre"
+                stroke="#64748b"
+                tick={{ fontSize: 12 }}
+                label={{
+                  value: idioma === 'es' ? 'Trimestre' : 'Trimestre',
+                  position: 'bottom',
+                  offset: 40,
+                  style: { fill: '#475569', fontSize: 14, fontWeight: 600 }
+                }}
+              />
+              <YAxis
+                stroke="#64748b"
+                domain={[0, 10]}
+                label={{
+                  value: idioma === 'es' ? 'Nota Media' : 'Nota Mitjana',
+                  angle: -90,
+                  position: 'insideLeft',
+                  style: { textAnchor: 'middle', fill: '#64748b' }
+                }}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'white',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px'
+                }}
+                formatter={(value, name) => [value?.toFixed(2), name]}
+              />
+              <Legend wrapperStyle={{ paddingTop: '10px' }} />
+              {datosEvolucionNotas.niveles?.map((nivel, idx) => (
+                <Line
+                  key={nivel}
+                  type="monotone"
+                  dataKey={nivel}
+                  name={nivel}
+                  stroke={COLORES_LINEAS[idx % COLORES_LINEAS.length]}
+                  strokeWidth={2}
+                  dot={{ fill: COLORES_LINEAS[idx % COLORES_LINEAS.length], r: 5 }}
+                  connectNulls
+                />
+              ))}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
     </div>
   );
 });

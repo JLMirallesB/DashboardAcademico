@@ -271,6 +271,32 @@ export const translations = {
     pdfGeneratingCorrelations: 'Generando correlaciones...',
     pdfGeneratingSubjects: 'Generando datos...',
     pdfSaving: 'Guardando PDF...',
+    pdfGeneratingTrends: 'Generando análisis de tendencias...',
+    pdfGeneratingEvolution: 'Generando evolución de notas...',
+    pdfGeneratingGroupComparison: 'Generando comparativa del grupo...',
+
+    // Nuevas secciones del informe PDF
+    includeTrendAnalysis: 'Análisis de tendencias',
+    includeGradeEvolution: 'Evolución de notas medias',
+    trendAnalysisTitle: 'Análisis de Tendencias Transversales',
+    requiresMultipleTrm: 'Requiere 2+ trimestres',
+    notEnoughTrimesters: 'Se requieren al menos 2 trimestres para mostrar la evolución',
+    gradeEvolutionTitle: 'Evolución de Notas Medias',
+
+    // Comparativa asignaturas vs centro (informes de grupo)
+    subjectVsCenter: 'Comparativa Asignaturas vs Centro',
+    vsCenter: 'vs Centro',
+    subjectsInGroup: 'Asignaturas del grupo',
+    differenceLabel: 'Diferencia',
+    groupReportTitle: 'Informe del Grupo',
+    groupReportSubtitle: 'Análisis comparativo con el centro',
+    subjectsCount: 'asignaturas',
+    filteredDispersion: 'Mapa de dispersión filtrado',
+    showingGroupOnly: 'Mostrando solo asignaturas del grupo',
+    confidenceHigh: 'Alta',
+    confidenceLow: 'Baja',
+    trendSummary: 'Resumen de Tendencias',
+    trendCount: 'asignaturas con esta tendencia',
 
     // Ayuda
     help: 'Ayuda',
@@ -562,6 +588,32 @@ export const translations = {
     pdfGeneratingCorrelations: 'Generant correlacions...',
     pdfGeneratingSubjects: 'Generant dades...',
     pdfSaving: 'Guardant PDF...',
+    pdfGeneratingTrends: 'Generant anàlisi de tendències...',
+    pdfGeneratingEvolution: 'Generant evolució de notes...',
+    pdfGeneratingGroupComparison: 'Generant comparativa del grup...',
+
+    // Noves seccions de l'informe PDF
+    includeTrendAnalysis: 'Anàlisi de tendències',
+    includeGradeEvolution: 'Evolució de notes mitjanes',
+    trendAnalysisTitle: 'Anàlisi de Tendències Transversals',
+    requiresMultipleTrm: 'Requereix 2+ trimestres',
+    notEnoughTrimesters: 'Es requereixen almenys 2 trimestres per mostrar l\'evolució',
+    gradeEvolutionTitle: 'Evolució de Notes Mitjanes',
+
+    // Comparativa assignatures vs centre (informes de grup)
+    subjectVsCenter: 'Comparativa Assignatures vs Centre',
+    vsCenter: 'vs Centre',
+    subjectsInGroup: 'Assignatures del grup',
+    differenceLabel: 'Diferència',
+    groupReportTitle: 'Informe del Grup',
+    groupReportSubtitle: 'Anàlisi comparativa amb el centre',
+    subjectsCount: 'assignatures',
+    filteredDispersion: 'Mapa de dispersió filtrat',
+    showingGroupOnly: 'Mostrant només assignatures del grup',
+    confidenceHigh: 'Alta',
+    confidenceLow: 'Baixa',
+    trendSummary: 'Resum de Tendències',
+    trendCount: 'assignatures amb aquesta tendència',
 
     // Ajuda
     help: 'Ajuda',

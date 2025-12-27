@@ -42,6 +42,8 @@ export const generarInformePDF = async ({
   correlacionesTrimestre,
   analisisDificultad,
   agrupacionesCompletas = {},
+  tendenciasParaPDF = [],
+  trimestresDisponibles = [],
   chartImages = {},
   t,
   onProgress,
@@ -120,43 +122,65 @@ export const generarInformePDF = async ({
       onProgress?.(t('pdfGeneratingCover'));
       currentPage++;
 
-      // Fondo superior
-      pdf.setFillColor(...COLORS.primary);
-      pdf.rect(0, 0, PAGE.width, 80, 'F');
+      const filtroAgrupaciones = configInforme.filtroAgrupaciones;
+      const esInformeDeGrupo = filtroAgrupaciones != null && filtroAgrupaciones.length > 0;
+
+      // Contar asignaturas del grupo (si es informe de grupo)
+      let asignaturasDelGrupo = 0;
+      if (esInformeDeGrupo) {
+        Object.keys(datosCompletos[trimestreSeleccionado] || {}).forEach(nivel => {
+          if (nivel === 'GLOBAL') return;
+          const datosNivel = datosCompletos[trimestreSeleccionado]?.[nivel];
+          if (datosNivel) {
+            Object.keys(datosNivel).forEach(asig => {
+              if (asig !== 'Total' && asig !== 'Total Especialidad' && asig !== 'Total no Especialidad') {
+                if (perteneceAGruposFiltrados(asig)) {
+                  asignaturasDelGrupo++;
+                }
+              }
+            });
+          }
+        });
+      }
+
+      // Fondo superior - color diferente para informe de grupo
+      pdf.setFillColor(...(esInformeDeGrupo ? [88, 28, 135] : COLORS.primary)); // purple-900 para grupos
+      pdf.rect(0, 0, PAGE.width, esInformeDeGrupo ? 90 : 80, 'F');
 
       // Título
       pdf.setTextColor(...COLORS.white);
       pdf.setFontSize(32);
-      pdf.text(configInforme.nombreCentro || t('centerName'), PAGE.width / 2, 35, { align: 'center' });
+      pdf.text(configInforme.nombreCentro || t('centerName'), PAGE.width / 2, 30, { align: 'center' });
 
-      pdf.setFontSize(24);
-      pdf.text(t('reportTitle'), PAGE.width / 2, 50, { align: 'center' });
+      if (esInformeDeGrupo) {
+        // Título específico de grupo
+        pdf.setFontSize(22);
+        pdf.text(`${t('groupReportTitle') || 'Informe del Grupo'}: ${filtroAgrupaciones.join(', ')}`, PAGE.width / 2, 48, { align: 'center' });
 
-      pdf.setFontSize(16);
-      pdf.text(trimestreSeleccionado, PAGE.width / 2, 65, { align: 'center' });
+        pdf.setFontSize(14);
+        pdf.text(t('groupReportSubtitle') || 'Análisis comparativo con el centro', PAGE.width / 2, 62, { align: 'center' });
+
+        pdf.setFontSize(14);
+        pdf.text(trimestreSeleccionado, PAGE.width / 2, 78, { align: 'center' });
+      } else {
+        pdf.setFontSize(24);
+        pdf.text(t('reportTitle'), PAGE.width / 2, 50, { align: 'center' });
+
+        pdf.setFontSize(16);
+        pdf.text(trimestreSeleccionado, PAGE.width / 2, 65, { align: 'center' });
+      }
 
       // Info adicional
       pdf.setTextColor(...COLORS.text);
       pdf.setFontSize(14);
-      pdf.text(`${t('academicYear')}: ${configInforme.cursoAcademico || ''}`, PAGE.width / 2, 110, { align: 'center' });
+      const infoY = esInformeDeGrupo ? 115 : 110;
+      pdf.text(`${t('academicYear')}: ${configInforme.cursoAcademico || ''}`, PAGE.width / 2, infoY, { align: 'center' });
 
-      // Mostrar agrupaciones filtradas (si hay filtro activo)
-      const filtroAgrupaciones = configInforme.filtroAgrupaciones;
-      if (filtroAgrupaciones != null && filtroAgrupaciones.length > 0) {
-        pdf.setFontSize(11);
+      // Mostrar info del grupo
+      if (esInformeDeGrupo) {
+        pdf.setFontSize(12);
         pdf.setTextColor(...COLORS.secondary);
-        pdf.text(`${t('filterByGroups') || 'Filtrado por'}:`, PAGE.width / 2, 125, { align: 'center' });
-
-        pdf.setFontSize(10);
-        // Si hay muchas agrupaciones, mostrar en múltiples líneas
-        const agrupacionesTexto = filtroAgrupaciones.join(', ');
-        const maxWidth = PAGE.width - 60;
-        const lineas = pdf.splitTextToSize(agrupacionesTexto, maxWidth);
-        let yPos = 132;
-        lineas.forEach(linea => {
-          pdf.text(linea, PAGE.width / 2, yPos, { align: 'center' });
-          yPos += 5;
-        });
+        pdf.text(`${asignaturasDelGrupo} ${t('subjectsCount') || 'asignaturas'} ${t('subjectsInGroup') || 'en el grupo'}`, PAGE.width / 2, infoY + 12, { align: 'center' });
       }
 
       // Fecha
@@ -542,6 +566,143 @@ export const generarInformePDF = async ({
       console.log('[PDF] KPI Comparativa completado');
     }
 
+    // ========== COMPARATIVA ASIGNATURAS VS CENTRO (SOLO PARA GRUPOS) ==========
+    const filtroAgrupacionesActivo = configInforme.filtroAgrupaciones != null && configInforme.filtroAgrupaciones.length > 0;
+    if (filtroAgrupacionesActivo) {
+      onProgress?.(t('pdfGeneratingGroupComparison'));
+      addNewPage();
+
+      pdf.setFontSize(18);
+      pdf.setTextColor(...COLORS.primary);
+      pdf.text(t('subjectVsCenter') || 'Comparativa Asignaturas vs Centro', PAGE.margin, contentStartY);
+      pdf.setTextColor(...COLORS.text);
+
+      // Obtener nota media del centro
+      const datosGlobal = datosCompletos[trimestreSeleccionado]?.['GLOBAL']?.['Total'];
+      const notaMediaCentro = datosGlobal?.stats?.notaMedia || kpisGlobales?.notaMediaCentro || 0;
+      const aprobadosCentro = datosGlobal?.stats?.aprobados || kpisGlobales?.porcentajeAprobados || 0;
+
+      // Recopilar datos de asignaturas del grupo
+      const asignaturasGrupo = [];
+      Object.keys(datosCompletos[trimestreSeleccionado] || {}).forEach(nivel => {
+        if (nivel === 'GLOBAL') return;
+        const datosNivel = datosCompletos[trimestreSeleccionado]?.[nivel];
+        if (datosNivel) {
+          Object.entries(datosNivel).forEach(([asig, data]) => {
+            if (asig !== 'Total' && asig !== 'Total Especialidad' && asig !== 'Total no Especialidad') {
+              if (perteneceAGruposFiltrados(asig) && data?.stats) {
+                asignaturasGrupo.push({
+                  asignatura: asig,
+                  nivel,
+                  notaMedia: data.stats.notaMedia || 0,
+                  aprobados: data.stats.aprobados || 0,
+                  diffMedia: (data.stats.notaMedia || 0) - notaMediaCentro,
+                  diffAprobados: (data.stats.aprobados || 0) - aprobadosCentro
+                });
+              }
+            }
+          });
+        }
+      });
+
+      // Ordenar por asignatura y nivel
+      asignaturasGrupo.sort((a, b) => {
+        const asigCompare = a.asignatura.localeCompare(b.asignatura, 'es', { sensitivity: 'base' });
+        if (asigCompare !== 0) return asigCompare;
+        const getNivelNum = (n) => parseInt(n.match(/\d+/)?.[0] || '0');
+        return getNivelNum(a.nivel) - getNivelNum(b.nivel);
+      });
+
+      // Preparar datos para la tabla
+      const tableData = asignaturasGrupo.map(asig => {
+        const diffMediaStr = asig.diffMedia >= 0 ? `+${asig.diffMedia.toFixed(2)}` : asig.diffMedia.toFixed(2);
+        const diffAprobStr = asig.diffAprobados >= 0 ? `+${asig.diffAprobados.toFixed(1)}pp` : `${asig.diffAprobados.toFixed(1)}pp`;
+
+        return [
+          asig.asignatura,
+          asig.nivel,
+          asig.notaMedia.toFixed(2),
+          diffMediaStr,
+          `${asig.aprobados.toFixed(1)}%`,
+          diffAprobStr
+        ];
+      });
+
+      // Añadir fila de referencia del centro
+      tableData.unshift([
+        `📊 ${t('center') || 'Centro'} (${t('reference') || 'referencia'})`,
+        '-',
+        notaMediaCentro.toFixed(2),
+        '-',
+        `${aprobadosCentro.toFixed(1)}%`,
+        '-'
+      ]);
+
+      autoTable(pdf, {
+        startY: contentStartY + 10,
+        head: [
+          [
+            t('subject') || 'Asignatura',
+            t('level') || 'Nivel',
+            t('average') || 'Nota Media',
+            t('vsCenter') || 'vs Centro',
+            t('passed') || '% Aprobados',
+            t('vsCenter') || 'vs Centro'
+          ]
+        ],
+        body: tableData,
+        theme: 'striped',
+        headStyles: {
+          fillColor: [88, 28, 135], // purple-900 para consistencia con portada de grupo
+          fontSize: 9,
+          fontStyle: 'bold'
+        },
+        styles: {
+          fontSize: 8,
+          cellPadding: 3
+        },
+        columnStyles: {
+          0: { cellWidth: 55 },
+          1: { cellWidth: 25, halign: 'center' },
+          2: { cellWidth: 30, halign: 'center' },
+          3: { cellWidth: 30, halign: 'center' },
+          4: { cellWidth: 30, halign: 'center' },
+          5: { cellWidth: 30, halign: 'center' }
+        },
+        didParseCell: function(data) {
+          // Colorear fila de referencia del centro
+          if (data.section === 'body' && data.row.index === 0) {
+            data.cell.styles.fillColor = [241, 245, 249]; // slate-100
+            data.cell.styles.fontStyle = 'bold';
+          }
+          // Colorear diferencias
+          if (data.section === 'body' && data.row.index > 0) {
+            if (data.column.index === 3) { // Diferencia nota media
+              const valor = parseFloat(data.cell.raw) || 0;
+              if (valor > 0) {
+                data.cell.styles.textColor = COLORS.success;
+              } else if (valor < 0) {
+                data.cell.styles.textColor = COLORS.danger;
+              }
+            }
+            if (data.column.index === 5) { // Diferencia aprobados
+              const texto = data.cell.raw || '';
+              const valor = parseFloat(texto.replace('pp', '').replace('+', '')) || 0;
+              if (texto.startsWith('+') && valor > 0) {
+                data.cell.styles.textColor = COLORS.success;
+              } else if (valor < 0) {
+                data.cell.styles.textColor = COLORS.danger;
+              }
+            }
+          }
+        },
+        margin: { left: PAGE.margin, right: PAGE.margin }
+      });
+
+      addFooter(currentPage);
+      console.log('[PDF] Comparativa grupo vs centro completada');
+    }
+
     // ========== MAPA DE DISPERSIÓN ==========
     if (configInforme.incluirMapaDispersion !== false && chartImages.scatter) {
       onProgress?.(t('pdfAddingCharts'));
@@ -549,13 +710,27 @@ export const generarInformePDF = async ({
 
       pdf.setFontSize(18);
       pdf.setTextColor(...COLORS.primary);
-      pdf.text(t('dispersionMap'), PAGE.margin, contentStartY);
+
+      // Título diferente si hay filtro de grupo
+      const tituloDispersion = filtroAgrupacionesActivo
+        ? `${t('filteredDispersion') || 'Mapa de dispersión filtrado'}: ${configInforme.filtroAgrupaciones.join(', ')}`
+        : t('dispersionMap');
+      pdf.text(tituloDispersion, PAGE.margin, contentStartY);
       pdf.setTextColor(...COLORS.text);
+
+      // Nota si está filtrado
+      if (filtroAgrupacionesActivo) {
+        pdf.setFontSize(9);
+        pdf.setTextColor(...COLORS.textLight);
+        pdf.text(t('showingGroupOnly') || 'Mostrando solo asignaturas del grupo', PAGE.margin, contentStartY + 6);
+        pdf.setTextColor(...COLORS.text);
+      }
 
       // Añadir imagen del gráfico
       const imgWidth = contentWidth;
-      const imgHeight = PAGE.height - contentStartY - PAGE.footerHeight - 15;
-      pdf.addImage(chartImages.scatter, 'PNG', PAGE.margin, contentStartY + 8, imgWidth, imgHeight);
+      const imgStartY = filtroAgrupacionesActivo ? contentStartY + 12 : contentStartY + 8;
+      const imgHeight = PAGE.height - imgStartY - PAGE.footerHeight - 10;
+      pdf.addImage(chartImages.scatter, 'PNG', PAGE.margin, imgStartY, imgWidth, imgHeight);
 
       addFooter(currentPage);
     }
@@ -668,6 +843,206 @@ export const generarInformePDF = async ({
 
         addFooter(currentPage);
       });
+    }
+
+    // ========== EVOLUCIÓN DE NOTAS MEDIAS POR TRIMESTRE ==========
+    if (configInforme.incluirEvolucionNotas !== false && chartImages.evolution) {
+      onProgress?.(t('pdfGeneratingEvolution'));
+      addNewPage();
+
+      pdf.setFontSize(18);
+      pdf.setTextColor(...COLORS.primary);
+      pdf.text(t('gradeEvolutionTitle') || 'Evolución de Notas Medias por Trimestre', PAGE.margin, contentStartY);
+      pdf.setTextColor(...COLORS.text);
+
+      // Añadir imagen del gráfico
+      const imgWidth = contentWidth;
+      const imgHeight = PAGE.height - contentStartY - PAGE.footerHeight - 15;
+      pdf.addImage(chartImages.evolution, 'PNG', PAGE.margin, contentStartY + 8, imgWidth, imgHeight);
+
+      addFooter(currentPage);
+    } else if (configInforme.incluirEvolucionNotas !== false && trimestresDisponibles.length < 2) {
+      // Mostrar mensaje informativo si no hay suficientes trimestres
+      onProgress?.(t('pdfGeneratingEvolution'));
+      addNewPage();
+
+      pdf.setFontSize(18);
+      pdf.setTextColor(...COLORS.primary);
+      pdf.text(t('gradeEvolutionTitle') || 'Evolución de Notas Medias por Trimestre', PAGE.margin, contentStartY);
+      pdf.setTextColor(...COLORS.text);
+
+      pdf.setFontSize(12);
+      pdf.setTextColor(...COLORS.warning);
+      pdf.text(t('notEnoughTrimesters') || 'Se requieren al menos 2 trimestres para mostrar la evolución', PAGE.margin, contentStartY + 20);
+      pdf.setTextColor(...COLORS.text);
+
+      addFooter(currentPage);
+    }
+
+    // ========== ANÁLISIS DE TENDENCIAS TRANSVERSALES ==========
+    if (configInforme.incluirAnalisisTendencias !== false && tendenciasParaPDF.length > 0) {
+      onProgress?.(t('pdfGeneratingTrends'));
+      addNewPage();
+
+      pdf.setFontSize(18);
+      pdf.setTextColor(...COLORS.primary);
+      pdf.text(t('trendAnalysisTitle') || 'Análisis de Tendencias Transversales', PAGE.margin, contentStartY);
+      pdf.setTextColor(...COLORS.text);
+
+      // Iconos Unicode para cada tipo de tendencia
+      const getTrendIcon = (tipo) => {
+        const iconos = {
+          'estable': '—',
+          'creciente_sostenido': '↗',
+          'decreciente_sostenido': '↘',
+          'creciente_acelerado': '⬈',
+          'creciente_desacelerado': '↗',
+          'decreciente_acelerado': '⬊',
+          'decreciente_desacelerado': '↘',
+          'valle': 'U',
+          'pico': '∩',
+          'oscilante': '~',
+          'irregular': '?',
+          'insuficiente': '-'
+        };
+        return iconos[tipo] || '?';
+      };
+
+      // Colores para tipos de tendencia
+      const getTrendColor = (tipo) => {
+        if (tipo.includes('creciente')) return COLORS.success;
+        if (tipo.includes('decreciente') || tipo === 'pico') return COLORS.danger;
+        if (tipo === 'estable') return COLORS.info;
+        if (tipo === 'valle') return COLORS.warning;
+        return COLORS.textLight;
+      };
+
+      // Preparar datos de la tabla
+      const tendenciasData = tendenciasParaPDF.map(item => {
+        const iconMedia = getTrendIcon(item.tendenciaMedia.tipo);
+        const iconSusp = getTrendIcon(item.tendenciaSuspensos.tipo);
+        const labelMedia = t(`trend${item.tendenciaMedia.tipo.charAt(0).toUpperCase() + item.tendenciaMedia.tipo.slice(1).replace(/_([a-z])/g, (m, c) => c.toUpperCase())}`) || item.tendenciaMedia.tipo;
+        const labelSusp = t(`trend${item.tendenciaSuspensos.tipo.charAt(0).toUpperCase() + item.tendenciaSuspensos.tipo.slice(1).replace(/_([a-z])/g, (m, c) => c.toUpperCase())}`) || item.tendenciaSuspensos.tipo;
+
+        return [
+          item.asignatura,
+          `${iconMedia} ${labelMedia}`,
+          `${iconSusp} ${labelSusp}`,
+          item.tendenciaMedia.confianza === 'alta' ? (t('confidenceHigh') || 'Alta') : (t('confidenceLow') || 'Baja'),
+          item.numNiveles
+        ];
+      });
+
+      // Ordenar por tipo de tendencia (primero las problemáticas)
+      const prioridadTendencia = {
+        'decreciente_acelerado': 1,
+        'decreciente_sostenido': 2,
+        'pico': 3,
+        'decreciente_desacelerado': 4,
+        'oscilante': 5,
+        'irregular': 6,
+        'estable': 7,
+        'valle': 8,
+        'creciente_desacelerado': 9,
+        'creciente_sostenido': 10,
+        'creciente_acelerado': 11,
+        'insuficiente': 12
+      };
+      tendenciasData.sort((a, b) => {
+        const tipoA = tendenciasParaPDF.find(t => t.asignatura === a[0])?.tendenciaMedia.tipo || 'insuficiente';
+        const tipoB = tendenciasParaPDF.find(t => t.asignatura === b[0])?.tendenciaMedia.tipo || 'insuficiente';
+        return (prioridadTendencia[tipoA] || 99) - (prioridadTendencia[tipoB] || 99);
+      });
+
+      autoTable(pdf, {
+        startY: contentStartY + 10,
+        head: [
+          [
+            t('subject') || 'Asignatura',
+            t('averageEvolution') || 'Tendencia Nota Media',
+            t('failedEvolution') || 'Tendencia % Suspensos',
+            t('confidence') || 'Confianza',
+            t('levels') || 'Niveles'
+          ]
+        ],
+        body: tendenciasData,
+        theme: 'striped',
+        headStyles: {
+          fillColor: COLORS.primary,
+          fontSize: 9,
+          fontStyle: 'bold'
+        },
+        styles: {
+          fontSize: 8,
+          cellPadding: 3
+        },
+        columnStyles: {
+          0: { cellWidth: 60 },
+          1: { cellWidth: 55 },
+          2: { cellWidth: 55 },
+          3: { cellWidth: 25, halign: 'center' },
+          4: { cellWidth: 20, halign: 'center' }
+        },
+        didParseCell: function(data) {
+          if (data.section === 'body' && data.column.index === 1) {
+            const tipoMedia = tendenciasParaPDF[data.row.index]?.tendenciaMedia.tipo;
+            if (tipoMedia) {
+              const color = getTrendColor(tipoMedia);
+              data.cell.styles.textColor = color;
+            }
+          }
+          if (data.section === 'body' && data.column.index === 2) {
+            const tipoSusp = tendenciasParaPDF[data.row.index]?.tendenciaSuspensos.tipo;
+            if (tipoSusp) {
+              // Para suspensos, invertir la lógica de colores
+              let color = COLORS.textLight;
+              if (tipoSusp.includes('creciente')) color = COLORS.danger; // Más suspensos = malo
+              else if (tipoSusp.includes('decreciente')) color = COLORS.success; // Menos suspensos = bueno
+              data.cell.styles.textColor = color;
+            }
+          }
+        },
+        margin: { left: PAGE.margin, right: PAGE.margin }
+      });
+
+      // Resumen de tendencias
+      const resumenY = pdf.lastAutoTable.finalY + 15;
+
+      // Contar tipos de tendencia
+      const conteoTendencias = {};
+      tendenciasParaPDF.forEach(item => {
+        const tipo = item.tendenciaMedia.tipo;
+        conteoTendencias[tipo] = (conteoTendencias[tipo] || 0) + 1;
+      });
+
+      pdf.setFontSize(12);
+      pdf.setTextColor(...COLORS.primary);
+      pdf.text(t('trendSummary') || 'Resumen de Tendencias', PAGE.margin, resumenY);
+      pdf.setTextColor(...COLORS.text);
+
+      let summaryX = PAGE.margin;
+      let summaryY = resumenY + 8;
+      pdf.setFontSize(9);
+
+      Object.entries(conteoTendencias)
+        .sort((a, b) => (prioridadTendencia[a[0]] || 99) - (prioridadTendencia[b[0]] || 99))
+        .forEach(([tipo, count]) => {
+          const icon = getTrendIcon(tipo);
+          const label = t(`trend${tipo.charAt(0).toUpperCase() + tipo.slice(1).replace(/_([a-z])/g, (m, c) => c.toUpperCase())}`) || tipo;
+          const color = getTrendColor(tipo);
+
+          pdf.setTextColor(...color);
+          pdf.text(`${icon} ${label}: ${count}`, summaryX, summaryY);
+          summaryX += 55;
+
+          if (summaryX > PAGE.width - PAGE.margin - 50) {
+            summaryX = PAGE.margin;
+            summaryY += 6;
+          }
+        });
+
+      pdf.setTextColor(...COLORS.text);
+      addFooter(currentPage);
     }
 
     // ========== DATOS DE ASIGNATURAS ==========

@@ -1183,6 +1183,85 @@ const DashboardAcademico = () => {
     return { dificiles, neutrales, faciles, todas: asignaturas };
   }, [trimestreSeleccionado, datosCompletos, calcularResultado, umbrales, vistaDificultad, modoEtapa, detectarEtapa]);
 
+  // Datos de tendencias transversales para el PDF
+  const tendenciasParaPDF = useMemo(() => {
+    if (!trimestreSeleccionado || !datosCompletos[trimestreSeleccionado]) return [];
+
+    // Calcular tendencias para cada asignatura
+    const tendencias = todasLasAsignaturas.map(asignatura => {
+      const datosPorNivel = nivelesSinGlobalEtapa.map(nivel => {
+        // En modo TODOS, buscar el trimestre apropiado para cada nivel
+        const trimestreParaNivel = modoEtapa === 'TODOS'
+          ? getBestTrimestre(trimestreSeleccionado, nivel, trimestresDisponibles, detectarEtapa)
+          : trimestreSeleccionado;
+
+        const datos = datosCompletos[trimestreParaNivel]?.[nivel]?.[asignatura];
+        if (!datos) return null;
+
+        return {
+          nivel,
+          notaMedia: datos.stats?.notaMedia || datos.notaMedia || 0,
+          suspendidos: datos.stats?.suspendidos || 0
+        };
+      }).filter(Boolean);
+
+      // Necesitamos al menos 2 puntos para calcular tendencia
+      if (datosPorNivel.length < 2) return null;
+
+      const tendenciaMedia = calcularTendencia(datosPorNivel.map(d => d.notaMedia));
+      const tendenciaSuspensos = calcularTendencia(datosPorNivel.map(d => d.suspendidos));
+
+      return {
+        asignatura,
+        tendenciaMedia,
+        tendenciaSuspensos,
+        numNiveles: datosPorNivel.length
+      };
+    }).filter(Boolean);
+
+    return tendencias;
+  }, [trimestreSeleccionado, datosCompletos, todasLasAsignaturas, nivelesSinGlobalEtapa, modoEtapa, trimestresDisponibles, detectarEtapa, calcularTendencia]);
+
+  // Datos de evolución de notas medias por trimestre para el PDF
+  const datosEvolucionNotasPDF = useMemo(() => {
+    if (trimestresDisponibles.length < 2) return null;
+
+    // Ordenar trimestres cronológicamente
+    const trimestresOrdenados = [...trimestresDisponibles].sort((a, b) => {
+      const orden = { '1EV': 1, '2EV': 2, '3EV': 3, 'FINAL': 4 };
+      const baseA = getTrimestreBase(a);
+      const baseB = getTrimestreBase(b);
+      return (orden[baseA] || 99) - (orden[baseB] || 99);
+    });
+
+    // Obtener niveles únicos (sin GLOBAL)
+    const nivelesSet = new Set();
+    trimestresOrdenados.forEach(trim => {
+      Object.keys(datosCompletos[trim] || {}).forEach(nivel => {
+        if (nivel !== 'GLOBAL') nivelesSet.add(nivel);
+      });
+    });
+    const niveles = Array.from(nivelesSet).sort((a, b) => {
+      const numA = parseInt(a.match(/\d+/)?.[0] || '0');
+      const numB = parseInt(b.match(/\d+/)?.[0] || '0');
+      return numA - numB;
+    });
+
+    // Construir datos: cada punto es un trimestre, con nota media por nivel
+    const datos = trimestresOrdenados.map(trim => {
+      const punto = { trimestre: getTrimestreBase(trim) };
+      niveles.forEach(nivel => {
+        const totalData = datosCompletos[trim]?.[nivel]?.['Total'];
+        if (totalData?.stats?.notaMedia) {
+          punto[nivel] = totalData.stats.notaMedia;
+        }
+      });
+      return punto;
+    });
+
+    return { datos, niveles };
+  }, [trimestresDisponibles, datosCompletos]);
+
   // Función para generar informe PDF (versión mejorada con gráficas)
   const handleGenerarInformePDF = useCallback(async () => {
     console.log('[PDF] Iniciando generación de informe...');
@@ -1237,6 +1316,13 @@ const DashboardAcademico = () => {
         console.log('[PDF] Transversal captured:', chartImages.transversalArray.length, 'gráficas');
       }
 
+      // Capturar gráfica de evolución de notas (si hay suficientes trimestres y está habilitado)
+      if (configInforme.incluirEvolucionNotas && trimestresDisponibles.length >= 2 && pdfChartRefs.current?.evolutionRef?.current) {
+        setProgresoInforme(t('pdfCapturingCharts') + ' (evolución)');
+        chartImages.evolution = await captureChartAsImage(pdfChartRefs.current.evolutionRef.current);
+        console.log('[PDF] Evolution captured:', !!chartImages.evolution);
+      }
+
       // Desactivar renderizado de gráficas ocultas
       setRenderPDFCharts(false);
 
@@ -1249,6 +1335,8 @@ const DashboardAcademico = () => {
         correlacionesTrimestre,
         analisisDificultad,
         agrupacionesCompletas: agrupacionesCompletas[trimestreSeleccionado] || {},
+        tendenciasParaPDF,
+        trimestresDisponibles,
         chartImages,
         t,
         onProgress: (msg) => setProgresoInforme(msg),
@@ -1271,7 +1359,7 @@ const DashboardAcademico = () => {
       setProgresoInforme('');
       setRenderPDFCharts(false);
     }
-  }, [trimestreSeleccionado, datosCompletos, configInforme, modoEtapa, kpisGlobales, correlacionesTrimestre, analisisDificultad, agrupacionesCompletas, t]);
+  }, [trimestreSeleccionado, datosCompletos, configInforme, modoEtapa, kpisGlobales, correlacionesTrimestre, analisisDificultad, agrupacionesCompletas, tendenciasParaPDF, trimestresDisponibles, t]);
 
   // Datos calculados para las gráficas del PDF
   const datosDispersionPDF = useMemo(() => {
@@ -1279,11 +1367,23 @@ const DashboardAcademico = () => {
 
     const datos = [];
     const datosTrimestre = datosCompletos[trimestreSeleccionado];
+    const filtroAgrupaciones = configInforme.filtroAgrupaciones;
+    const tieneFiltrActivo = filtroAgrupaciones != null && filtroAgrupaciones.length > 0;
+    const agrupacionesTrimestre = agrupacionesCompletas[trimestreSeleccionado] || {};
+
+    // Función para verificar si una asignatura pertenece a los grupos filtrados
+    const perteneceAGruposFiltrados = (asignatura) => {
+      if (!tieneFiltrActivo) return true;
+      return filtroAgrupaciones.some(grupo => perteneceAGrupo(asignatura, grupo, agrupacionesTrimestre));
+    };
 
     // Obtener datos GLOBAL
     if (datosTrimestre?.['GLOBAL']) {
       Object.entries(datosTrimestre['GLOBAL']).forEach(([asig, data]) => {
         if (asig !== 'Total' && asig !== 'Total Especialidad' && asig !== 'Total no Especialidad' && data?.stats) {
+          // Filtrar por grupo si hay filtro activo
+          if (!perteneceAGruposFiltrados(asig)) return;
+
           datos.push({
             asignatura: asig,
             notaMedia: data.stats.notaMedia || 0,
@@ -1295,7 +1395,7 @@ const DashboardAcademico = () => {
     }
 
     return datos;
-  }, [trimestreSeleccionado, datosCompletos]);
+  }, [trimestreSeleccionado, datosCompletos, configInforme.filtroAgrupaciones, agrupacionesCompletas]);
 
   // Agrupaciones disponibles de todos los trimestres (para filtro en informe PDF)
   const agrupacionesDisponiblesPDF = useMemo(() => {
@@ -4141,6 +4241,7 @@ const DashboardAcademico = () => {
         isGenerating={generandoInforme}
         progressMessage={progresoInforme}
         agrupacionesDisponibles={agrupacionesDisponiblesPDF}
+        trimestresCount={trimestresDisponibles.length}
         t={t}
       />
 
@@ -4152,6 +4253,7 @@ const DashboardAcademico = () => {
         datosEvolucionCorrelaciones={datosEvolucionCorrelaciones}
         nivelesCorrelaciones={nivelesSinGlobalEtapa}
         datosTransversal={datosTransversalPDF}
+        datosEvolucionNotas={datosEvolucionNotasPDF}
         idioma={idioma}
         t={t}
       />
