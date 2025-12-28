@@ -4,6 +4,7 @@
  */
 
 import { useMemo } from 'react';
+import { normalizar } from '../utils.js';
 
 /**
  * Hook para análisis de dificultad de asignaturas
@@ -79,8 +80,9 @@ export const useDifficultyAnalysis = (
       const global = datos['GLOBAL'];
       if (!global) return { dificiles: [], neutrales: [], faciles: [], todas: [] };
 
+      const totalesExcluir = ['total', 'total especialidad', 'total no especialidad'];
       Object.entries(global).forEach(([nombreAsig, data]) => {
-        if (nombreAsig === 'Total' || nombreAsig === 'Total Especialidad' || nombreAsig === 'Total no Especialidad') return;
+        if (totalesExcluir.includes(normalizar(nombreAsig))) return;
         if (!data.stats || data.stats.registros < umbrales.alumnosMinimo) return;
 
         const resultado = calcularResultado(data.stats);

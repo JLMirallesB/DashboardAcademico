@@ -34,7 +34,11 @@ const calcularKPIsParaTrimestre = (datos, calcularResultado, umbrales, modoEtapa
   const modaCentro = global['Total']?.stats?.moda || 0;
 
   // KPI 3, 4, 5: Estadísticas de Especialidades
-  const totalEsp = global['Total Especialidad'];
+  // Buscar Total Especialidad (case-insensitive)
+  const totalEspKey = Object.keys(global).find(key =>
+    normalizar(key) === 'total especialidad'
+  );
+  const totalEsp = totalEspKey ? global[totalEspKey] : null;
   let notaMediaEspecialidades, aprobadosEspecialidades, suspendidosEspecialidades;
   let desviacionEspecialidades, modaEspecialidades;
 
@@ -46,12 +50,13 @@ const calcularKPIsParaTrimestre = (datos, calcularResultado, umbrales, modoEtapa
     modaEspecialidades = totalEsp.stats.moda || 0;
   } else {
     // Fallback: calcular manualmente
+    const totalesExcluirFallback = ['total', 'total especialidad', 'total no especialidad'];
     let sumaNotasEsp = 0, sumaPesosEsp = 0;
     let sumaAprobEsp = 0, sumaPesosAprobEsp = 0;
     let sumaSuspEsp = 0, sumaPesosSuspEsp = 0;
 
     Object.entries(global).forEach(([asig, data]) => {
-      if (asig === 'Total' || asig === 'Total Especialidad' || asig === 'Total no Especialidad' || !data.stats) return;
+      if (totalesExcluirFallback.includes(normalizar(asig)) || !data.stats) return;
       if (esAsignaturaEspecialidad(asig, modoEtapa)) {
         const peso = data.stats.registros || 0;
         sumaNotasEsp += (data.stats.notaMedia || 0) * peso;
@@ -71,7 +76,11 @@ const calcularKPIsParaTrimestre = (datos, calcularResultado, umbrales, modoEtapa
   }
 
   // No Especialidades
-  const totalNoEsp = global['Total no Especialidad'];
+  // Buscar Total No Especialidad (case-insensitive)
+  const totalNoEspKey = Object.keys(global).find(key =>
+    normalizar(key) === 'total no especialidad'
+  );
+  const totalNoEsp = totalNoEspKey ? global[totalNoEspKey] : null;
   let notaMediaNoEspecialidades = 0, aprobadosNoEspecialidades = 0, suspendidosNoEspecialidades = 0;
   let desviacionNoEspecialidades = 0, modaNoEspecialidades = 0;
 
@@ -84,9 +93,10 @@ const calcularKPIsParaTrimestre = (datos, calcularResultado, umbrales, modoEtapa
   }
 
   // Asignaturas difíciles/fáciles
+  const totalesExcluir = ['total', 'total especialidad', 'total no especialidad'];
   let contDificiles = 0, contFaciles = 0, contNeutrales = 0;
   Object.entries(global).forEach(([asig, data]) => {
-    if (asig === 'Total' || asig === 'Total Especialidad' || asig === 'Total no Especialidad' || !data.stats) return;
+    if (totalesExcluir.includes(normalizar(asig)) || !data.stats) return;
     if ((data.stats.registros || 0) < umbrales.alumnosMinimo) return;
 
     const resultado = calcularResultado(data.stats);
@@ -102,7 +112,12 @@ const calcularKPIsParaTrimestre = (datos, calcularResultado, umbrales, modoEtapa
   const niveles = Object.keys(datos).filter(n => n !== 'GLOBAL');
 
   niveles.forEach(nivel => {
-    const totalEspNivel = datos[nivel]?.['Total Especialidad'];
+    const nivelData = datos[nivel];
+    if (!nivelData) return;
+    const totalEspNivelKey = Object.keys(nivelData).find(key =>
+      normalizar(key) === 'total especialidad'
+    );
+    const totalEspNivel = totalEspNivelKey ? nivelData[totalEspNivelKey] : null;
     if (totalEspNivel && totalEspNivel.stats) {
       const etapa = detectarEtapa ? detectarEtapa(nivel) : null;
       alumnosPorCurso.push({
@@ -251,10 +266,16 @@ export const useKPICalculation = (
     });
 
     // KPI 3, 4, 5: Estadísticas de Especialidades
-    // Primero intentar leer de 'Total Especialidad' (viene del CSV)
-    const totalEsp = global['Total Especialidad'];
+    // Buscar Total Especialidad (case-insensitive)
+    const totalEspKey = Object.keys(global).find(key =>
+      normalizar(key) === 'total especialidad'
+    );
+    const totalEsp = totalEspKey ? global[totalEspKey] : null;
     let notaMediaEspecialidades, aprobadosEspecialidades, suspendidosEspecialidades;
     let desviacionEspecialidades, modaEspecialidades;
+
+    // Lista de totales a excluir para cálculos de asignaturas individuales
+    const totalesExcluir = ['total', 'total especialidad', 'total no especialidad'];
 
     if (totalEsp && totalEsp.stats) {
       // Usar datos precalculados del CSV
@@ -270,7 +291,7 @@ export const useKPICalculation = (
       let sumaSuspEsp = 0, sumaPesosSuspEsp = 0;
 
       Object.entries(global).forEach(([asig, data]) => {
-        if (asig === 'Total' || asig === 'Total Especialidad' || asig === 'Total no Especialidad' || !data.stats) return;
+        if (totalesExcluir.includes(normalizar(asig)) || !data.stats) return;
         if (esAsignaturaEspecialidad(asig, modoEtapa)) {
           const peso = data.stats.registros || 0;
           sumaNotasEsp += (data.stats.notaMedia || 0) * peso;
@@ -289,8 +310,11 @@ export const useKPICalculation = (
       modaEspecialidades = 0; // No disponible en fallback
     }
 
-    // KPI No Especialidades: Leer de 'Total no Especialidad' (viene del CSV)
-    const totalNoEsp = global['Total no Especialidad'];
+    // KPI No Especialidades: Buscar Total No Especialidad (case-insensitive)
+    const totalNoEspKey = Object.keys(global).find(key =>
+      normalizar(key) === 'total no especialidad'
+    );
+    const totalNoEsp = totalNoEspKey ? global[totalNoEspKey] : null;
     let notaMediaNoEspecialidades = 0, aprobadosNoEspecialidades = 0, suspendidosNoEspecialidades = 0;
     let desviacionNoEspecialidades = 0, modaNoEspecialidades = 0;
 
@@ -305,7 +329,7 @@ export const useKPICalculation = (
     // KPI 6: Asignaturas difíciles
     let contDificiles = 0, contFaciles = 0, contNeutrales = 0;
     Object.entries(global).forEach(([asig, data]) => {
-      if (asig === 'Total' || asig === 'Total Especialidad' || asig === 'Total no Especialidad' || !data.stats) return;
+      if (totalesExcluir.includes(normalizar(asig)) || !data.stats) return;
       if ((data.stats.registros || 0) < umbrales.alumnosMinimo) return;
 
       const resultado = calcularResultado(data.stats);
@@ -325,7 +349,12 @@ export const useKPICalculation = (
     const niveles = Object.keys(datos).filter(n => n !== 'GLOBAL');
 
     niveles.forEach(nivel => {
-      const totalEspNivel = datos[nivel]?.['Total Especialidad'];
+      const nivelData = datos[nivel];
+      if (!nivelData) return;
+      const totalEspNivelKey = Object.keys(nivelData).find(key =>
+        normalizar(key) === 'total especialidad'
+      );
+      const totalEspNivel = totalEspNivelKey ? nivelData[totalEspNivelKey] : null;
       if (totalEspNivel && totalEspNivel.stats) {
         const etapa = detectarEtapa ? detectarEtapa(nivel) : null;
         alumnosPorCurso.push({
