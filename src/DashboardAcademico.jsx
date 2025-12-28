@@ -130,7 +130,7 @@ const DashboardAcademico = () => {
       if (esSeparador) {
         return (
           <React.Fragment key={asig}>
-            <option disabled className="text-slate-400">──────────────</option>
+            <option disabled className="text-gray-400">──────────────</option>
             <option key={asig} value={asig}>{asig}</option>
           </React.Fragment>
         );
@@ -1559,7 +1559,7 @@ const DashboardAcademico = () => {
   // Si no hay datos, mostrar pantalla de carga
   if (trimestresDisponibles.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-8">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-8">
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display&display=swap');
           * { font-family: 'DM Sans', sans-serif; }
@@ -1568,17 +1568,17 @@ const DashboardAcademico = () => {
 
         <div className="max-w-xl w-full">
           <div className="text-center mb-12">
-            <h1 className="text-5xl text-slate-800 mb-4">{t('appTitle')}</h1>
-            <p className="text-slate-500 text-lg">{t('appSubtitle')}</p>
+            <h1 className="text-5xl text-gray-900 mb-4">{t('appTitle')}</h1>
+            <p className="text-gray-500 text-lg">{t('appSubtitle')}</p>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-xl p-8 border border-slate-200">
-            <h2 className="text-2xl text-slate-700 mb-6 text-center">{t('loadData')}</h2>
+          <div className="bg-white rounded-xl p-8 border border-gray-200">
+            <h2 className="text-2xl text-gray-900 mb-6 text-center">{t('loadData')}</h2>
 
             <div className="space-y-4">
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full py-4 px-6 bg-slate-800 text-white rounded-xl hover:bg-slate-700 transition-all font-medium text-lg flex items-center justify-center gap-3"
+                className="w-full py-4 px-6 bg-gray-900 text-white rounded-lg hover:bg-black transition-colors font-medium text-lg flex items-center justify-center gap-3"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -1588,7 +1588,7 @@ const DashboardAcademico = () => {
 
               <button
                 onClick={() => jsonInputRef.current?.click()}
-                className="w-full py-4 px-6 bg-white text-slate-700 rounded-xl border-2 border-slate-300 hover:border-slate-400 transition-all font-medium text-lg flex items-center justify-center gap-3"
+                className="w-full py-4 px-6 bg-white text-gray-900 rounded-lg border-2 border-gray-900 hover:bg-gray-50 transition-colors font-medium text-lg flex items-center justify-center gap-3"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
@@ -1598,7 +1598,7 @@ const DashboardAcademico = () => {
 
               <button
                 onClick={() => setMostrarModalAyuda(true)}
-                className="w-full py-4 px-6 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-all font-medium text-lg flex items-center justify-center gap-3"
+                className="w-full py-4 px-6 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium text-lg flex items-center justify-center gap-3"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1622,16 +1622,16 @@ const DashboardAcademico = () => {
               className="hidden"
             />
 
-            <div className="mt-8 p-4 bg-slate-50 rounded-xl">
-              <p className="text-sm text-slate-600 text-center">
+            <div className="mt-8 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <p className="text-sm text-gray-600 text-center">
                 {t('csvInstructions')}
               </p>
             </div>
           </div>
 
           {/* Footer */}
-          <p className="text-center text-sm text-slate-400 mt-8">
-            {t('designedBy')} <a href="https://jlmirall.es" target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:text-slate-800 underline">José Luis Miralles Bono</a> {t('withHelpOf')}
+          <p className="text-center text-sm text-gray-400 mt-8">
+            {t('designedBy')} <a href="https://jlmirall.es" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-gray-900 underline">José Luis Miralles Bono</a> {t('withHelpOf')}
           </p>
         </div>
 
@@ -1663,12 +1663,12 @@ const DashboardAcademico = () => {
       {/* Modal de Gestión de Datos */}
       {mostrarModalGestionDatos && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-            <div className="sticky top-0 bg-white border-b border-slate-200 p-6 flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-slate-800">{t('loadedData')}</h2>
+          <div className="bg-white rounded-xl border border-gray-200 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-gray-900">{t('loadedData')}</h2>
               <button
                 onClick={() => setMostrarModalGestionDatos(false)}
-                className="text-slate-400 hover:text-slate-600 transition-colors"
+                className="text-gray-400 hover:text-gray-600 transition-colors"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1681,7 +1681,7 @@ const DashboardAcademico = () => {
               <div className="mb-6 flex flex-wrap gap-3">
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex-1 min-w-[200px] py-3 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-medium flex items-center justify-center gap-2"
+                  className="flex-1 min-w-[200px] py-3 px-4 bg-gray-900 text-white rounded-lg hover:bg-black transition-all font-medium flex items-center justify-center gap-2"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -1690,7 +1690,7 @@ const DashboardAcademico = () => {
                 </button>
                 <button
                   onClick={() => jsonInputRef.current?.click()}
-                  className="flex-1 min-w-[200px] py-3 px-4 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-all font-medium flex items-center justify-center gap-2"
+                  className="flex-1 min-w-[200px] py-3 px-4 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all font-medium flex items-center justify-center gap-2"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
@@ -1702,11 +1702,11 @@ const DashboardAcademico = () => {
               {/* Lista de datos cargados */}
               {trimestresDisponibles.length === 0 ? (
                 <div className="text-center py-12">
-                  <svg className="w-16 h-16 text-slate-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                   </svg>
-                  <p className="text-lg text-slate-500 mb-2">{t('noDataYet')}</p>
-                  <p className="text-sm text-slate-400">{t('loadFirstDataset')}</p>
+                  <p className="text-lg text-gray-500 mb-2">{t('noDataYet')}</p>
+                  <p className="text-sm text-gray-400">{t('loadFirstDataset')}</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1721,12 +1721,12 @@ const DashboardAcademico = () => {
                         className={`border-2 rounded-xl p-4 transition-all ${
                           trim === trimestreSeleccionado
                             ? 'border-blue-500 bg-blue-50'
-                            : 'border-slate-200 bg-white hover:border-slate-300'
+                            : 'border-gray-200 bg-white hover:border-gray-300'
                         }`}
                       >
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">
-                            <h3 className="text-lg font-bold text-slate-800 mb-1">
+                            <h3 className="text-lg font-bold text-gray-900 mb-1">
                               {formatearNombreTrimestre(trim)}
                             </h3>
                             <div className="flex flex-wrap gap-2">
@@ -1737,14 +1737,14 @@ const DashboardAcademico = () => {
                                   {etapa === 'EEM' ? t('elementaryStage') : t('professionalStage')}
                                 </span>
                               )}
-                              <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded text-xs font-semibold">
+                              <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-semibold">
                                 {nivelCount} {nivelCount === 1 ? 'nivel' : 'niveles'}
                               </span>
                             </div>
                           </div>
                           <button
                             onClick={() => eliminarTrimestre(trim)}
-                            className="ml-2 p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                            className="ml-2 p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                             title={t('delete')}
                           >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1759,13 +1759,13 @@ const DashboardAcademico = () => {
                               setTrimestreSeleccionado(trim);
                               setMostrarModalGestionDatos(false);
                             }}
-                            className="w-full py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition-all"
+                            className="w-full py-2 px-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-all"
                           >
                             Seleccionar
                           </button>
                         )}
                         {trim === trimestreSeleccionado && (
-                          <div className="w-full py-2 px-3 bg-blue-600 text-white rounded-lg text-sm font-medium text-center">
+                          <div className="w-full py-2 px-3 bg-gray-900 text-white rounded-lg text-sm font-medium text-center">
                             ✓ Actualmente seleccionado
                           </div>
                         )}
@@ -1782,15 +1782,15 @@ const DashboardAcademico = () => {
       {/* Modal de confirmación */}
       {mostrarModalConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
-            <h3 className="text-2xl text-slate-800 mb-4">{t('trimesterAlreadyLoaded')}</h3>
-            <p className="text-slate-600 mb-6">
+          <div className="bg-white rounded-xl border border-gray-200 p-8 max-w-md w-full mx-4">
+            <h3 className="text-2xl text-gray-900 mb-4">{t('trimesterAlreadyLoaded')}</h3>
+            <p className="text-gray-600 mb-6">
               {t('replaceConfirm').replace('{trimester}', trimestrePendiente ? formatearNombreTrimestre(trimestrePendiente) : '')}
             </p>
             <div className="flex gap-3">
               <button
                 onClick={cancelarReemplazo}
-                className="flex-1 py-3 px-4 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-all font-medium"
+                className="flex-1 py-3 px-4 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all font-medium"
               >
                 {t('cancel')}
               </button>
@@ -1842,15 +1842,15 @@ const DashboardAcademico = () => {
           {kpisGlobales && (
             <div className="mb-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-slate-800">{t('kpis')}</h3>
+                <h3 className="text-lg font-semibold text-gray-900">{t('kpis')}</h3>
                 {/* Navegación por pestañas */}
-                <div className="flex gap-2 bg-slate-100 p-1 rounded-lg">
+                <div className="flex gap-2 bg-gray-100 p-1 rounded-lg">
                   <button
                     onClick={() => setVistaKPI('centro')}
                     className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
                       vistaKPI === 'centro'
-                        ? 'bg-white text-blue-700 shadow-sm'
-                        : 'text-slate-600 hover:text-slate-800'
+                        ? 'bg-white text-gray-900 '
+                        : 'text-gray-600 hover:text-gray-900'
                     }`}
                   >
                     {t('center') || 'Centro'}
@@ -1859,8 +1859,8 @@ const DashboardAcademico = () => {
                     onClick={() => setVistaKPI('detalle')}
                     className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
                       vistaKPI === 'detalle'
-                        ? 'bg-white text-blue-700 shadow-sm'
-                        : 'text-slate-600 hover:text-slate-800'
+                        ? 'bg-white text-gray-900 '
+                        : 'text-gray-600 hover:text-gray-900'
                     }`}
                   >
                     {t('detail') || 'Detalle'}
@@ -1870,8 +1870,8 @@ const DashboardAcademico = () => {
                       onClick={() => setVistaKPI('comparativa')}
                       className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
                         vistaKPI === 'comparativa'
-                          ? 'bg-white text-blue-700 shadow-sm'
-                          : 'text-slate-600 hover:text-slate-800'
+                          ? 'bg-white text-gray-900 '
+                          : 'text-gray-600 hover:text-gray-900'
                       }`}
                     >
                       {t('comparison') || 'Comparativa'}
@@ -1890,7 +1890,7 @@ const DashboardAcademico = () => {
           {/* SECCIÓN ORIGINAL DE KPIs (OCULTA - MANTENER POR COMPATIBILIDAD CON PDF) */}
           {false && kpisGlobales && (
             <div className="mb-6 hidden">
-              <h3 className="text-lg font-semibold text-slate-800 mb-4">{t('kpis')}</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('kpis')}</h3>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                 {/* Nota Media del Centro */}
                 <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-4">
@@ -1898,7 +1898,7 @@ const DashboardAcademico = () => {
                     <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span className="text-xs font-medium text-blue-700">{t('kpiCenterAvg')}</span>
+                    <span className="text-xs font-medium text-gray-900">{t('kpiCenterAvg')}</span>
                   </div>
                   <div className="text-3xl font-bold text-blue-900">{(kpisGlobales.notaMediaCentro || 0).toFixed(2)}</div>
                 </div>
@@ -2218,12 +2218,12 @@ const DashboardAcademico = () => {
               if (active && payload && payload.length) {
                 const data = payload[0].payload;
                 return (
-                  <div className="bg-white p-3 border-2 border-slate-300 rounded-lg shadow-lg">
-                    <p className="font-bold text-slate-800 mb-2">{data.asignatura}</p>
-                    <p className="text-sm text-slate-600">{t('average')}: <span className="font-semibold">{data.notaMedia.toFixed(2)}</span></p>
-                    <p className="text-sm text-slate-600">{t('standardDeviation')}: <span className="font-semibold">{data.desviacion.toFixed(2)}</span></p>
-                    <p className="text-sm text-slate-600">{t('students')}: <span className="font-semibold">{data.alumnos}</span></p>
-                    <p className="text-xs text-slate-500 mt-2 italic">{getAnalisis(data.notaMedia, data.desviacion)}</p>
+                  <div className="bg-white p-3 border-2 border-gray-900 rounded-lg">
+                    <p className="font-bold text-gray-900 mb-2">{data.asignatura}</p>
+                    <p className="text-sm text-gray-600">{t('average')}: <span className="font-semibold">{data.notaMedia.toFixed(2)}</span></p>
+                    <p className="text-sm text-gray-600">{t('standardDeviation')}: <span className="font-semibold">{data.desviacion.toFixed(2)}</span></p>
+                    <p className="text-sm text-gray-600">{t('students')}: <span className="font-semibold">{data.alumnos}</span></p>
+                    <p className="text-xs text-gray-500 mt-2 italic">{getAnalisis(data.notaMedia, data.desviacion)}</p>
                   </div>
                 );
               }
@@ -2260,12 +2260,12 @@ const DashboardAcademico = () => {
             const nivelesParaDispersion = obtenerNivelesDispersion();
 
             return (
-              <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
-                <h3 className="text-lg font-semibold text-slate-800 mb-4">{t('dispersionMap')}</h3>
+              <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('dispersionMap')}</h3>
 
                 {/* Selector de nivel/curso */}
                 <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <label className="block text-sm font-semibold text-slate-700 mb-3">
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">
                     {idioma === 'es' ? 'Filtrar por curso:' : 'Filtrar per curs:'}
                   </label>
                   <div className="flex flex-wrap gap-2">
@@ -2275,8 +2275,8 @@ const DashboardAcademico = () => {
                         onClick={() => setNivelDispersion(nivel)}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                           nivelDispersion === nivel
-                            ? 'bg-blue-600 text-white shadow-md'
-                            : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-100'
+                            ? 'bg-gray-900 text-white'
+                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
                         }`}
                       >
                         {nivel === 'GLOBAL' ? `📊 ${idioma === 'es' ? 'Todos los cursos' : 'Tots els cursos'}` : nivel}
@@ -2288,27 +2288,27 @@ const DashboardAcademico = () => {
                 {/* Controles y leyenda */}
                 <div className="flex flex-col md:flex-row gap-4 mb-4">
                   {/* Leyenda de cuadrantes */}
-                  <div className="flex-1 p-4 bg-slate-50 rounded-lg">
-                    <h4 className="text-sm font-semibold text-slate-700 mb-2">{t('dispersionAnalysis')}</h4>
+                  <div className="flex-1 p-4 bg-gray-50 rounded-lg">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2">{t('dispersionAnalysis')}</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
                       <div className="flex items-start gap-2">
                         <div className="w-3 h-3 bg-emerald-500 rounded-full mt-0.5"></div>
-                        <span className="text-slate-600">{t('highAvgLowDev')}</span>
+                        <span className="text-gray-600">{t('highAvgLowDev')}</span>
                       </div>
                       <div className="flex items-start gap-2">
                         <div className="w-3 h-3 bg-blue-500 rounded-full mt-0.5"></div>
-                        <span className="text-slate-600">{t('highAvgHighDev')}</span>
+                        <span className="text-gray-600">{t('highAvgHighDev')}</span>
                       </div>
                       <div className="flex items-start gap-2">
                         <div className="w-3 h-3 bg-orange-500 rounded-full mt-0.5"></div>
-                        <span className="text-slate-600">{t('lowAvgLowDev')}</span>
+                        <span className="text-gray-600">{t('lowAvgLowDev')}</span>
                       </div>
                       <div className="flex items-start gap-2">
                         <div className="w-3 h-3 bg-rose-500 rounded-full mt-0.5"></div>
-                        <span className="text-slate-600">{t('lowAvgHighDev')}</span>
+                        <span className="text-gray-600">{t('lowAvgHighDev')}</span>
                       </div>
                     </div>
-                    <p className="text-xs text-slate-500 mt-2 italic">
+                    <p className="text-xs text-gray-500 mt-2 italic">
                       {idioma === 'es'
                         ? '* El tamaño del punto indica la cantidad de alumnos. Use los controles de la derecha para filtrar por rangos.'
                         : '* La mida del punt indica la quantitat d\'alumnes. Utilitzeu els controls de la dreta per filtrar per rangs.'}
@@ -2318,7 +2318,7 @@ const DashboardAcademico = () => {
                   {/* Controles de zoom */}
                   <div className="flex flex-col gap-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-600 whitespace-nowrap">{t('average')}:</span>
+                      <span className="text-xs text-gray-600 whitespace-nowrap">{t('average')}:</span>
                       <input
                         type="range"
                         min="0"
@@ -2331,8 +2331,8 @@ const DashboardAcademico = () => {
                         })}
                         className="w-24"
                       />
-                      <span className="text-xs text-slate-700 font-mono">{zoomDispersion.rangoMedia.min.toFixed(1)}</span>
-                      <span className="text-xs text-slate-500">-</span>
+                      <span className="text-xs text-gray-700 font-mono">{zoomDispersion.rangoMedia.min.toFixed(1)}</span>
+                      <span className="text-xs text-gray-500">-</span>
                       <input
                         type="range"
                         min="0"
@@ -2345,10 +2345,10 @@ const DashboardAcademico = () => {
                         })}
                         className="w-24"
                       />
-                      <span className="text-xs text-slate-700 font-mono">{zoomDispersion.rangoMedia.max.toFixed(1)}</span>
+                      <span className="text-xs text-gray-700 font-mono">{zoomDispersion.rangoMedia.max.toFixed(1)}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-600 whitespace-nowrap">{t('standardDeviation')}:</span>
+                      <span className="text-xs text-gray-600 whitespace-nowrap">{t('standardDeviation')}:</span>
                       <input
                         type="range"
                         min="0"
@@ -2361,8 +2361,8 @@ const DashboardAcademico = () => {
                         })}
                         className="w-24"
                       />
-                      <span className="text-xs text-slate-700 font-mono">{zoomDispersion.rangoDesviacion.min.toFixed(1)}</span>
-                      <span className="text-xs text-slate-500">-</span>
+                      <span className="text-xs text-gray-700 font-mono">{zoomDispersion.rangoDesviacion.min.toFixed(1)}</span>
+                      <span className="text-xs text-gray-500">-</span>
                       <input
                         type="range"
                         min="0"
@@ -2375,10 +2375,10 @@ const DashboardAcademico = () => {
                         })}
                         className="w-24"
                       />
-                      <span className="text-xs text-slate-700 font-mono">{desviacionMax.toFixed(1)}</span>
+                      <span className="text-xs text-gray-700 font-mono">{desviacionMax.toFixed(1)}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-600 whitespace-nowrap">{t('students')} ≥:</span>
+                      <span className="text-xs text-gray-600 whitespace-nowrap">{t('students')} ≥:</span>
                       {/* Botones rápidos para valores bajos */}
                       <div className="flex gap-1">
                         {[0, 3, 5, 10].map(val => (
@@ -2387,8 +2387,8 @@ const DashboardAcademico = () => {
                             onClick={() => setMinAlumnosDispersion(val)}
                             className={`px-2 py-1 text-xs rounded transition-colors ${
                               minAlumnosDispersion === val
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                                ? 'bg-gray-900 text-white'
+                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                             }`}
                           >
                             {val}
@@ -2405,7 +2405,7 @@ const DashboardAcademico = () => {
                           const val = parseInt(e.target.value) || 0;
                           setMinAlumnosDispersion(Math.max(0, Math.min(val, Math.max(50, maxAlumnos))));
                         }}
-                        className="w-16 px-2 py-1 text-xs text-center border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="w-16 px-2 py-1 text-xs text-center border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-900"
                       />
                       {minAlumnosDispersion > 0 && (
                         <span className="text-xs text-emerald-600">✓</span>
@@ -2419,7 +2419,7 @@ const DashboardAcademico = () => {
                         });
                         setMinAlumnosDispersion(0);
                       }}
-                      className="px-3 py-1.5 bg-slate-600 text-white text-xs rounded hover:bg-slate-700 transition-all whitespace-nowrap"
+                      className="px-3 py-1.5 bg-gray-600 text-white text-xs rounded hover:bg-gray-700 transition-all whitespace-nowrap"
                     >
                       {idioma === 'es' ? 'Reiniciar filtros' : 'Reiniciar filtres'}
                     </button>
@@ -2540,13 +2540,13 @@ const DashboardAcademico = () => {
       {vistaActual === 'estadisticas' && (
         <div className="max-w-7xl mx-auto">
           {/* Selectores */}
-          <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
+          <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-slate-800">{t('selections')}</h3>
+              <h3 className="text-lg font-semibold text-gray-900">{t('selections')}</h3>
               {!compararNiveles && selecciones.length < 15 && (
                 <button
                   onClick={agregarSeleccion}
-                  className="py-2 px-4 bg-slate-800 text-white text-sm rounded-lg hover:bg-slate-700 transition-all"
+                  className="py-2 px-4 bg-gray-900 text-white text-sm rounded-lg hover:bg-gray-700 transition-all"
                 >
                   + {t('add')}
                 </button>
@@ -2555,10 +2555,10 @@ const DashboardAcademico = () => {
 
             {/* Opción de comparar niveles */}
             {todasLasAsignaturas.length > 0 && (
-              <div className="mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-slate-700">
+                    <span className="text-sm font-medium text-gray-700">
                       {idioma === 'es'
                         ? `Comparar misma asignatura en todos los niveles (${
                             modoEtapa === 'EPM' ? '1EPM - 6EPM' :
@@ -2575,7 +2575,7 @@ const DashboardAcademico = () => {
                     <button
                       onClick={() => compararNiveles ? desactivarCompararNiveles() : activarCompararNiveles()}
                       className={`relative w-12 h-6 rounded-full transition-colors ${
-                        compararNiveles ? 'bg-slate-800' : 'bg-slate-300'
+                        compararNiveles ? 'bg-gray-900' : 'bg-gray-300'
                       }`}
                     >
                       <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
@@ -2586,11 +2586,11 @@ const DashboardAcademico = () => {
                 </div>
                 {compararNiveles && (
                   <div>
-                    <label className="block text-xs font-medium text-slate-500 mb-2 uppercase">{t('subjectToCompare')}</label>
+                    <label className="block text-xs font-medium text-gray-500 mb-2 uppercase">{t('subjectToCompare')}</label>
                     <select
                       value={asignaturaComparada}
                       onChange={(e) => cambiarAsignaturaComparada(e.target.value)}
-                      className="w-full md:w-64 py-2 px-3 bg-white border border-slate-300 rounded-lg text-sm"
+                      className="w-full md:w-64 py-2 px-3 bg-white border border-gray-300 rounded-lg text-sm"
                     >
                       {renderOpcionesAsignaturas(todasLasAsignaturas)}
                     </select>
@@ -2616,7 +2616,7 @@ const DashboardAcademico = () => {
                     {!compararNiveles && selecciones.length > 1 && (
                       <button
                         onClick={() => eliminarSeleccion(sel.id)}
-                        className="text-slate-400 hover:text-red-500 text-xl"
+                        className="text-gray-400 hover:text-red-500 text-xl"
                       >
                         ×
                       </button>
@@ -2625,12 +2625,12 @@ const DashboardAcademico = () => {
 
                   <div className="grid grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-xs font-medium text-slate-500 mb-1">{t('trimester')}</label>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">{t('trimester')}</label>
                       <select
                         value={sel.trimestre}
                         onChange={(e) => actualizarSeleccion(sel.id, 'trimestre', e.target.value)}
                         disabled={compararNiveles}
-                        className="w-full py-2 px-3 bg-white border border-slate-300 rounded-lg text-sm disabled:bg-slate-100 disabled:cursor-not-allowed"
+                        className="w-full py-2 px-3 bg-white border border-gray-300 rounded-lg text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
                       >
                         {trimestresDisponibles
                           .filter(t => {
@@ -2644,12 +2644,12 @@ const DashboardAcademico = () => {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-slate-500 mb-1">{t('level')}</label>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">{t('level')}</label>
                       <select
                         value={sel.nivel}
                         onChange={(e) => actualizarSeleccion(sel.id, 'nivel', e.target.value)}
                         disabled={compararNiveles}
-                        className="w-full py-2 px-3 bg-white border border-slate-300 rounded-lg text-sm disabled:bg-slate-100 disabled:cursor-not-allowed"
+                        className="w-full py-2 px-3 bg-white border border-gray-300 rounded-lg text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
                       >
                         {Object.keys(datosCompletos[sel.trimestre] || {}).map(n => (
                           <option key={n} value={n}>{n === 'GLOBAL' ? `📊 ${t('global')}` : n}</option>
@@ -2657,12 +2657,12 @@ const DashboardAcademico = () => {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-slate-500 mb-1">{t('subject')}</label>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">{t('subject')}</label>
                       <select
                         value={sel.asignatura}
                         onChange={(e) => actualizarSeleccion(sel.id, 'asignatura', e.target.value)}
                         disabled={compararNiveles}
-                        className="w-full py-2 px-3 bg-white border border-slate-300 rounded-lg text-sm disabled:bg-slate-100 disabled:cursor-not-allowed"
+                        className="w-full py-2 px-3 bg-white border border-gray-300 rounded-lg text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
                       >
                         {renderOpcionesAsignaturas(getAsignaturas(sel.trimestre, sel.nivel))}
                       </select>
@@ -2734,7 +2734,7 @@ const DashboardAcademico = () => {
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full" style={{ backgroundColor: colores[idx % colores.length].line }} />
-                      <h4 className="font-semibold text-slate-800 text-sm">
+                      <h4 className="font-semibold text-gray-900 text-sm">
                         {sel.trimestre} · {sel.nivel} · {sel.asignatura}
                       </h4>
                       {resultado && (
@@ -2765,9 +2765,9 @@ const DashboardAcademico = () => {
                       }
 
                       return (
-                        <div key={key} className="bg-slate-50 rounded p-2 md:p-3 lg:p-4 text-center min-h-[60px] md:min-h-[70px] lg:min-h-[80px] flex flex-col justify-center" title={title}>
-                          <div className="text-xs md:text-sm text-slate-500">{label}</div>
-                          <div className="text-sm md:text-base lg:text-lg font-bold text-slate-800">{format(valor)}</div>
+                        <div key={key} className="bg-gray-50 rounded p-2 md:p-3 lg:p-4 text-center min-h-[60px] md:min-h-[70px] lg:min-h-[80px] flex flex-col justify-center" title={title}>
+                          <div className="text-xs md:text-sm text-gray-500">{label}</div>
+                          <div className="text-sm md:text-base lg:text-lg font-bold text-gray-900">{format(valor)}</div>
                           {diff !== null && (
                             <div className={`text-xs md:text-sm font-medium ${diff >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                               {diff >= 0 ? '+' : ''}{diff.toFixed(1)}
@@ -2779,7 +2779,7 @@ const DashboardAcademico = () => {
                   </div>
 
                   {/* Descripción textual */}
-                  <div className="text-xs text-slate-600 bg-slate-50 rounded p-2 italic">
+                  <div className="text-xs text-gray-600 bg-gray-50 rounded p-2 italic">
                     {generarDescripcion()}
                   </div>
                 </div>
@@ -2789,8 +2789,8 @@ const DashboardAcademico = () => {
 
           {/* Radar combinado de todas las selecciones */}
           {selecciones.length > 0 && (
-            <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
-              <h3 className="text-lg font-semibold text-slate-800 mb-4 text-center">{t('radarComparison')}</h3>
+            <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">{t('radarComparison')}</h3>
               <ResponsiveContainer width="100%" height={400}>
                 <RadarChart data={(() => {
                   // Calcular datos del radar para cada selección
@@ -2867,8 +2867,8 @@ const DashboardAcademico = () => {
           {compararNiveles && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
               {/* Evolución de la Nota Media */}
-              <div className="bg-white rounded-xl border border-slate-200 p-6">
-                <h3 className="text-lg font-semibold text-slate-800 mb-4">{t('averageEvolution')}</h3>
+              <div className="bg-white rounded-xl border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('averageEvolution')}</h3>
                 {(() => {
                   const datosEvolucion = nivelesSinGlobalEtapa.map(nivel => {
                     // En modo TODOS, buscar el trimestre apropiado para cada nivel
@@ -2889,7 +2889,7 @@ const DashboardAcademico = () => {
                   return (
                     <>
                       <div className="mb-4 flex items-center gap-2">
-                        <span className="text-sm text-slate-600">{t('trend')}:</span>
+                        <span className="text-sm text-gray-600">{t('trend')}:</span>
                         <span className={`text-xs font-semibold px-2 py-1 rounded ${infoTendencia.color} flex items-center gap-1`} title={infoTendencia.desc}>
                           <span>{tendencia.icono}</span>
                           <span>{infoTendencia.label}</span>
@@ -2931,8 +2931,8 @@ const DashboardAcademico = () => {
               </div>
 
               {/* Evolución del % de Suspensos */}
-              <div className="bg-white rounded-xl border border-slate-200 p-6">
-                <h3 className="text-lg font-semibold text-slate-800 mb-4">{t('failedEvolution')}</h3>
+              <div className="bg-white rounded-xl border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('failedEvolution')}</h3>
                 {(() => {
                   const datosEvolucion = nivelesSinGlobalEtapa.map(nivel => {
                     // En modo TODOS, buscar el trimestre apropiado para cada nivel
@@ -2953,7 +2953,7 @@ const DashboardAcademico = () => {
                   return (
                     <>
                       <div className="mb-4 flex items-center gap-2">
-                        <span className="text-sm text-slate-600">{t('trend')}:</span>
+                        <span className="text-sm text-gray-600">{t('trend')}:</span>
                         <span className={`text-xs font-semibold px-2 py-1 rounded ${infoTendencia.color} flex items-center gap-1`} title={infoTendencia.desc}>
                           <span>{tendencia.icono}</span>
                           <span>{infoTendencia.label}</span>
@@ -2997,16 +2997,16 @@ const DashboardAcademico = () => {
           )}
 
           {/* Gráfico de distribución */}
-          <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
+          <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-slate-800">{t('gradeDistribution')}</h3>
-              <div className="inline-flex bg-slate-100 rounded-lg p-1">
+              <h3 className="text-lg font-semibold text-gray-900">{t('gradeDistribution')}</h3>
+              <div className="inline-flex bg-gray-100 rounded-lg p-1">
                 <button
                   onClick={() => setModoDistribucion('porcentaje')}
                   className={`px-3 py-1 text-xs font-medium rounded transition-all ${
                     modoDistribucion === 'porcentaje'
-                      ? 'bg-white text-slate-800 shadow-sm'
-                      : 'text-slate-500 hover:text-slate-700'
+                      ? 'bg-white text-gray-900 '
+                      : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
                   {t('distributionPercentage')}
@@ -3015,8 +3015,8 @@ const DashboardAcademico = () => {
                   onClick={() => setModoDistribucion('absoluto')}
                   className={`px-3 py-1 text-xs font-medium rounded transition-all ${
                     modoDistribucion === 'absoluto'
-                      ? 'bg-white text-slate-800 shadow-sm'
-                      : 'text-slate-500 hover:text-slate-700'
+                      ? 'bg-white text-gray-900 '
+                      : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
                   {t('distributionAbsolute')}
@@ -3062,16 +3062,16 @@ const DashboardAcademico = () => {
           </div>
 
           {/* Tabla de distribución */}
-          <div className="bg-white rounded-xl border border-slate-200 p-6">
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-slate-800">{t('distributionTable')}</h3>
-              <div className="inline-flex bg-slate-100 rounded-lg p-1">
+              <h3 className="text-lg font-semibold text-gray-900">{t('distributionTable')}</h3>
+              <div className="inline-flex bg-gray-100 rounded-lg p-1">
                 <button
                   onClick={() => setModoHeatmap('relativo')}
                   className={`px-3 py-1 text-xs font-medium rounded transition-all ${
                     modoHeatmap === 'relativo'
-                      ? 'bg-white text-slate-800 shadow-sm'
-                      : 'text-slate-500 hover:text-slate-700'
+                      ? 'bg-white text-gray-900 '
+                      : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
                   {t('heatmapRelative')}
@@ -3080,8 +3080,8 @@ const DashboardAcademico = () => {
                   onClick={() => setModoHeatmap('absoluto')}
                   className={`px-3 py-1 text-xs font-medium rounded transition-all ${
                     modoHeatmap === 'absoluto'
-                      ? 'bg-white text-slate-800 shadow-sm'
-                      : 'text-slate-500 hover:text-slate-700'
+                      ? 'bg-white text-gray-900 '
+                      : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
                   {t('heatmapAbsolute')}
@@ -3150,20 +3150,20 @@ const DashboardAcademico = () => {
                   <>
                     <table className="w-full mb-8">
                       <thead>
-                        <tr className="border-b-2 border-slate-200">
-                          <th className="py-3 px-3 text-left text-sm font-semibold text-slate-600">{t('grade')}</th>
+                        <tr className="border-b-2 border-gray-200">
+                          <th className="py-3 px-3 text-left text-sm font-semibold text-gray-600">{t('grade')}</th>
                           {selecciones.map((sel, idx) => (
-                            <th key={sel.id} className="py-3 px-2 text-center text-xs font-semibold text-slate-700">
+                            <th key={sel.id} className="py-3 px-2 text-center text-xs font-semibold text-gray-700">
                               <div>{sel.trimestre} · {sel.nivel}</div>
-                              <div className="font-normal text-slate-500">{sel.asignatura}</div>
+                              <div className="font-normal text-gray-500">{sel.asignatura}</div>
                             </th>
                           ))}
                         </tr>
                       </thead>
                       <tbody>
                         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(nota => (
-                          <tr key={nota} className="border-b border-slate-100">
-                            <td className="py-2 px-3 font-medium text-slate-700">{nota}</td>
+                          <tr key={nota} className="border-b border-gray-100">
+                            <td className="py-2 px-3 font-medium text-gray-700">{nota}</td>
                             {selecciones.map((sel, idx) => {
                               const datos = datosCompletos[sel.trimestre]?.[sel.nivel]?.[sel.asignatura];
                               const valor = datos?.distribucion[nota] || 0;
@@ -3176,17 +3176,17 @@ const DashboardAcademico = () => {
                                   className="py-2 px-2 text-center"
                                   style={{ backgroundColor: getHeatmapColor(valor, maxParaColor) }}
                                 >
-                                  <span className="font-semibold text-slate-800">{valor}</span>
-                                  <span className="text-xs text-slate-700 ml-1">({porcentaje}%)</span>
+                                  <span className="font-semibold text-gray-900">{valor}</span>
+                                  <span className="text-xs text-gray-700 ml-1">({porcentaje}%)</span>
                                 </td>
                               );
                             })}
                           </tr>
                         ))}
-                        <tr className="border-t-2 border-slate-300 font-bold bg-slate-50">
-                          <td className="py-3 px-3 text-slate-700">{t('total')}</td>
+                        <tr className="border-t-2 border-gray-300 font-bold bg-gray-50">
+                          <td className="py-3 px-3 text-gray-700">{t('total')}</td>
                           {selecciones.map((sel, idx) => (
-                            <td key={sel.id} className="py-3 px-2 text-center text-slate-800">
+                            <td key={sel.id} className="py-3 px-2 text-center text-gray-900">
                               {totales[idx]}
                             </td>
                           ))}
@@ -3195,14 +3195,14 @@ const DashboardAcademico = () => {
                     </table>
 
                     {/* Tabla de agrupaciones */}
-                    <h4 className="text-md font-semibold text-slate-700 mb-3">{t('groupByGrade')}</h4>
+                    <h4 className="text-md font-semibold text-gray-700 mb-3">{t('groupByGrade')}</h4>
                     <table className="w-full">
                       <thead>
-                        <tr className="border-b-2 border-slate-200">
-                          <th className="py-3 px-3 text-left text-sm font-semibold text-slate-600">{t('grade')}</th>
-                          <th className="py-3 px-3 text-left text-xs font-normal text-slate-500">{t('grades')}</th>
+                        <tr className="border-b-2 border-gray-200">
+                          <th className="py-3 px-3 text-left text-sm font-semibold text-gray-600">{t('grade')}</th>
+                          <th className="py-3 px-3 text-left text-xs font-normal text-gray-500">{t('grades')}</th>
                           {selecciones.map((sel, idx) => (
-                            <th key={sel.id} className="py-3 px-2 text-center text-xs font-semibold text-slate-700">
+                            <th key={sel.id} className="py-3 px-2 text-center text-xs font-semibold text-gray-700">
                               {sel.trimestre} · {sel.nivel}
                             </th>
                           ))}
@@ -3216,17 +3216,17 @@ const DashboardAcademico = () => {
                           { key: 'notable', label: t('notable'), notas: '7-8' },
                           { key: 'excelente', label: t('excellent'), notas: '9-10' }
                         ].map(({ key, label, notas }) => (
-                          <tr key={key} className="border-b border-slate-100">
-                            <td className="py-2 px-3 font-medium text-slate-700">{label}</td>
-                            <td className="py-2 px-3 text-xs text-slate-500">{notas}</td>
+                          <tr key={key} className="border-b border-gray-100">
+                            <td className="py-2 px-3 font-medium text-gray-700">{label}</td>
+                            <td className="py-2 px-3 text-xs text-gray-500">{notas}</td>
                             {selecciones.map((sel, idx) => {
                               const datos = datosCompletos[sel.trimestre]?.[sel.nivel]?.[sel.asignatura];
                               if (!datos) return <td key={sel.id} className="py-2 px-2 text-center">—</td>;
                               const { grupos, porcentajes } = calcularAgrupacion(datos.distribucion);
                               return (
                                 <td key={sel.id} className="py-2 px-2 text-center">
-                                  <span className="font-semibold text-slate-800">{grupos[key]}</span>
-                                  <span className="text-xs text-slate-800 ml-1">({porcentajes[key]}%)</span>
+                                  <span className="font-semibold text-gray-900">{grupos[key]}</span>
+                                  <span className="text-xs text-gray-900 ml-1">({porcentajes[key]}%)</span>
                                 </td>
                               );
                             })}
@@ -3246,16 +3246,16 @@ const DashboardAcademico = () => {
       {/* VISTA: CORRELACIONES */}
       {vistaActual === 'correlaciones' && (
         <div className="max-w-7xl mx-auto">
-          <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
+          <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-              <h3 className="text-lg font-semibold text-slate-800">
+              <h3 className="text-lg font-semibold text-gray-900">
                 {t('correlationsTitle')} · {formatearNombreTrimestre(trimestreSeleccionado)}
               </h3>
               <div className="flex flex-wrap items-center gap-3">
                 <select
                   value={trimestreSeleccionado}
                   onChange={(e) => setTrimestreSeleccionado(e.target.value)}
-                  className="py-2 px-4 border border-slate-300 rounded-lg text-sm"
+                  className="py-2 px-4 border border-gray-300 rounded-lg text-sm"
                 >
                   {trimestresDisponibles
                     .filter(t => {
@@ -3267,11 +3267,11 @@ const DashboardAcademico = () => {
                       <option key={t} value={t}>{formatearNombreTrimestre(t)}</option>
                     ))}
                 </select>
-                <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
+                <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
                   <button
                     onClick={() => setOrdenCorrelaciones('desc')}
                     className={`py-1.5 px-3 text-xs font-medium rounded transition-all ${
-                      ordenCorrelaciones === 'desc' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'
+                      ordenCorrelaciones === 'desc' ? 'bg-white text-gray-900 ' : 'text-gray-500'
                     }`}
                   >
                     {t('sortDesc')}
@@ -3279,7 +3279,7 @@ const DashboardAcademico = () => {
                   <button
                     onClick={() => setOrdenCorrelaciones('asc')}
                     className={`py-1.5 px-3 text-xs font-medium rounded transition-all ${
-                      ordenCorrelaciones === 'asc' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'
+                      ordenCorrelaciones === 'asc' ? 'bg-white text-gray-900 ' : 'text-gray-500'
                     }`}
                   >
                     {t('sortAsc')}
@@ -3287,7 +3287,7 @@ const DashboardAcademico = () => {
                   <button
                     onClick={() => setOrdenCorrelaciones('none')}
                     className={`py-1.5 px-3 text-xs font-medium rounded transition-all ${
-                      ordenCorrelaciones === 'none' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'
+                      ordenCorrelaciones === 'none' ? 'bg-white text-gray-900 ' : 'text-gray-500'
                     }`}
                   >
                     {t('noSort')}
@@ -3307,7 +3307,7 @@ const DashboardAcademico = () => {
             </div>
 
             {correlacionesTrimestre.length === 0 ? (
-              <p className="text-slate-500 text-center py-8">{t('noCorrelationData')}</p>
+              <p className="text-gray-500 text-center py-8">{t('noCorrelationData')}</p>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2">
                 {correlacionesTrimestre.map((corr, idx) => {
@@ -3315,13 +3315,13 @@ const DashboardAcademico = () => {
                   return (
                     <div 
                       key={idx} 
-                      className="p-3 rounded-lg border border-slate-200 hover:shadow-md transition-all"
+                      className="p-3 rounded-lg border border-gray-200 hover:border-gray-900 transition-all"
                       style={{ borderLeftWidth: '4px', borderLeftColor: interp.color }}
                     >
-                      <div className="text-xs text-slate-400 mb-1">{corr.Nivel}</div>
-                      <div className="text-sm font-semibold text-slate-800 leading-tight mb-2 break-words overflow-hidden">
+                      <div className="text-xs text-gray-400 mb-1">{corr.Nivel}</div>
+                      <div className="text-sm font-semibold text-gray-900 leading-tight mb-2 break-words overflow-hidden">
                         {corr.Asignatura1}
-                        <span className="text-slate-400 mx-1">↔</span>
+                        <span className="text-gray-400 mx-1">↔</span>
                         {corr.Asignatura2}
                       </div>
                       <div className="flex items-center justify-between">
@@ -3347,21 +3347,21 @@ const DashboardAcademico = () => {
           
           {/* Gráfico de evolución de correlaciones por nivel */}
           {trimestresDisponibles.length >= 1 && correlacionesTrimestre.length > 0 && (
-            <div className="bg-white rounded-xl border border-slate-200 p-6">
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-800 mb-1">{t('correlationEvolution')}</h3>
-                  <p className="text-sm text-slate-500">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-1">{t('correlationEvolution')}</h3>
+                  <p className="text-sm text-gray-500">
                     {ejeCorrelaciones === 'pares' ? t('correlationEvolutionDesc') : t('correlationEvolutionDescAlt').replace('{levels}', nivelesSinGlobalEtapa.join(', '))}
                   </p>
                 </div>
-                <div className="flex gap-2 bg-slate-100 rounded-lg p-1">
+                <div className="flex gap-2 bg-gray-100 rounded-lg p-1">
                   <button
                     onClick={() => setEjeCorrelaciones('pares')}
                     className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
                       ejeCorrelaciones === 'pares'
-                        ? 'bg-white text-slate-800 shadow-sm'
-                        : 'text-slate-600 hover:text-slate-800'
+                        ? 'bg-white text-gray-900 '
+                        : 'text-gray-600 hover:text-gray-900'
                     }`}
                   >
                     {t('correlationToggleSubjects')}
@@ -3370,8 +3370,8 @@ const DashboardAcademico = () => {
                     onClick={() => setEjeCorrelaciones('niveles')}
                     className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
                       ejeCorrelaciones === 'niveles'
-                        ? 'bg-white text-slate-800 shadow-sm'
-                        : 'text-slate-600 hover:text-slate-800'
+                        ? 'bg-white text-gray-900 '
+                        : 'text-gray-600 hover:text-gray-900'
                     }`}
                   >
                     {t('correlationToggleLevels')}
@@ -3482,20 +3482,20 @@ const DashboardAcademico = () => {
       {/* VISTA: EVOLUCIÓN */}
       {vistaActual === 'evolucion' && (
         <div className="max-w-7xl mx-auto">
-          <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
-            <h3 className="text-lg font-semibold text-slate-800 mb-4">{t('evolutionTitle')}</h3>
+          <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('evolutionTitle')}</h3>
 
             {trimestresDisponibles.length < 2 ? (
               <div className="text-center py-12">
-                <p className="text-slate-500 mb-2">{t('needTwoTrimesters')}</p>
-                <p className="text-sm text-slate-400">{t('trimestersLoaded')}: {trimestresDisponibles.join(', ') || 'Ninguno'}</p>
+                <p className="text-gray-500 mb-2">{t('needTwoTrimesters')}</p>
+                <p className="text-sm text-gray-400">{t('trimestersLoaded')}: {trimestresDisponibles.join(', ') || 'Ninguno'}</p>
               </div>
             ) : (
               <>
                 {/* Selectores independientes para Evolución */}
                 <div className="mb-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-md font-semibold text-slate-700">{t('selections')}</h4>
+                    <h4 className="text-md font-semibold text-gray-700">{t('selections')}</h4>
                     <div className="flex gap-2">
                       <button
                         onClick={() => {
@@ -3504,7 +3504,7 @@ const DashboardAcademico = () => {
                           }
                         }}
                         disabled={seleccionesEvolucion.length >= 15}
-                        className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-3 py-1.5 bg-gray-900 text-white rounded-lg text-sm hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         + {t('add')}
                       </button>
@@ -3513,8 +3513,8 @@ const DashboardAcademico = () => {
 
                   <div className="space-y-3">
                     {seleccionesEvolucion.map((sel, idx) => (
-                      <div key={idx} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-                        <span className="text-sm font-semibold text-slate-600 w-24">{t('selection')} {idx + 1}</span>
+                      <div key={idx} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                        <span className="text-sm font-semibold text-gray-600 w-24">{t('selection')} {idx + 1}</span>
 
                         <select
                           value={sel.nivel}
@@ -3523,7 +3523,7 @@ const DashboardAcademico = () => {
                             nuevas[idx].nivel = e.target.value;
                             setSeleccionesEvolucion(nuevas);
                           }}
-                          className="px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-900 focus:border-gray-900"
                         >
                           {nivelesDisponibles.map(n => (
                             <option key={n} value={n}>{n}</option>
@@ -3537,7 +3537,7 @@ const DashboardAcademico = () => {
                             nuevas[idx].asignatura = e.target.value;
                             setSeleccionesEvolucion(nuevas);
                           }}
-                          className="flex-1 px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-900 focus:border-gray-900"
                         >
                           {renderOpcionesAsignaturas(todasLasAsignaturas)}
                         </select>
@@ -3589,7 +3589,7 @@ const DashboardAcademico = () => {
 
                   if (!hayDatos) {
                     return (
-                      <p className="text-slate-500 text-center py-8">
+                      <p className="text-gray-500 text-center py-8">
                         {t('notEnoughData')}
                       </p>
                     );
@@ -3598,7 +3598,7 @@ const DashboardAcademico = () => {
                   return (
                     <div>
                       <div className="mb-4">
-                        <h4 className="text-md font-semibold text-slate-700 mb-2">{t('averageEvolution')}</h4>
+                        <h4 className="text-md font-semibold text-gray-700 mb-2">{t('averageEvolution')}</h4>
                       </div>
 
                       <ResponsiveContainer width="100%" height={400}>
@@ -3686,19 +3686,19 @@ const DashboardAcademico = () => {
                 <div className="mt-8">
                   <div className="mb-6">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-2xl font-bold text-slate-800">
+                      <h2 className="text-2xl font-bold text-gray-900">
                         {t('transversalComparison')} - {t('allSubjects')}
                       </h2>
                       <div className="flex items-center gap-4">
                         {/* Filtro por tendencia de nota media */}
                         <div className="flex items-center gap-2">
-                          <label className="text-sm font-medium text-slate-700">
+                          <label className="text-sm font-medium text-gray-700">
                             {idioma === 'es' ? 'Filtrar nota media:' : 'Filtrar nota mitjana:'}
                           </label>
                           <select
                             value={filtroTendenciaMedia}
                             onChange={(e) => setFiltroTendenciaMedia(e.target.value)}
-                            className="px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-900 focus:border-gray-900"
                           >
                             <option value="all">{t('allTrends')}</option>
                             <optgroup label={idioma === 'es' ? 'Tendencias lineales' : 'Tendències lineals'}>
@@ -3726,13 +3726,13 @@ const DashboardAcademico = () => {
 
                         {/* Filtro por tendencia de suspensos */}
                         <div className="flex items-center gap-2">
-                          <label className="text-sm font-medium text-slate-700">
+                          <label className="text-sm font-medium text-gray-700">
                             {idioma === 'es' ? 'Filtrar % suspensos:' : 'Filtrar % suspesos:'}
                           </label>
                           <select
                             value={filtroTendenciaSuspensos}
                             onChange={(e) => setFiltroTendenciaSuspensos(e.target.value)}
-                            className="px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-900 focus:border-gray-900"
                           >
                             <option value="all">{t('allTrends')}</option>
                             <optgroup label={idioma === 'es' ? 'Tendencias lineales' : 'Tendències lineals'}>
@@ -3761,8 +3761,8 @@ const DashboardAcademico = () => {
                     </div>
 
                     {/* Selector de asignaturas para filtrar */}
-                    <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
                         {idioma === 'es' ? 'Seleccionar asignaturas a mostrar:' : 'Seleccionar assignatures a mostrar:'}
                       </label>
                       <div className="flex flex-wrap gap-2">
@@ -3770,8 +3770,8 @@ const DashboardAcademico = () => {
                           onClick={() => setAsignaturasTransversal([])}
                           className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                             asignaturasTransversal.length === 0
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-100'
+                              ? 'bg-gray-900 text-white'
+                              : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
                           }`}
                         >
                           {t('allSubjects')}
@@ -3788,8 +3788,8 @@ const DashboardAcademico = () => {
                             }}
                             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                               asignaturasTransversal.includes(asig)
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-100'
+                                ? 'bg-gray-900 text-white'
+                                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
                             }`}
                           >
                             {asig}
@@ -3802,10 +3802,10 @@ const DashboardAcademico = () => {
                   {/* Gráficas de evolución transversal por asignatura */}
                   <div className="space-y-8">
                     {asignaturasConFiltro.map(({ asignatura, datosPorNivel, tendenciaMedia, tendenciaSuspensos }) => (
-                      <div key={asignatura} className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+                      <div key={asignatura} className="bg-white rounded-xl border border-gray-200 p-6">
                         <div className="mb-6">
-                          <h3 className="text-2xl font-bold text-slate-800 mb-2">{asignatura}</h3>
-                          <p className="text-sm text-slate-600">
+                          <h3 className="text-2xl font-bold text-gray-900 mb-2">{asignatura}</h3>
+                          <p className="text-sm text-gray-600">
                             {idioma === 'es'
                               ? `Evolución de ${asignatura} a través de los niveles de ${modoEtapa === 'TODOS' ? 'todas las etapas' : modoEtapa}`
                               : `Evolució de ${asignatura} a través dels nivells de ${modoEtapa === 'TODOS' ? 'totes les etapes' : modoEtapa}`
@@ -3816,7 +3816,7 @@ const DashboardAcademico = () => {
                         {/* Gráfica de Nota Media */}
                         <div className="mb-8">
                           <div className="flex items-center justify-between mb-4">
-                            <h4 className="text-lg font-semibold text-slate-700">{t('averageEvolution')}</h4>
+                            <h4 className="text-lg font-semibold text-gray-700">{t('averageEvolution')}</h4>
                             <span
                               className={`px-3 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1.5 ${getTrendInfo(tendenciaMedia.tipo).color}`}
                               title={getTrendInfo(tendenciaMedia.tipo).desc}
@@ -3865,7 +3865,7 @@ const DashboardAcademico = () => {
                         {/* Gráfica de % Suspendidos */}
                         <div>
                           <div className="flex items-center justify-between mb-4">
-                            <h4 className="text-lg font-semibold text-slate-700">{t('failedEvolution')}</h4>
+                            <h4 className="text-lg font-semibold text-gray-700">{t('failedEvolution')}</h4>
                             {(() => {
                               const infoSuspensos = getTrendInfo(tendenciaSuspensos.tipo);
 
@@ -3929,17 +3929,17 @@ const DashboardAcademico = () => {
       {/* VISTA: DIFICULTAD */}
       {vistaActual === 'dificultad' && analisisDificultad && (
         <div className="max-w-7xl mx-auto">
-          <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
+          <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-slate-800">{t('difficulty')}</h3>
+              <h3 className="text-lg font-semibold text-gray-900">{t('difficulty')}</h3>
               {/* Toggle Por Niveles / Global */}
-              <div className="inline-flex bg-slate-100 rounded-lg p-1">
+              <div className="inline-flex bg-gray-100 rounded-lg p-1">
                 <button
                   onClick={() => setVistaDificultad('niveles')}
                   className={`px-3 py-1 text-xs font-medium rounded transition-all ${
                     vistaDificultad === 'niveles'
-                      ? 'bg-white text-slate-800 shadow-sm'
-                      : 'text-slate-500 hover:text-slate-700'
+                      ? 'bg-white text-gray-900 '
+                      : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
                   {t('viewByLevels')}
@@ -3948,8 +3948,8 @@ const DashboardAcademico = () => {
                   onClick={() => setVistaDificultad('global')}
                   className={`px-3 py-1 text-xs font-medium rounded transition-all ${
                     vistaDificultad === 'global'
-                      ? 'bg-white text-slate-800 shadow-sm'
-                      : 'text-slate-500 hover:text-slate-700'
+                      ? 'bg-white text-gray-900 '
+                      : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
                   {t('viewGlobal')}
@@ -3958,8 +3958,8 @@ const DashboardAcademico = () => {
             </div>
 
             {/* Selector de trimestre */}
-            <div className="mb-6 p-3 bg-slate-50 rounded-lg">
-              <span className="text-sm font-medium text-slate-700">
+            <div className="mb-6 p-3 bg-gray-50 rounded-lg">
+              <span className="text-sm font-medium text-gray-700">
                 {t('trimester')}: <span className="font-bold">{trimestreSeleccionado}</span>
               </span>
             </div>
@@ -3975,11 +3975,11 @@ const DashboardAcademico = () => {
                   {analisisDificultad.dificiles.map((asig, idx) => (
                     <div
                       key={idx}
-                      className="bg-red-50 border-2 border-red-300 rounded-lg p-4 hover:shadow-md transition-shadow"
+                      className="bg-red-50 border-2 border-red-300 rounded-lg p-4 hover:border-gray-900 transition-shadow"
                     >
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1 min-w-0">
-                          <h5 className="font-semibold text-slate-800 text-sm break-words">
+                          <h5 className="font-semibold text-gray-900 text-sm break-words">
                             {asig.nivel} - {asig.asignatura}
                           </h5>
                         </div>
@@ -3987,21 +3987,21 @@ const DashboardAcademico = () => {
                           {t('difficult')}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-600 mb-3 leading-relaxed">
+                      <p className="text-xs text-gray-600 mb-3 leading-relaxed">
                         <span className="font-medium">{t('difficultyReason')}:</span> {asig.razon}
                       </p>
                       <div className="grid grid-cols-3 gap-2 text-xs">
                         <div className="bg-white rounded p-2 text-center">
-                          <div className="font-semibold text-slate-800">{(asig.notaMedia || 0).toFixed(2)}</div>
-                          <div className="text-slate-500">{t('average')}</div>
+                          <div className="font-semibold text-gray-900">{(asig.notaMedia || 0).toFixed(2)}</div>
+                          <div className="text-gray-500">{t('average')}</div>
                         </div>
                         <div className="bg-white rounded p-2 text-center">
                           <div className="font-semibold text-green-600">{(asig.aprobados || 0).toFixed(1)}%</div>
-                          <div className="text-slate-500">{t('passed')}</div>
+                          <div className="text-gray-500">{t('passed')}</div>
                         </div>
                         <div className="bg-white rounded p-2 text-center">
                           <div className="font-semibold text-red-600">{(asig.suspendidos || 0).toFixed(1)}%</div>
-                          <div className="text-slate-500">{t('failed')}</div>
+                          <div className="text-gray-500">{t('failed')}</div>
                         </div>
                       </div>
                     </div>
@@ -4013,41 +4013,41 @@ const DashboardAcademico = () => {
             {/* Asignaturas Neutrales */}
             {analisisDificultad.neutrales.length > 0 && (
               <div className="mb-8">
-                <h4 className="text-md font-semibold text-slate-700 mb-4 flex items-center gap-2">
-                  <span className="w-3 h-3 bg-slate-400 rounded-full"></span>
+                <h4 className="text-md font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                  <span className="w-3 h-3 bg-gray-400 rounded-full"></span>
                   {t('neutralSubjects')} ({analisisDificultad.neutrales.length})
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {analisisDificultad.neutrales.map((asig, idx) => (
                     <div
                       key={idx}
-                      className="bg-slate-50 border-2 border-slate-300 rounded-lg p-4 hover:shadow-md transition-shadow"
+                      className="bg-gray-50 border-2 border-gray-300 rounded-lg p-4 hover:border-gray-900 transition-shadow"
                     >
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1 min-w-0">
-                          <h5 className="font-semibold text-slate-800 text-sm break-words">
+                          <h5 className="font-semibold text-gray-900 text-sm break-words">
                             {asig.nivel} - {asig.asignatura}
                           </h5>
                         </div>
-                        <span className="ml-2 px-2 py-1 bg-slate-200 text-slate-800 text-xs font-bold rounded shrink-0">
+                        <span className="ml-2 px-2 py-1 bg-gray-200 text-gray-900 text-xs font-bold rounded shrink-0">
                           {t('neutral')}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-600 mb-3 leading-relaxed">
+                      <p className="text-xs text-gray-600 mb-3 leading-relaxed">
                         <span className="font-medium">{t('difficultyReason')}:</span> {asig.razon}
                       </p>
                       <div className="grid grid-cols-3 gap-2 text-xs">
                         <div className="bg-white rounded p-2 text-center">
-                          <div className="font-semibold text-slate-800">{(asig.notaMedia || 0).toFixed(2)}</div>
-                          <div className="text-slate-500">{t('average')}</div>
+                          <div className="font-semibold text-gray-900">{(asig.notaMedia || 0).toFixed(2)}</div>
+                          <div className="text-gray-500">{t('average')}</div>
                         </div>
                         <div className="bg-white rounded p-2 text-center">
                           <div className="font-semibold text-green-600">{(asig.aprobados || 0).toFixed(1)}%</div>
-                          <div className="text-slate-500">{t('passed')}</div>
+                          <div className="text-gray-500">{t('passed')}</div>
                         </div>
                         <div className="bg-white rounded p-2 text-center">
                           <div className="font-semibold text-red-600">{(asig.suspendidos || 0).toFixed(1)}%</div>
-                          <div className="text-slate-500">{t('failed')}</div>
+                          <div className="text-gray-500">{t('failed')}</div>
                         </div>
                       </div>
                     </div>
@@ -4067,11 +4067,11 @@ const DashboardAcademico = () => {
                   {analisisDificultad.faciles.map((asig, idx) => (
                     <div
                       key={idx}
-                      className="bg-green-50 border-2 border-green-300 rounded-lg p-4 hover:shadow-md transition-shadow"
+                      className="bg-green-50 border-2 border-green-300 rounded-lg p-4 hover:border-gray-900 transition-shadow"
                     >
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1 min-w-0">
-                          <h5 className="font-semibold text-slate-800 text-sm break-words">
+                          <h5 className="font-semibold text-gray-900 text-sm break-words">
                             {asig.nivel} - {asig.asignatura}
                           </h5>
                         </div>
@@ -4079,21 +4079,21 @@ const DashboardAcademico = () => {
                           {t('easy')}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-600 mb-3 leading-relaxed">
+                      <p className="text-xs text-gray-600 mb-3 leading-relaxed">
                         <span className="font-medium">{t('difficultyReason')}:</span> {asig.razon}
                       </p>
                       <div className="grid grid-cols-3 gap-2 text-xs">
                         <div className="bg-white rounded p-2 text-center">
-                          <div className="font-semibold text-slate-800">{(asig.notaMedia || 0).toFixed(2)}</div>
-                          <div className="text-slate-500">{t('average')}</div>
+                          <div className="font-semibold text-gray-900">{(asig.notaMedia || 0).toFixed(2)}</div>
+                          <div className="text-gray-500">{t('average')}</div>
                         </div>
                         <div className="bg-white rounded p-2 text-center">
                           <div className="font-semibold text-green-600">{(asig.aprobados || 0).toFixed(1)}%</div>
-                          <div className="text-slate-500">{t('passed')}</div>
+                          <div className="text-gray-500">{t('passed')}</div>
                         </div>
                         <div className="bg-white rounded p-2 text-center">
                           <div className="font-semibold text-red-600">{(asig.suspendidos || 0).toFixed(1)}%</div>
-                          <div className="text-slate-500">{t('failed')}</div>
+                          <div className="text-gray-500">{t('failed')}</div>
                         </div>
                       </div>
                     </div>
@@ -4108,15 +4108,15 @@ const DashboardAcademico = () => {
       {/* VISTA: DATOS DE ASIGNATURAS */}
       {vistaActual === 'asignaturas' && (
         <div className="max-w-7xl mx-auto">
-          <div className="bg-white rounded-xl border border-slate-200 p-6">
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
             {/* Filtros */}
             <div className="flex flex-col md:flex-row gap-4 mb-6">
               <div className="flex-1">
-                <label className="block text-sm font-medium text-slate-700 mb-2">{t('filterByTrimester')}</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('filterByTrimester')}</label>
                 <select
                   value={filtroTrimestre}
                   onChange={(e) => setFiltroTrimestre(e.target.value)}
-                  className="w-full py-2 px-3 border border-slate-300 rounded-lg text-sm bg-white"
+                  className="w-full py-2 px-3 border border-gray-300 rounded-lg text-sm bg-white"
                 >
                   <option value="ALL">{t('allTrimesters')}</option>
                   {trimestresDisponibles
@@ -4131,11 +4131,11 @@ const DashboardAcademico = () => {
                 </select>
               </div>
               <div className="flex-1">
-                <label className="block text-sm font-medium text-slate-700 mb-2">{t('filterByLevel')}</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('filterByLevel')}</label>
                 <select
                   value={filtroNivel}
                   onChange={(e) => setFiltroNivel(e.target.value)}
-                  className="w-full py-2 px-3 border border-slate-300 rounded-lg text-sm bg-white"
+                  className="w-full py-2 px-3 border border-gray-300 rounded-lg text-sm bg-white"
                 >
                   <option value="ALL">{t('allLevels')}</option>
                   <option value="GLOBAL">{t('global')}</option>
@@ -4145,11 +4145,11 @@ const DashboardAcademico = () => {
                 </select>
               </div>
               <div className="flex-1">
-                <label className="block text-sm font-medium text-slate-700 mb-2">{t('filterByGroup')}</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('filterByGroup')}</label>
                 <select
                   value={filtroGrupo}
                   onChange={(e) => setFiltroGrupo(e.target.value)}
-                  className="w-full py-2 px-3 border border-slate-300 rounded-lg text-sm bg-white"
+                  className="w-full py-2 px-3 border border-gray-300 rounded-lg text-sm bg-white"
                   disabled={obtenerGruposDisponibles().length === 0}
                 >
                   <option value="ALL">{t('allGroups')}</option>
@@ -4204,7 +4204,7 @@ const DashboardAcademico = () => {
 
               return (
                 <>
-                  <p className="text-sm text-slate-600 mb-4">
+                  <p className="text-sm text-gray-600 mb-4">
                     {t('showingSubjects').replace('{count}', count)}
                   </p>
 
@@ -4225,10 +4225,10 @@ const DashboardAcademico = () => {
                         badgeBg = 'bg-green-100';
                         badgeText = 'text-green-700';
                       } else {
-                        bgColor = 'bg-slate-50';
-                        borderColor = 'border-slate-200';
-                        badgeBg = 'bg-slate-100';
-                        badgeText = 'text-slate-700';
+                        bgColor = 'bg-gray-50';
+                        borderColor = 'border-gray-200';
+                        badgeBg = 'bg-gray-100';
+                        badgeText = 'text-gray-700';
                       }
 
                       // Formatear header sin redundancia
@@ -4244,13 +4244,13 @@ const DashboardAcademico = () => {
                       return (
                         <div
                           key={`${trimestre}-${nivel}-${asignatura}-${idx}`}
-                          className={`${bgColor} ${borderColor} border rounded-lg p-4 transition-all hover:shadow-md`}
+                          className={`${bgColor} ${borderColor} border rounded-lg p-4 transition-all hover:border-gray-900`}
                         >
                           {/* Header con badge */}
                           <div className="flex items-start justify-between mb-3">
                             <div className="flex-1">
-                              <div className="text-xs font-semibold text-slate-600 mb-1">{headerText}</div>
-                              <h4 className="text-sm font-bold text-slate-900 leading-tight">{asignatura}</h4>
+                              <div className="text-xs font-semibold text-gray-600 mb-1">{headerText}</div>
+                              <h4 className="text-sm font-bold text-gray-900 leading-tight">{asignatura}</h4>
                             </div>
                             <span className={`${badgeBg} ${badgeText} text-xs px-2 py-0.5 rounded font-medium ml-2`}>
                               {t(resultado === 'DIFÍCIL' ? 'difficult' : resultado === 'FÁCIL' ? 'easy' : 'neutral')}
@@ -4260,20 +4260,20 @@ const DashboardAcademico = () => {
                           {/* Métricas */}
                           <div className="space-y-2">
                             <div className="flex justify-between items-center">
-                              <span className="text-xs text-slate-600">{t('records')}:</span>
-                              <span className="text-sm font-semibold text-slate-800">{stats.registros}</span>
+                              <span className="text-xs text-gray-600">{t('records')}:</span>
+                              <span className="text-sm font-semibold text-gray-900">{stats.registros}</span>
                             </div>
                             <div className="flex justify-between items-center">
-                              <span className="text-xs text-slate-600">{t('average')}:</span>
-                              <span className="text-sm font-semibold text-slate-800">{(stats.notaMedia || 0).toFixed(2)}</span>
+                              <span className="text-xs text-gray-600">{t('average')}:</span>
+                              <span className="text-sm font-semibold text-gray-900">{(stats.notaMedia || 0).toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between items-center">
-                              <span className="text-xs text-slate-600">{t('standardDeviation')}:</span>
-                              <span className="text-sm font-semibold text-slate-800">{typeof stats.desviacion === 'number' ? stats.desviacion.toFixed(2) : '-'}</span>
+                              <span className="text-xs text-gray-600">{t('standardDeviation')}:</span>
+                              <span className="text-sm font-semibold text-gray-900">{typeof stats.desviacion === 'number' ? stats.desviacion.toFixed(2) : '-'}</span>
                             </div>
                             <div className="flex justify-between items-center">
-                              <span className="text-xs text-slate-600">{t('mode')}:</span>
-                              <span className="text-sm font-semibold text-slate-800">{stats.moda || '-'}</span>
+                              <span className="text-xs text-gray-600">{t('mode')}:</span>
+                              <span className="text-sm font-semibold text-gray-900">{stats.moda || '-'}</span>
                             </div>
                             <div className="flex justify-between items-center">
                               <span className="text-xs text-green-600">{t('passed')}:</span>
@@ -4299,7 +4299,7 @@ const DashboardAcademico = () => {
 
                   {count === 0 && (
                     <div className="text-center py-12">
-                      <p className="text-slate-500">{t('noCorrelationData')}</p>
+                      <p className="text-gray-500">{t('noCorrelationData')}</p>
                     </div>
                   )}
                 </>
@@ -4310,9 +4310,9 @@ const DashboardAcademico = () => {
       )}
 
       {/* Footer */}
-      <footer className="max-w-7xl mx-auto mt-12 py-6 border-t border-slate-200">
-        <p className="text-center text-sm text-slate-400">
-          {t('designedBy')} <a href="https://jlmirall.es" target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:text-slate-800 underline">José Luis Miralles Bono</a> {t('withHelpOf')}
+      <footer className="max-w-7xl mx-auto mt-12 py-6 border-t border-gray-200">
+        <p className="text-center text-sm text-gray-400">
+          {t('designedBy')} <a href="https://jlmirall.es" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-gray-900 underline">José Luis Miralles Bono</a> {t('withHelpOf')}
         </p>
       </footer>
       </MainLayout>

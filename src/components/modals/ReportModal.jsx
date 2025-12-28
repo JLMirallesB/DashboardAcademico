@@ -1,23 +1,23 @@
 /**
  * Dashboard Académico - Modal de Configuración de Informe
- * Modal para configurar y generar informe PDF con múltiples secciones
+ * Diseño Minimalista: Sin gradientes, botones con bordes oscuros
  */
 
 import React from 'react';
 
 /**
- * Checkbox con etiqueta estilizada
+ * Checkbox con etiqueta estilizada - Estilo minimalista
  */
 const CheckboxOption = ({ checked, onChange, label, disabled = false }) => (
-  <label className={`flex items-center gap-3 cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition-colors ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}>
+  <label className={`flex items-center gap-3 cursor-pointer p-2 rounded-lg hover:bg-white transition-colors ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}>
     <input
       type="checkbox"
       checked={checked}
       onChange={onChange}
       disabled={disabled}
-      className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+      className="w-5 h-5 text-gray-900 rounded border-gray-300 focus:ring-2 focus:ring-gray-900 disabled:opacity-50"
     />
-    <span className="text-sm text-slate-700">{label}</span>
+    <span className="text-sm text-gray-700">{label}</span>
   </label>
 );
 
@@ -54,38 +54,38 @@ export const ReportModal = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-slate-200">
-          <h2 className="text-2xl font-bold text-slate-800">{t('reportConfig')}</h2>
-          <p className="text-sm text-slate-500 mt-1">{t('reportConfigDesc') || 'Configura el contenido del informe PDF'}</p>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl border border-gray-200 max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b border-gray-200">
+          <h2 className="text-2xl font-bold text-gray-900">{t('reportConfig')}</h2>
+          <p className="text-sm text-gray-500 mt-1">{t('reportConfigDesc') || 'Configura el contenido del informe PDF'}</p>
         </div>
 
         <div className="p-6 space-y-6">
           {/* Datos del centro */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+              <label className="block text-xs font-bold text-gray-900 uppercase tracking-wide mb-2">
                 {t('centerName')}
               </label>
               <input
                 type="text"
                 value={config.nombreCentro}
                 onChange={(e) => updateConfig('nombreCentro', e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 focus:outline-none"
                 placeholder={t('centerNamePlaceholder') || 'Nombre del conservatorio'}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+              <label className="block text-xs font-bold text-gray-900 uppercase tracking-wide mb-2">
                 {t('academicYear')}
               </label>
               <input
                 type="text"
                 value={config.cursoAcademico}
                 onChange={(e) => updateConfig('cursoAcademico', e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 focus:outline-none"
                 placeholder="2024-2025"
               />
             </div>
@@ -93,14 +93,14 @@ export const ReportModal = ({
 
           {/* Secciones del informe */}
           <div>
-            <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
-              <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+              <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
               {t('reportSections') || 'Secciones del informe'}
             </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 bg-slate-50 rounded-xl p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 bg-gray-50 border border-gray-200 rounded-lg p-4">
               {/* Columna 1 */}
               <div className="space-y-1">
                 <CheckboxOption
@@ -153,7 +153,7 @@ export const ReportModal = ({
 
           {/* Análisis de dificultad (solo si datos de asignaturas está activo) */}
           {config.incluirDatosAsignaturas !== false && (
-            <div className="pl-4 border-l-2 border-blue-200">
+            <div className="pl-4 border-l-2 border-gray-300">
               <CheckboxOption
                 checked={config.incluirDificultad !== false}
                 onChange={(e) => updateConfig('incluirDificultad', e.target.checked)}
@@ -164,14 +164,14 @@ export const ReportModal = ({
 
           {/* Análisis adicionales */}
           <div>
-            <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
-              <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+              <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
               Análisis adicionales
             </h3>
 
-            <div className="bg-emerald-50 rounded-xl p-4 space-y-1">
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-1">
               <CheckboxOption
                 checked={config.incluirAnalisisTendencias !== false}
                 onChange={(e) => updateConfig('incluirAnalisisTendencias', e.target.checked)}
@@ -185,7 +185,7 @@ export const ReportModal = ({
                   label={t('includeGradeEvolution') || 'Evolución de notas medias'}
                 />
                 {trimestresCount < 2 && (
-                  <span className="text-xs text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full">
+                  <span className="text-xs text-gray-600 bg-gray-200 px-2 py-0.5 rounded-full">
                     {t('requiresMultipleTrm') || 'Requiere 2+ trimestres'}
                   </span>
                 )}
@@ -201,37 +201,35 @@ export const ReportModal = ({
           {/* Filtro por agrupaciones */}
           {agrupacionesDisponibles.length > 0 && (
             <div>
-              <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                 </svg>
                 {t('filterByGroups') || 'Filtrar por agrupaciones'}
               </h3>
 
-              <div className="bg-purple-50 rounded-xl p-4">
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <input
                     type="checkbox"
                     checked={config.filtroAgrupaciones == null}
                     onChange={(e) => {
                       if (e.target.checked) {
-                        // Volver a "todas" - null significa sin filtro (incluir todo)
                         updateConfig('filtroAgrupaciones', null);
                       } else {
-                        // Desmarcar "Todas" - array vacío habilita selección individual
                         updateConfig('filtroAgrupaciones', []);
                       }
                     }}
-                    className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
+                    className="w-4 h-4 text-gray-900 rounded border-gray-300 focus:ring-2 focus:ring-gray-900"
                   />
-                  <span className="text-sm font-medium text-purple-800">
+                  <span className="text-sm font-medium text-gray-900">
                     {t('allGroups') || 'Todas las agrupaciones'}
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 pl-4 border-l-2 border-purple-200">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 pl-4 border-l-2 border-gray-300">
                   {agrupacionesDisponibles.map((grupo) => (
-                    <label key={grupo} className={`flex items-center gap-2 p-1.5 rounded transition-colors ${config.filtroAgrupaciones == null ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-purple-100'}`}>
+                    <label key={grupo} className={`flex items-center gap-2 p-1.5 rounded transition-colors ${config.filtroAgrupaciones == null ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-white'}`}>
                       <input
                         type="checkbox"
                         checked={config.filtroAgrupaciones?.includes(grupo) || false}
@@ -244,16 +242,16 @@ export const ReportModal = ({
                           }
                         }}
                         disabled={config.filtroAgrupaciones == null}
-                        className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500 disabled:opacity-50"
+                        className="w-4 h-4 text-gray-900 rounded border-gray-300 focus:ring-2 focus:ring-gray-900 disabled:opacity-50"
                       />
-                      <span className={`text-sm ${config.filtroAgrupaciones == null ? 'text-purple-400' : 'text-purple-700'}`}>
+                      <span className={`text-sm ${config.filtroAgrupaciones == null ? 'text-gray-400' : 'text-gray-700'}`}>
                         {grupo}
                       </span>
                     </label>
                   ))}
                 </div>
 
-                <p className="text-xs text-purple-600 mt-3">
+                <p className="text-xs text-gray-500 mt-3">
                   {t('groupFilterInfo') || 'Selecciona agrupaciones específicas o deja "Todas" para incluir todo.'}
                 </p>
               </div>
@@ -261,15 +259,15 @@ export const ReportModal = ({
           )}
 
           {/* Información sobre orientación */}
-          <div className="bg-blue-50 rounded-lg p-4 flex items-start gap-3">
-            <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="bg-gray-100 border border-gray-200 rounded-lg p-4 flex items-start gap-3">
+            <svg className="w-5 h-5 text-gray-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <div>
-              <p className="text-sm text-blue-800 font-medium">
+              <p className="text-sm text-gray-900 font-medium">
                 {t('landscapeInfo') || 'Formato horizontal'}
               </p>
-              <p className="text-xs text-blue-600 mt-1">
+              <p className="text-xs text-gray-600 mt-1">
                 {t('landscapeInfoDesc') || 'El informe se generará en formato horizontal (A4 apaisado) para mejor visualización de gráficas.'}
               </p>
             </div>
@@ -277,18 +275,18 @@ export const ReportModal = ({
         </div>
 
         {/* Botones */}
-        <div className="p-6 border-t border-slate-200 flex gap-3 justify-end">
+        <div className="p-6 border-t border-gray-200 flex gap-3 justify-end">
           <button
             onClick={onClose}
             disabled={isGenerating}
-            className="px-4 py-2 text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200 transition-all font-medium disabled:opacity-50"
+            className="px-6 py-3 bg-white border-2 border-gray-900 text-gray-900 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50"
           >
             {t('cancel')}
           </button>
           <button
             onClick={onGeneratePDF}
             disabled={isGenerating}
-            className="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all font-medium disabled:opacity-50 flex items-center gap-2 min-w-[180px] justify-center"
+            className="px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-black transition-colors font-medium disabled:opacity-50 flex items-center gap-2 min-w-[180px] justify-center"
           >
             {isGenerating ? (
               <>

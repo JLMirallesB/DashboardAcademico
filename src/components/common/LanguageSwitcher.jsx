@@ -17,7 +17,7 @@ export const LanguageSwitcher = ({ currentLanguage, onLanguageChange, compact = 
     return (
       <button
         onClick={() => onLanguageChange(currentLanguage === 'es' ? 'va' : 'es')}
-        className="px-2 py-1.5 text-xs font-bold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors"
+        className="px-2 py-1.5 text-xs font-bold rounded-lg bg-white border border-gray-300 text-gray-900 hover:border-gray-900 transition-colors"
         title={currentLanguage === 'es' ? 'Cambiar a Valencià' : 'Canviar a Español'}
       >
         {currentLanguage.toUpperCase()}
@@ -26,19 +26,19 @@ export const LanguageSwitcher = ({ currentLanguage, onLanguageChange, compact = 
   }
 
   return (
-    <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
+    <div className="flex gap-1 bg-white border border-gray-200 rounded-lg p-1">
       <button
         onClick={() => onLanguageChange('es')}
-        className={`px-2 py-1 text-xs font-medium rounded transition-all ${
-          currentLanguage === 'es' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+        className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+          currentLanguage === 'es' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-900'
         }`}
       >
         ES
       </button>
       <button
         onClick={() => onLanguageChange('va')}
-        className={`px-2 py-1 text-xs font-medium rounded transition-all ${
-          currentLanguage === 'va' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+        className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+          currentLanguage === 'va' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-900'
         }`}
       >
         VA

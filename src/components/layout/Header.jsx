@@ -1,6 +1,6 @@
 /**
  * Dashboard Académico - Header Simplificado
- * Solo muestra título, metadata del centro y botón de menú móvil
+ * Diseño Minimalista: Más limpio y espacioso
  */
 
 import React from 'react';
@@ -21,14 +21,14 @@ export const Header = ({
   t
 }) => {
   return (
-    <header className="bg-white border-b border-slate-200 px-4 py-3 lg:px-6">
+    <header className="bg-white border-b border-gray-200 px-6 py-5">
       <div className="flex items-center justify-between">
         {/* Lado izquierdo: Menú móvil + Título */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           {/* Botón menú móvil */}
           <button
             onClick={onMenuClick}
-            className="lg:hidden p-2 rounded-lg hover:bg-slate-100 text-slate-600"
+            className="lg:hidden p-2 rounded-lg hover:bg-gray-100 text-gray-700 transition-colors"
             aria-label={t('openMenu')}
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -38,21 +38,21 @@ export const Header = ({
 
           {/* Título y metadata */}
           <div>
-            <h1 className="text-lg font-bold text-slate-800">
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
               Dashboard Académico
             </h1>
             {(centerName || academicYear) && (
-              <div className="flex items-center gap-2 text-sm text-slate-500">
+              <p className="text-sm text-gray-600 mt-1">
                 {centerName && <span>{centerName}</span>}
-                {centerName && academicYear && <span className="text-slate-300">|</span>}
+                {centerName && academicYear && <span className="text-gray-400 mx-2">|</span>}
                 {academicYear && <span>{academicYear}</span>}
                 {currentTrimester && (
                   <>
-                    <span className="text-slate-300">|</span>
-                    <span className="font-medium text-slate-600">{currentTrimester}</span>
+                    <span className="text-gray-400 mx-2">|</span>
+                    <span className="font-medium text-gray-900">{currentTrimester}</span>
                   </>
                 )}
-              </div>
+              </p>
             )}
           </div>
         </div>

@@ -2,6 +2,7 @@ import React from 'react';
 
 /**
  * Componente KPICentro - Vista de KPIs del Centro
+ * Diseño Minimalista: Cards blancas con bordes, sin gradientes
  * Muestra: Nota media, desviación, moda, aprobados, suspendidos, asignaturas difíciles/fáciles y alumnos por curso
  * En modo TODOS muestra comparativa EEM vs EPM
  */
@@ -13,103 +14,92 @@ const KPICentro = ({ kpis, t, modoEtapa }) => {
     return <KPICentroComparativo kpis={kpis} t={t} />;
   }
 
+  // Determinar si hay valores críticos para mostrar indicadores
+  const suspendidosCritico = (kpis.suspendidosCentro || 0) > 30;
+  const asignaturasDificilesCritico = (kpis.asignaturasDificiles || 0) > 0;
+
   return (
     <div className="space-y-6">
       {/* KPIs Principales del Centro */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
         {/* Nota Media del Centro */}
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
-            <span className="text-xs font-medium text-blue-700">{t('kpiCenterAvg')}</span>
-          </div>
-          <div className="text-3xl font-bold text-blue-900">{(kpis.notaMediaCentro || 0).toFixed(2)}</div>
+        <div className="bg-white border border-gray-300 rounded-lg p-6 hover:border-gray-900 transition-colors">
+          <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">{t('kpiCenterAvg')}</span>
+          <div className="text-3xl font-bold text-gray-900 mt-2">{(kpis.notaMediaCentro || 0).toFixed(2)}</div>
+          <div className="mt-3 h-0.5 bg-gray-900"></div>
         </div>
 
         {/* Desviación Típica del Centro */}
-        <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
-            </svg>
-            <span className="text-xs font-medium text-indigo-700">{t('kpiStdDev')}</span>
-          </div>
-          <div className="text-3xl font-bold text-indigo-900">{(kpis.desviacionCentro || 0).toFixed(2)}</div>
+        <div className="bg-white border border-gray-300 rounded-lg p-6 hover:border-gray-900 transition-colors">
+          <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">{t('kpiStdDev')}</span>
+          <div className="text-3xl font-bold text-gray-900 mt-2">{(kpis.desviacionCentro || 0).toFixed(2)}</div>
+          <div className="mt-3 h-0.5 bg-gray-400"></div>
         </div>
 
         {/* Moda del Centro */}
-        <div className="bg-gradient-to-br from-violet-50 to-violet-100 border border-violet-200 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <svg className="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-            </svg>
-            <span className="text-xs font-medium text-violet-700">{t('kpiMode')}</span>
-          </div>
-          <div className="text-3xl font-bold text-violet-900">{(kpis.modaCentro || 0).toFixed(0)}</div>
+        <div className="bg-white border border-gray-300 rounded-lg p-6 hover:border-gray-900 transition-colors">
+          <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">{t('kpiMode')}</span>
+          <div className="text-3xl font-bold text-gray-900 mt-2">{(kpis.modaCentro || 0).toFixed(0)}</div>
+          <div className="mt-3 h-0.5 bg-gray-400"></div>
         </div>
 
         {/* % Aprobados Total */}
-        <div className="bg-gradient-to-br from-teal-50 to-teal-100 border border-teal-200 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span className="text-xs font-medium text-teal-700">{t('kpiPassedAvg')}</span>
-          </div>
-          <div className="text-3xl font-bold text-teal-900">{(kpis.aprobadosCentro || 0).toFixed(1)}%</div>
+        <div className="bg-white border border-gray-300 rounded-lg p-6 hover:border-gray-900 transition-colors">
+          <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">{t('kpiPassedAvg')}</span>
+          <div className="text-3xl font-bold text-gray-900 mt-2">{(kpis.aprobadosCentro || 0).toFixed(1)}%</div>
+          <div className="mt-3 h-0.5 bg-emerald-500"></div>
         </div>
 
-        {/* % Suspendidos Total */}
-        <div className="bg-gradient-to-br from-rose-50 to-rose-100 border border-rose-200 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <svg className="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span className="text-xs font-medium text-rose-700">{t('kpiFailedAvg')}</span>
-          </div>
-          <div className="text-3xl font-bold text-rose-900">{(kpis.suspendidosCentro || 0).toFixed(1)}%</div>
+        {/* % Suspendidos Total - con indicador crítico si aplica */}
+        <div className={`bg-white rounded-lg p-6 transition-colors ${
+          suspendidosCritico
+            ? 'border-l-4 border-l-red-500 border-r border-t border-b border-gray-300'
+            : 'border border-gray-300 hover:border-gray-900'
+        }`}>
+          <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">{t('kpiFailedAvg')}</span>
+          <div className="text-3xl font-bold text-gray-900 mt-2">{(kpis.suspendidosCentro || 0).toFixed(1)}%</div>
+          {suspendidosCritico && (
+            <span className="text-xs text-red-600 mt-1 block">{t('aboveThreshold') || 'Por encima del umbral'}</span>
+          )}
+          {!suspendidosCritico && <div className="mt-3 h-0.5 bg-gray-400"></div>}
         </div>
       </div>
 
       {/* Asignaturas Difíciles y Fáciles */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-gradient-to-br from-red-50 to-red-100 border border-red-200 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            <span className="text-xs font-medium text-red-700">{t('kpiDifficult')}</span>
-          </div>
-          <div className="text-3xl font-bold text-red-900">{kpis.asignaturasDificiles || 0}</div>
+      <div className="grid grid-cols-2 gap-6">
+        {/* Asignaturas Difíciles - con indicador crítico si hay alguna */}
+        <div className={`bg-white rounded-lg p-6 transition-colors ${
+          asignaturasDificilesCritico
+            ? 'border-l-4 border-l-red-500 border-r border-t border-b border-gray-300'
+            : 'border border-gray-300 hover:border-gray-900'
+        }`}>
+          <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">{t('kpiDifficult')}</span>
+          <div className="text-3xl font-bold text-gray-900 mt-2">{kpis.asignaturasDificiles || 0}</div>
+          {asignaturasDificilesCritico && (
+            <span className="text-xs text-red-600 mt-1 block">{t('requiresAttention') || 'Requiere atención'}</span>
+          )}
+          {!asignaturasDificilesCritico && <div className="mt-3 h-0.5 bg-gray-400"></div>}
         </div>
 
-        <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
-            </svg>
-            <span className="text-xs font-medium text-green-700">{t('kpiEasy')}</span>
-          </div>
-          <div className="text-3xl font-bold text-green-900">{kpis.asignaturasFaciles || 0}</div>
+        {/* Asignaturas Fáciles */}
+        <div className="bg-white border border-gray-300 rounded-lg p-6 hover:border-gray-900 transition-colors">
+          <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">{t('kpiEasy')}</span>
+          <div className="text-3xl font-bold text-gray-900 mt-2">{kpis.asignaturasFaciles || 0}</div>
+          <div className="mt-3 h-0.5 bg-emerald-500"></div>
         </div>
       </div>
 
       {/* Alumnos por Curso */}
       {kpis.alumnosPorCurso && kpis.alumnosPorCurso.length > 0 && (
-        <div className="bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-200 rounded-xl p-4">
-          <h4 className="text-sm font-semibold text-amber-800 mb-3 flex items-center gap-2">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
+        <div className="bg-white border border-gray-300 rounded-lg p-6">
+          <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-4">
             {t('studentsPerCourse') || 'Alumnos por Curso'}
           </h4>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {kpis.alumnosPorCurso.map(({ nivel, alumnos }) => (
-              <div key={nivel} className="bg-white border border-amber-300 rounded-lg p-2 text-center">
-                <div className="text-xs font-medium text-amber-700">{nivel}</div>
-                <div className="text-xl font-bold text-amber-900">{alumnos}</div>
+              <div key={nivel} className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-center hover:border-gray-400 transition-colors">
+                <div className="text-xs font-medium text-gray-600">{nivel}</div>
+                <div className="text-xl font-bold text-gray-900">{alumnos}</div>
               </div>
             ))}
           </div>
@@ -121,6 +111,7 @@ const KPICentro = ({ kpis, t, modoEtapa }) => {
 
 /**
  * Componente para vista comparativa EEM vs EPM en modo TODOS
+ * Diseño Minimalista: Tabla limpia con bordes oscuros
  */
 const KPICentroComparativo = ({ kpis, t }) => {
   const { kpisEEM, kpisEPM } = kpis;
@@ -128,7 +119,7 @@ const KPICentroComparativo = ({ kpis, t }) => {
   // Si no hay datos de ninguna etapa
   if (!kpisEEM && !kpisEPM) {
     return (
-      <div className="text-center text-slate-500 py-8">
+      <div className="text-center text-gray-500 py-8">
         {t('noDataAvailable') || 'No hay datos disponibles para esta evaluación'}
       </div>
     );
@@ -140,138 +131,95 @@ const KPICentroComparativo = ({ kpis, t }) => {
       label: t('kpiCenterAvg') || 'Nota Media',
       valorEEM: kpisEEM?.notaMediaCentro,
       valorEPM: kpisEPM?.notaMediaCentro,
-      formato: (val) => (val || 0).toFixed(2),
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-        </svg>
-      )
+      formato: (val) => (val || 0).toFixed(2)
     },
     {
       key: 'desviacion',
-      label: t('kpiStdDev') || 'Desviacion',
+      label: t('kpiStdDev') || 'Desviación',
       valorEEM: kpisEEM?.desviacionCentro,
       valorEPM: kpisEPM?.desviacionCentro,
-      formato: (val) => (val || 0).toFixed(2),
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
-        </svg>
-      )
+      formato: (val) => (val || 0).toFixed(2)
     },
     {
       key: 'moda',
       label: t('kpiMode') || 'Moda',
       valorEEM: kpisEEM?.modaCentro,
       valorEPM: kpisEPM?.modaCentro,
-      formato: (val) => (val || 0).toFixed(0),
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-        </svg>
-      )
+      formato: (val) => (val || 0).toFixed(0)
     },
     {
       key: 'aprobados',
       label: t('kpiPassedAvg') || '% Aprobados',
       valorEEM: kpisEEM?.aprobadosCentro,
       valorEPM: kpisEPM?.aprobadosCentro,
-      formato: (val) => `${(val || 0).toFixed(1)}%`,
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      )
+      formato: (val) => `${(val || 0).toFixed(1)}%`
     },
     {
       key: 'suspendidos',
       label: t('kpiFailedAvg') || '% Suspendidos',
       valorEEM: kpisEEM?.suspendidosCentro,
       valorEPM: kpisEPM?.suspendidosCentro,
-      formato: (val) => `${(val || 0).toFixed(1)}%`,
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      )
+      formato: (val) => `${(val || 0).toFixed(1)}%`
     },
     {
       key: 'dificiles',
-      label: t('kpiDifficult') || 'Asig. Dificiles',
+      label: t('kpiDifficult') || 'Asig. Difíciles',
       valorEEM: kpisEEM?.asignaturasDificiles,
       valorEPM: kpisEPM?.asignaturasDificiles,
-      formato: (val) => val || 0,
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-        </svg>
-      )
+      formato: (val) => val || 0
     },
     {
       key: 'faciles',
-      label: t('kpiEasy') || 'Asig. Faciles',
+      label: t('kpiEasy') || 'Asig. Fáciles',
       valorEEM: kpisEEM?.asignaturasFaciles,
       valorEPM: kpisEPM?.asignaturasFaciles,
-      formato: (val) => val || 0,
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
-        </svg>
-      )
+      formato: (val) => val || 0
     },
     {
       key: 'alumnos',
       label: t('totalStudents') || 'Total Alumnos',
       valorEEM: kpisEEM?.totalAlumnos,
       valorEPM: kpisEPM?.totalAlumnos,
-      formato: (val) => val || 0,
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-        </svg>
-      )
+      formato: (val) => val || 0
     }
   ];
 
   return (
     <div className="space-y-6">
-      {/* Tabla comparativa EEM vs EPM */}
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
+      {/* Tabla comparativa EEM vs EPM - Estilo minimalista */}
+      <div className="bg-white border border-gray-300 rounded-lg overflow-hidden">
+        <table className="w-full">
           <thead>
-            <tr className="bg-slate-100">
-              <th className="p-4 text-left text-sm font-semibold text-slate-700 border-b-2 border-slate-300">
-                {t('metric') || 'Metrica'}
+            <tr className="border-b-2 border-gray-900">
+              <th className="text-left py-4 px-4 text-xs font-bold text-gray-900 uppercase tracking-wide">
+                {t('metric') || 'Métrica'}
               </th>
-              <th className="p-4 text-center text-sm font-semibold text-emerald-700 border-b-2 border-emerald-300 bg-emerald-50">
+              <th className="text-center py-4 px-4 text-xs font-bold text-gray-900 uppercase tracking-wide bg-gray-50">
                 EEM
               </th>
-              <th className="p-4 text-center text-sm font-semibold text-purple-700 border-b-2 border-purple-300 bg-purple-50">
+              <th className="text-center py-4 px-4 text-xs font-bold text-gray-900 uppercase tracking-wide">
                 EPM
               </th>
             </tr>
           </thead>
           <tbody>
             {metricas.map((metrica, idx) => (
-              <tr key={metrica.key} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-                {/* Metrica */}
-                <td className="p-4 border-b border-slate-200">
-                  <div className="flex items-center gap-2 text-slate-700">
-                    {metrica.icon}
-                    <span className="font-medium">{metrica.label}</span>
-                  </div>
+              <tr key={metrica.key} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                {/* Métrica */}
+                <td className="py-3 px-4 text-sm font-medium text-gray-900">
+                  {metrica.label}
                 </td>
 
                 {/* EEM */}
-                <td className="p-4 text-center border-b border-emerald-200 bg-emerald-50/30">
-                  <span className="text-2xl font-bold text-emerald-900">
+                <td className="py-3 px-4 text-center bg-gray-50/50">
+                  <span className="text-xl font-bold text-gray-900">
                     {kpisEEM ? metrica.formato(metrica.valorEEM) : '-'}
                   </span>
                 </td>
 
                 {/* EPM */}
-                <td className="p-4 text-center border-b border-purple-200 bg-purple-50/30">
-                  <span className="text-2xl font-bold text-purple-900">
+                <td className="py-3 px-4 text-center">
+                  <span className="text-xl font-bold text-gray-900">
                     {kpisEPM ? metrica.formato(metrica.valorEPM) : '-'}
                   </span>
                 </td>
@@ -283,28 +231,25 @@ const KPICentroComparativo = ({ kpis, t }) => {
 
       {/* Alumnos por Curso (ambas etapas) */}
       {kpis.alumnosPorCurso && kpis.alumnosPorCurso.length > 0 && (
-        <div className="bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-200 rounded-xl p-4">
-          <h4 className="text-sm font-semibold text-amber-800 mb-3 flex items-center gap-2">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
+        <div className="bg-white border border-gray-300 rounded-lg p-6">
+          <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-4">
             {t('studentsPerCourse') || 'Alumnos por Curso'}
           </h4>
-          <div className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-10 gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-10 gap-3">
             {kpis.alumnosPorCurso.map(({ nivel, alumnos, etapa }) => (
               <div
                 key={nivel}
-                className={`border rounded-lg p-2 text-center ${
+                className={`border rounded-lg p-3 text-center transition-colors ${
                   etapa === 'EEM'
-                    ? 'bg-emerald-50 border-emerald-300'
-                    : 'bg-purple-50 border-purple-300'
+                    ? 'bg-gray-50 border-gray-300 hover:border-gray-500'
+                    : 'bg-gray-900 border-gray-900'
                 }`}
               >
                 <div className={`text-xs font-medium ${
-                  etapa === 'EEM' ? 'text-emerald-700' : 'text-purple-700'
+                  etapa === 'EEM' ? 'text-gray-600' : 'text-gray-300'
                 }`}>{nivel}</div>
                 <div className={`text-xl font-bold ${
-                  etapa === 'EEM' ? 'text-emerald-900' : 'text-purple-900'
+                  etapa === 'EEM' ? 'text-gray-900' : 'text-white'
                 }`}>{alumnos}</div>
               </div>
             ))}

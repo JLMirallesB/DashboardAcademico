@@ -43,7 +43,7 @@ export const MainLayout = ({ children, sidebarProps, headerProps }) => {
   }, [mobileOpen]);
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-gray-50">
       {/* Overlay móvil */}
       {mobileOpen && (
         <div
@@ -92,7 +92,7 @@ export const MainLayout = ({ children, sidebarProps, headerProps }) => {
         />
 
         {/* Área de contenido */}
-        <main className="p-4 lg:p-6">
+        <main className="p-6 lg:p-8">
           {children}
         </main>
       </div>

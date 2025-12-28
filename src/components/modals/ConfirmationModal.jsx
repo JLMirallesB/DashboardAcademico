@@ -26,21 +26,21 @@ export const ConfirmationModal = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
-        <h3 className="text-2xl text-slate-800 mb-4">{t('trimesterAlreadyLoaded')}</h3>
-        <p className="text-slate-600 mb-6">
+      <div className="bg-white rounded-xl p-8 max-w-md w-full mx-4 border border-gray-200">
+        <h3 className="text-xl font-bold text-gray-900 mb-4">{t('trimesterAlreadyLoaded')}</h3>
+        <p className="text-gray-600 mb-6">
           {t('replaceConfirm').replace('{trimester}', trimester ? formatTrimester(trimester) : '')}
         </p>
         <div className="flex gap-3">
           <button
             onClick={onCancel}
-            className="flex-1 py-3 px-4 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-all font-medium"
+            className="flex-1 py-3 px-6 bg-white border-2 border-gray-900 text-gray-900 rounded-lg hover:bg-gray-50 transition-colors font-medium"
           >
             {t('cancel')}
           </button>
           <button
             onClick={onConfirm}
-            className="flex-1 py-3 px-4 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all font-medium"
+            className="flex-1 py-3 px-6 bg-white border-2 border-red-600 text-red-600 rounded-lg hover:bg-red-50 transition-colors font-medium"
           >
             {t('replace')}
           </button>

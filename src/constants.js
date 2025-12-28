@@ -12,13 +12,66 @@ export const UMBRALES_DEFAULT = {
   alumnosMinimo: 3
 };
 
-// Colores para comparaciones (gráficos y visualizaciones)
+// ============================================
+// DESIGN SYSTEM MINIMALISTA - Paleta de colores
+// ============================================
+
+export const MINIMAL_PALETTE = {
+  // Fondos
+  background: {
+    primary: '#FFFFFF',
+    secondary: '#F8F9FA',
+    tertiary: '#F1F3F5'
+  },
+  // Texto
+  text: {
+    primary: '#212529',
+    secondary: '#495057',
+    tertiary: '#6C757D',
+    quaternary: '#ADB5BD'
+  },
+  // Bordes
+  border: {
+    light: '#E9ECEF',
+    medium: '#DEE2E6',
+    dark: '#ADB5BD'
+  },
+  // Interactivos
+  interactive: {
+    primary: '#212529',
+    hover: '#000000',
+    focus: '#495057'
+  },
+  // Estados (solo para datos y alertas)
+  status: {
+    success: '#10B981',
+    warning: '#F59E0B',
+    danger: '#EF4444'
+  }
+};
+
+// Colores para gráficas Recharts (simplificados)
+export const CHART_COLORS = {
+  // Líneas principales
+  primary: '#212529',
+  secondary: '#6C757D',
+  tertiary: '#ADB5BD',
+  // Estados específicos
+  positive: '#10B981',
+  negative: '#EF4444',
+  warning: '#F59E0B',
+  // Grid y ejes
+  grid: '#E9ECEF',
+  axis: '#6C757D'
+};
+
+// Colores para comparaciones (gráficos y visualizaciones) - Simplificados
 export const COLORES_COMPARACION = [
-  { line: "#1a1a2e", label: "Principal", bg: "#f8f9fa" },
-  { line: "#e63946", label: "Rojo", bg: "#fff5f5" },
-  { line: "#2a9d8f", label: "Verde", bg: "#f0fdf4" },
-  { line: "#e9c46a", label: "Dorado", bg: "#fefce8" },
-  { line: "#9381ff", label: "Violeta", bg: "#f5f3ff" }
+  { line: "#212529", label: "Principal", bg: "#F8F9FA" },
+  { line: "#6C757D", label: "Secundario", bg: "#F1F3F5" },
+  { line: "#ADB5BD", label: "Terciario", bg: "#E9ECEF" },
+  { line: "#EF4444", label: "Alerta", bg: "#FEF2F2" },
+  { line: "#10B981", label: "Éxito", bg: "#ECFDF5" }
 ];
 
 // Instrumentos de especialidades EPM (Enseñanzas Profesionales de Música)

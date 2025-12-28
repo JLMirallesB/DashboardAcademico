@@ -18,11 +18,11 @@ const CustomTooltipDispersion = ({ active, payload }) => {
   if (!active || !payload || !payload[0]) return null;
   const data = payload[0].payload;
   return (
-    <div className="bg-white p-3 border border-slate-300 rounded-lg shadow-lg">
-      <p className="font-semibold text-slate-800">{data.asignatura}</p>
-      <p className="text-sm text-slate-600">Media: {data.notaMedia?.toFixed(2)}</p>
-      <p className="text-sm text-slate-600">Desviación: {data.desviacion?.toFixed(2)}</p>
-      <p className="text-sm text-slate-600">Alumnos: {data.alumnos}</p>
+    <div className="bg-white p-3 border-2 border-gray-900 rounded-lg">
+      <p className="font-semibold text-gray-900">{data.asignatura}</p>
+      <p className="text-sm text-gray-600">Media: {data.notaMedia?.toFixed(2)}</p>
+      <p className="text-sm text-gray-600">Desviación: {data.desviacion?.toFixed(2)}</p>
+      <p className="text-sm text-gray-600">Alumnos: {data.alumnos}</p>
     </div>
   );
 };

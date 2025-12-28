@@ -71,15 +71,15 @@ export const SidebarActions = ({ actions, collapsed, t }) => {
             key={action.id}
             onClick={() => handleAction(action.id)}
             className={`
-              w-full flex items-center gap-3 px-3 py-2 rounded-lg
-              transition-all duration-200
-              text-slate-600 hover:bg-slate-100 hover:text-slate-800
-              ${collapsed ? 'justify-center' : ''}
+              w-full flex items-center gap-3 px-4 py-3
+              transition-colors
+              text-gray-700 hover:bg-white hover:text-gray-900
+              ${collapsed ? 'justify-center px-2' : ''}
             `}
             title={collapsed ? label : undefined}
             aria-label={label}
           >
-            <span className="text-slate-500">
+            <span className="text-gray-500">
               {icons[action.id]}
             </span>
             {!collapsed && (

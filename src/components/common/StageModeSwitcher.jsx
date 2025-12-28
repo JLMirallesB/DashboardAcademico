@@ -30,7 +30,7 @@ export const StageModeSwitcher = ({
     return (
       <button
         onClick={() => onStageChange(nextStage)}
-        className="flex items-center justify-center w-10 h-10 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors"
+        className="flex items-center justify-center w-10 h-10 rounded-lg bg-white border border-gray-300 text-gray-700 hover:border-gray-900 transition-colors"
         title={`${currentStage} - Click para cambiar`}
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -43,13 +43,13 @@ export const StageModeSwitcher = ({
   // Layout vertical para sidebar
   if (vertical) {
     return (
-      <div className="flex flex-col gap-1 bg-slate-100 rounded-lg p-1">
+      <div className="flex flex-col gap-1 bg-white border border-gray-200 rounded-lg p-1">
         {availableStages.map(etapa => (
           <button
             key={etapa}
             onClick={() => onStageChange(etapa)}
-            className={`px-3 py-1.5 text-xs font-medium rounded transition-all text-center ${
-              currentStage === etapa ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+            className={`px-3 py-1.5 text-xs font-medium rounded transition-colors text-center ${
+              currentStage === etapa ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-900'
             }`}
           >
             {etapa === 'TODOS' ? t('allStages') : etapa}
@@ -61,13 +61,13 @@ export const StageModeSwitcher = ({
 
   // Layout horizontal (por defecto)
   return (
-    <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
+    <div className="flex gap-1 bg-white border border-gray-200 rounded-lg p-1">
       {availableStages.map(etapa => (
         <button
           key={etapa}
           onClick={() => onStageChange(etapa)}
-          className={`px-3 py-1.5 text-xs font-medium rounded transition-all ${
-            currentStage === etapa ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+          className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
+            currentStage === etapa ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-900'
           }`}
         >
           {etapa === 'TODOS' ? t('allStages') : t(`${etapa.toLowerCase()}Short`)}

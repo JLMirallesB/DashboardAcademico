@@ -58,6 +58,7 @@ const views = [
 
 /**
  * Navegación del sidebar con iconos
+ * Diseño Minimalista: Item activo con borde izquierdo negro
  * @param {string} currentView - Vista activa
  * @param {Function} onViewChange - Callback al cambiar vista
  * @param {boolean} collapsed - Modo colapsado (solo iconos)
@@ -75,19 +76,19 @@ export const SidebarNav = ({ currentView, onViewChange, collapsed, t }) => {
             key={view.id}
             onClick={() => onViewChange(view.id)}
             className={`
-              w-full flex items-center gap-3 px-3 py-2 rounded-lg
-              transition-all duration-200
+              w-full flex items-center gap-3 px-4 py-3 text-left
+              transition-colors
               ${isActive
-                ? 'bg-slate-800 text-white'
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-800'
+                ? 'bg-white text-gray-900 border-l-4 border-l-gray-900'
+                : 'text-gray-700 hover:bg-white hover:text-gray-900 border-l-4 border-l-transparent'
               }
-              ${collapsed ? 'justify-center' : ''}
+              ${collapsed ? 'justify-center px-2' : ''}
             `}
             title={collapsed ? label : undefined}
             aria-label={label}
             aria-current={isActive ? 'page' : undefined}
           >
-            <span className={isActive ? 'text-white' : 'text-slate-500'}>
+            <span className={isActive ? 'text-gray-900' : 'text-gray-500'}>
               {icons[view.id]}
             </span>
             {!collapsed && (

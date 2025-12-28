@@ -1,6 +1,6 @@
 /**
  * Dashboard Académico - Sidebar Principal
- * Contenedor del sidebar con navegación, configuración y acciones
+ * Diseño Minimalista: Monocromo y funcional
  */
 
 import React from 'react';
@@ -45,7 +45,7 @@ export const Sidebar = ({
     <aside
       className={`
         fixed left-0 top-0 bottom-0 z-30
-        bg-white border-r border-slate-200
+        bg-gray-50 border-r border-gray-200
         flex flex-col
         transition-all duration-300 ease-in-out
         ${collapsed ? 'w-16' : 'w-60'}
@@ -53,17 +53,17 @@ export const Sidebar = ({
     >
       {/* Header del Sidebar */}
       <div className={`
-        flex items-center border-b border-slate-200
+        flex items-center border-b border-gray-200
         ${collapsed ? 'justify-center p-3' : 'justify-between p-4'}
       `}>
         {!collapsed && (
-          <span className="text-sm font-semibold text-slate-800 truncate">
+          <span className="text-sm font-bold text-gray-900 tracking-tight truncate">
             Dashboard
           </span>
         )}
         <button
           onClick={onToggleCollapse}
-          className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors text-slate-500 hover:text-slate-700"
+          className="p-1.5 rounded-lg hover:bg-white transition-colors text-gray-600 hover:text-gray-900"
           aria-label={collapsed ? t('expandSidebar') : t('collapseSidebar')}
           title={collapsed ? t('expandSidebar') : t('collapseSidebar')}
         >
@@ -83,7 +83,7 @@ export const Sidebar = ({
         {/* Navegación */}
         <div className="px-2 mb-4">
           {!collapsed && (
-            <span className="px-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+            <span className="px-2 text-[10px] font-bold text-gray-500 uppercase tracking-wider">
               {t('navigation')}
             </span>
           )}
@@ -99,7 +99,7 @@ export const Sidebar = ({
         {availableStages.length > 1 && (
           <div className={`px-2 mb-4 ${collapsed ? 'flex justify-center' : ''}`}>
             {!collapsed && (
-              <span className="px-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+              <span className="px-2 text-[10px] font-bold text-gray-500 uppercase tracking-wider">
                 {t('stage')}
               </span>
             )}
@@ -129,7 +129,7 @@ export const Sidebar = ({
         {/* Idioma */}
         <div className={`px-2 mb-4 ${collapsed ? 'flex justify-center' : ''}`}>
           {!collapsed && (
-            <span className="px-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+            <span className="px-2 text-[10px] font-bold text-gray-500 uppercase tracking-wider">
               {t('language')}
             </span>
           )}
@@ -144,9 +144,9 @@ export const Sidebar = ({
       </div>
 
       {/* Acciones (fijas abajo) */}
-      <div className="border-t border-slate-200 py-2 px-2">
+      <div className="border-t border-gray-200 py-2 px-2">
         {!collapsed && (
-          <span className="px-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+          <span className="px-2 text-[10px] font-bold text-gray-500 uppercase tracking-wider">
             {t('actions')}
           </span>
         )}
