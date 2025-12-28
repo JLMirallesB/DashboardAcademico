@@ -8,6 +8,7 @@ export const translations = {
     // Acciones
     loadCSV: 'Cargar CSV de trimestre',
     importJSON: 'Importar JSON guardado',
+    loadExampleData: 'Cargar datos de ejemplo',
     exportJSON: 'Exportar JSON',
     addTrimester: 'Añadir trimestre',
     add: 'Añadir',
@@ -355,6 +356,7 @@ export const translations = {
     // Accions
     loadCSV: 'Carregar CSV de trimestre',
     importJSON: 'Importar JSON guardat',
+    loadExampleData: 'Carregar dades d\'exemple',
     exportJSON: 'Exportar JSON',
     addTrimester: 'Afegir trimestre',
     add: 'Afegir',

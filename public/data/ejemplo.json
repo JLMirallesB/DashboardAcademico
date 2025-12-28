@@ -1,0 +1,633 @@
+{
+  "metadata": {
+    "exportadoEl": "2025-01-15T12:00:00.000Z",
+    "trimestres": ["1EV-EEM", "1EV-EPM"],
+    "metadataPorTrimestre": {
+      "1EV-EEM": {
+        "Centro": "Conservatorio Demo",
+        "CursoAcademico": "25/26",
+        "Trimestre": "1EV"
+      },
+      "1EV-EPM": {
+        "Centro": "Conservatorio Demo",
+        "CursoAcademico": "25/26",
+        "Trimestre": "1EV"
+      }
+    }
+  },
+  "umbrales": {
+    "suspensosAlerta": 30,
+    "mediaCritica": 6,
+    "mediaFacil": 8,
+    "aprobadosMinimo": 90,
+    "alumnosMinimo": 3
+  },
+  "datos": {
+    "1EV-EEM": {
+      "GLOBAL": {
+        "Total": {
+          "stats": {"registros": 1050, "notaMedia": 7.25, "desviacion": 1.52, "moda": 7, "aprobados": 94.8, "suspendidos": 5.2, "modaAprobados": 7, "modaSuspendidos": 4},
+          "distribucion": {"1": 5, "2": 0, "3": 9, "4": 40, "5": 95, "6": 152, "7": 310, "8": 258, "9": 160, "10": 21}
+        },
+        "Total Especialidad": {
+          "stats": {"registros": 320, "notaMedia": 6.95, "desviacion": 1.55, "moda": 7, "aprobados": 91.5, "suspendidos": 8.5, "modaAprobados": 7, "modaSuspendidos": 4},
+          "distribucion": {"1": 1, "2": 0, "3": 7, "4": 19, "5": 42, "6": 58, "7": 75, "8": 68, "9": 44, "10": 6}
+        },
+        "Total no Especialidad": {
+          "stats": {"registros": 740, "notaMedia": 7.35, "desviacion": 1.42, "moda": 7, "aprobados": 96.2, "suspendidos": 3.8, "modaAprobados": 7, "modaSuspendidos": 4},
+          "distribucion": {"1": 4, "2": 0, "3": 2, "4": 22, "5": 55, "6": 95, "7": 235, "8": 192, "9": 120, "10": 15}
+        },
+        "Lenguaje Musical": {
+          "stats": {"registros": 310, "notaMedia": 7.22, "desviacion": 1.72, "moda": 7, "aprobados": 92.5, "suspendidos": 7.5, "modaAprobados": 7, "modaSuspendidos": 4},
+          "distribucion": {"1": 2, "2": 0, "3": 2, "4": 19, "5": 32, "6": 52, "7": 70, "8": 58, "9": 62, "10": 13}
+        },
+        "Coro": {
+          "stats": {"registros": 302, "notaMedia": 7.52, "desviacion": 1.18, "moda": 7, "aprobados": 98.8, "suspendidos": 1.2, "modaAprobados": 7, "modaSuspendidos": null},
+          "distribucion": {"1": 1, "2": 0, "3": 0, "4": 2, "5": 18, "6": 30, "7": 115, "8": 88, "9": 48, "10": 0}
+        },
+        "Conjunto": {
+          "stats": {"registros": 135, "notaMedia": 7.28, "desviacion": 1.08, "moda": 7, "aprobados": 98.0, "suspendidos": 2.0, "modaAprobados": 7, "modaSuspendidos": 4},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 3, "5": 8, "6": 16, "7": 55, "8": 44, "9": 9, "10": 0}
+        },
+        "Arpa": {
+          "stats": {"registros": 6, "notaMedia": 6.92, "desviacion": 1.28, "moda": 6, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": 6, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 1, "6": 2, "7": 1, "8": 1, "9": 1, "10": 0}
+        },
+        "Clarinete": {
+          "stats": {"registros": 12, "notaMedia": 7.58, "desviacion": 1.85, "moda": 8, "aprobados": 91.5, "suspendidos": 8.5, "modaAprobados": 8, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 1, "5": 2, "6": 0, "7": 2, "8": 4, "9": 1, "10": 2}
+        },
+        "Contrabajo": {
+          "stats": {"registros": 4, "notaMedia": 8.12, "desviacion": 0.78, "moda": 9, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": 9, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 1, "8": 1, "9": 2, "10": 0}
+        },
+        "Fagot": {
+          "stats": {"registros": 1, "notaMedia": 8.80, "desviacion": 0.00, "moda": null, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": null, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0, "8": 0, "9": 1, "10": 0}
+        },
+        "Flauta Travesera": {
+          "stats": {"registros": 28, "notaMedia": 6.98, "desviacion": 1.25, "moda": 6, "aprobados": 95.8, "suspendidos": 4.2, "modaAprobados": 6, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 1, "5": 4, "6": 8, "7": 6, "8": 6, "9": 3, "10": 0}
+        },
+        "Guitarra": {
+          "stats": {"registros": 40, "notaMedia": 5.88, "desviacion": 1.42, "moda": 5, "aprobados": 82.5, "suspendidos": 17.5, "modaAprobados": 5, "modaSuspendidos": 4},
+          "distribucion": {"1": 0, "2": 0, "3": 2, "4": 5, "5": 11, "6": 10, "7": 8, "8": 3, "9": 0, "10": 1}
+        },
+        "Oboe": {
+          "stats": {"registros": 10, "notaMedia": 7.72, "desviacion": 0.88, "moda": 7, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": 7, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 1, "7": 4, "8": 3, "9": 2, "10": 0}
+        },
+        "Percusión": {
+          "stats": {"registros": 25, "notaMedia": 7.12, "desviacion": 1.52, "moda": 7, "aprobados": 88.0, "suspendidos": 12.0, "modaAprobados": 7, "modaSuspendidos": 4},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 3, "5": 1, "6": 4, "7": 8, "8": 3, "9": 6, "10": 0}
+        },
+        "Piano": {
+          "stats": {"registros": 68, "notaMedia": 7.08, "desviacion": 1.82, "moda": 7, "aprobados": 91.2, "suspendidos": 8.8, "modaAprobados": 7, "modaSuspendidos": 3},
+          "distribucion": {"1": 1, "2": 0, "3": 4, "4": 1, "5": 7, "6": 11, "7": 17, "8": 12, "9": 12, "10": 3}
+        },
+        "Saxofón": {
+          "stats": {"registros": 19, "notaMedia": 5.95, "desviacion": 1.32, "moda": 5, "aprobados": 89.5, "suspendidos": 10.5, "modaAprobados": 5, "modaSuspendidos": 4},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 2, "5": 6, "6": 6, "7": 4, "8": 0, "9": 0, "10": 1}
+        },
+        "Trombón": {
+          "stats": {"registros": 5, "notaMedia": 6.52, "desviacion": 1.28, "moda": 5, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": 5, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 2, "6": 1, "7": 0, "8": 2, "9": 0, "10": 0}
+        },
+        "Trompa": {
+          "stats": {"registros": 6, "notaMedia": 6.92, "desviacion": 1.02, "moda": 8, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": 8, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 1, "6": 1, "7": 2, "8": 2, "9": 0, "10": 0}
+        },
+        "Trompeta": {
+          "stats": {"registros": 18, "notaMedia": 7.48, "desviacion": 1.68, "moda": 8, "aprobados": 83.5, "suspendidos": 16.5, "modaAprobados": 8, "modaSuspendidos": 4},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 3, "5": 0, "6": 1, "7": 1, "8": 8, "9": 5, "10": 0}
+        },
+        "Viola": {
+          "stats": {"registros": 14, "notaMedia": 7.08, "desviacion": 0.88, "moda": 6, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": 6, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 5, "7": 5, "8": 3, "9": 1, "10": 0}
+        },
+        "Violín": {
+          "stats": {"registros": 35, "notaMedia": 7.18, "desviacion": 1.20, "moda": 8, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": 8, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 4, "6": 9, "7": 7, "8": 10, "9": 5, "10": 0}
+        },
+        "Violoncello": {
+          "stats": {"registros": 25, "notaMedia": 7.32, "desviacion": 1.22, "moda": 8, "aprobados": 96.0, "suspendidos": 4.0, "modaAprobados": 8, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 1, "5": 2, "6": 2, "7": 7, "8": 10, "9": 3, "10": 0}
+        }
+      },
+      "1EEM": {
+        "Total": {
+          "stats": {"registros": 255, "notaMedia": 7.42, "desviacion": 1.38, "moda": 8, "aprobados": 97.2, "suspendidos": 2.8, "modaAprobados": 8, "modaSuspendidos": 1},
+          "distribucion": {"1": 2, "2": 0, "3": 2, "4": 3, "5": 18, "6": 35, "7": 72, "8": 70, "9": 48, "10": 5}
+        },
+        "Total Especialidad": {
+          "stats": {"registros": 85, "notaMedia": 7.35, "desviacion": 1.42, "moda": 8, "aprobados": 96.0, "suspendidos": 4.0, "modaAprobados": 8, "modaSuspendidos": null},
+          "distribucion": {"1": 1, "2": 0, "3": 1, "4": 1, "5": 6, "6": 11, "7": 22, "8": 32, "9": 10, "10": 1}
+        },
+        "Total no Especialidad": {
+          "stats": {"registros": 170, "notaMedia": 7.48, "desviacion": 1.35, "moda": 7, "aprobados": 97.8, "suspendidos": 2.2, "modaAprobados": 7, "modaSuspendidos": null},
+          "distribucion": {"1": 1, "2": 0, "3": 1, "4": 2, "5": 12, "6": 24, "7": 50, "8": 38, "9": 38, "10": 4}
+        },
+        "Lenguaje Musical": {
+          "stats": {"registros": 85, "notaMedia": 7.28, "desviacion": 1.52, "moda": 7, "aprobados": 97.2, "suspendidos": 2.8, "modaAprobados": 7, "modaSuspendidos": null},
+          "distribucion": {"1": 1, "2": 0, "3": 1, "4": 0, "5": 8, "6": 16, "7": 23, "8": 17, "9": 16, "10": 3}
+        },
+        "Coro": {
+          "stats": {"registros": 85, "notaMedia": 7.62, "desviacion": 1.12, "moda": 7, "aprobados": 98.5, "suspendidos": 1.5, "modaAprobados": 7, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 1, "5": 5, "6": 8, "7": 28, "8": 21, "9": 22, "10": 0}
+        },
+        "Arpa": {
+          "stats": {"registros": 3, "notaMedia": 6.75, "desviacion": 0.88, "moda": 6, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": 6, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 2, "7": 0, "8": 1, "9": 0, "10": 0}
+        },
+        "Clarinete": {
+          "stats": {"registros": 2, "notaMedia": 8.85, "desviacion": 0.95, "moda": null, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": null, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0, "8": 1, "9": 0, "10": 1}
+        },
+        "Contrabajo": {
+          "stats": {"registros": 3, "notaMedia": 7.88, "desviacion": 0.78, "moda": null, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": null, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 1, "8": 1, "9": 1, "10": 0}
+        },
+        "Fagot": {
+          "stats": {"registros": 1, "notaMedia": 8.80, "desviacion": 0.00, "moda": null, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": null, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0, "8": 0, "9": 1, "10": 0}
+        },
+        "Flauta Travesera": {
+          "stats": {"registros": 5, "notaMedia": 8.12, "desviacion": 0.38, "moda": 8, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": 8, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0, "8": 4, "9": 1, "10": 0}
+        },
+        "Guitarra": {
+          "stats": {"registros": 10, "notaMedia": 5.88, "desviacion": 0.92, "moda": 6, "aprobados": 90.5, "suspendidos": 9.5, "modaAprobados": 6, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 1, "5": 3, "6": 4, "7": 2, "8": 0, "9": 0, "10": 0}
+        },
+        "Oboe": {
+          "stats": {"registros": 7, "notaMedia": 7.65, "desviacion": 0.68, "moda": 7, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": 7, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 4, "8": 2, "9": 1, "10": 0}
+        },
+        "Percusión": {
+          "stats": {"registros": 3, "notaMedia": 7.88, "desviacion": 0.78, "moda": null, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": null, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 1, "8": 1, "9": 1, "10": 0}
+        },
+        "Piano": {
+          "stats": {"registros": 10, "notaMedia": 6.48, "desviacion": 2.48, "moda": 8, "aprobados": 80.5, "suspendidos": 19.5, "modaAprobados": 8, "modaSuspendidos": null},
+          "distribucion": {"1": 1, "2": 0, "3": 1, "4": 0, "5": 1, "6": 1, "7": 1, "8": 3, "9": 2, "10": 0}
+        },
+        "Saxofón": {
+          "stats": {"registros": 4, "notaMedia": 7.58, "desviacion": 1.45, "moda": 7, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": 7, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 1, "7": 2, "8": 0, "9": 0, "10": 1}
+        },
+        "Trombón": {
+          "stats": {"registros": 2, "notaMedia": 7.08, "desviacion": 0.95, "moda": null, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": null, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 1, "7": 0, "8": 1, "9": 0, "10": 0}
+        },
+        "Trompa": {
+          "stats": {"registros": 3, "notaMedia": 7.75, "desviacion": 0.42, "moda": 8, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": 8, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 1, "8": 2, "9": 0, "10": 0}
+        },
+        "Trompeta": {
+          "stats": {"registros": 8, "notaMedia": 7.82, "desviacion": 0.78, "moda": 8, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": 8, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 1, "7": 1, "8": 5, "9": 1, "10": 0}
+        },
+        "Viola": {
+          "stats": {"registros": 1, "notaMedia": 7.88, "desviacion": 0.00, "moda": null, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": null, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0, "8": 1, "9": 0, "10": 0}
+        },
+        "Violín": {
+          "stats": {"registros": 9, "notaMedia": 7.62, "desviacion": 0.78, "moda": 8, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": 8, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 1, "7": 3, "8": 4, "9": 1, "10": 0}
+        },
+        "Violoncello": {
+          "stats": {"registros": 12, "notaMedia": 7.58, "desviacion": 0.92, "moda": 8, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": 8, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 1, "6": 0, "7": 4, "8": 6, "9": 1, "10": 0}
+        }
+      },
+      "2EEM": {
+        "Total": {
+          "stats": {"registros": 268, "notaMedia": 7.08, "desviacion": 1.62, "moda": 8, "aprobados": 91.8, "suspendidos": 8.2, "modaAprobados": 8, "modaSuspendidos": 4},
+          "distribucion": {"1": 2, "2": 0, "3": 3, "4": 19, "5": 25, "6": 49, "7": 56, "8": 60, "9": 49, "10": 5}
+        },
+        "Total Especialidad": {
+          "stats": {"registros": 91, "notaMedia": 6.88, "desviacion": 1.62, "moda": 6, "aprobados": 89.5, "suspendidos": 10.5, "modaAprobados": 6, "modaSuspendidos": 4},
+          "distribucion": {"1": 0, "2": 0, "3": 3, "4": 7, "5": 9, "6": 22, "7": 16, "8": 17, "9": 16, "10": 1}
+        },
+        "Total no Especialidad": {
+          "stats": {"registros": 178, "notaMedia": 7.18, "desviacion": 1.60, "moda": 8, "aprobados": 92.8, "suspendidos": 7.2, "modaAprobados": 8, "modaSuspendidos": 4},
+          "distribucion": {"1": 2, "2": 0, "3": 0, "4": 12, "5": 16, "6": 28, "7": 40, "8": 43, "9": 33, "10": 4}
+        },
+        "Lenguaje Musical": {
+          "stats": {"registros": 89, "notaMedia": 7.00, "desviacion": 1.78, "moda": 8, "aprobados": 86.8, "suspendidos": 13.2, "modaAprobados": 8, "modaSuspendidos": 4},
+          "distribucion": {"1": 1, "2": 0, "3": 0, "4": 12, "5": 8, "6": 15, "7": 17, "8": 18, "9": 14, "10": 4}
+        },
+        "Coro": {
+          "stats": {"registros": 89, "notaMedia": 7.38, "desviacion": 1.35, "moda": 8, "aprobados": 98.5, "suspendidos": 1.5, "modaAprobados": 8, "modaSuspendidos": null},
+          "distribucion": {"1": 1, "2": 0, "3": 0, "4": 0, "5": 9, "6": 13, "7": 23, "8": 25, "9": 18, "10": 0}
+        },
+        "Arpa": {
+          "stats": {"registros": 2, "notaMedia": 7.08, "desviacion": 1.95, "moda": null, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": null, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 1, "6": 0, "7": 0, "8": 0, "9": 1, "10": 0}
+        },
+        "Clarinete": {
+          "stats": {"registros": 6, "notaMedia": 6.92, "desviacion": 1.72, "moda": 8, "aprobados": 84.0, "suspendidos": 16.0, "modaAprobados": 8, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 1, "5": 1, "6": 0, "7": 1, "8": 2, "9": 1, "10": 0}
+        },
+        "Flauta Travesera": {
+          "stats": {"registros": 6, "notaMedia": 7.42, "desviacion": 1.05, "moda": 8, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": 8, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 2, "7": 1, "8": 2, "9": 1, "10": 0}
+        },
+        "Guitarra": {
+          "stats": {"registros": 12, "notaMedia": 6.32, "desviacion": 1.88, "moda": 6, "aprobados": 84.0, "suspendidos": 16.0, "modaAprobados": 6, "modaSuspendidos": 3},
+          "distribucion": {"1": 0, "2": 0, "3": 2, "4": 0, "5": 1, "6": 4, "7": 2, "8": 2, "9": 0, "10": 1}
+        },
+        "Percusión": {
+          "stats": {"registros": 6, "notaMedia": 7.42, "desviacion": 1.65, "moda": 9, "aprobados": 84.0, "suspendidos": 16.0, "modaAprobados": 9, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 1, "5": 0, "6": 0, "7": 2, "8": 1, "9": 2, "10": 0}
+        },
+        "Piano": {
+          "stats": {"registros": 19, "notaMedia": 7.12, "desviacion": 1.60, "moda": 9, "aprobados": 95.0, "suspendidos": 5.0, "modaAprobados": 9, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 1, "4": 0, "5": 2, "6": 4, "7": 4, "8": 3, "9": 5, "10": 0}
+        },
+        "Saxofón": {
+          "stats": {"registros": 5, "notaMedia": 5.28, "desviacion": 1.12, "moda": 4, "aprobados": 62.0, "suspendidos": 38.0, "modaAprobados": null, "modaSuspendidos": 4},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 2, "5": 1, "6": 1, "7": 1, "8": 0, "9": 0, "10": 0}
+        },
+        "Trombón": {
+          "stats": {"registros": 1, "notaMedia": 7.88, "desviacion": 0.00, "moda": null, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": null, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0, "8": 1, "9": 0, "10": 0}
+        },
+        "Trompa": {
+          "stats": {"registros": 2, "notaMedia": 6.58, "desviacion": 0.45, "moda": null, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": null, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 1, "7": 1, "8": 0, "9": 0, "10": 0}
+        },
+        "Trompeta": {
+          "stats": {"registros": 7, "notaMedia": 6.65, "desviacion": 2.20, "moda": 4, "aprobados": 58.5, "suspendidos": 41.5, "modaAprobados": 9, "modaSuspendidos": 4},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 3, "5": 0, "6": 0, "7": 0, "8": 2, "9": 2, "10": 0}
+        },
+        "Viola": {
+          "stats": {"registros": 9, "notaMedia": 7.08, "desviacion": 1.00, "moda": 6, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": 6, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 4, "7": 2, "8": 2, "9": 1, "10": 0}
+        },
+        "Violín": {
+          "stats": {"registros": 11, "notaMedia": 6.82, "desviacion": 1.30, "moda": 6, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": 6, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 2, "6": 4, "7": 2, "8": 1, "9": 2, "10": 0}
+        },
+        "Violoncello": {
+          "stats": {"registros": 2, "notaMedia": 7.58, "desviacion": 1.45, "moda": null, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": null, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 1, "7": 0, "8": 0, "9": 1, "10": 0}
+        }
+      },
+      "3EEM": {
+        "Total": {
+          "stats": {"registros": 245, "notaMedia": 7.15, "desviacion": 1.28, "moda": 7, "aprobados": 96.8, "suspendidos": 3.2, "modaAprobados": 7, "modaSuspendidos": 4},
+          "distribucion": {"1": 0, "2": 0, "3": 1, "4": 7, "5": 29, "6": 34, "7": 81, "8": 62, "9": 26, "10": 5}
+        },
+        "Total Especialidad": {
+          "stats": {"registros": 62, "notaMedia": 7.08, "desviacion": 1.58, "moda": 7, "aprobados": 93.8, "suspendidos": 6.2, "modaAprobados": 7, "modaSuspendidos": 4},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 4, "5": 10, "6": 10, "7": 16, "8": 10, "9": 9, "10": 3}
+        },
+        "Total no Especialidad": {
+          "stats": {"registros": 184, "notaMedia": 7.18, "desviacion": 1.18, "moda": 7, "aprobados": 97.8, "suspendidos": 2.2, "modaAprobados": 7, "modaSuspendidos": 4},
+          "distribucion": {"1": 0, "2": 0, "3": 1, "4": 3, "5": 19, "6": 24, "7": 65, "8": 52, "9": 18, "10": 2}
+        },
+        "Lenguaje Musical": {
+          "stats": {"registros": 62, "notaMedia": 7.05, "desviacion": 1.62, "moda": 9, "aprobados": 95.5, "suspendidos": 4.5, "modaAprobados": 9, "modaSuspendidos": 4},
+          "distribucion": {"1": 0, "2": 0, "3": 1, "4": 2, "5": 12, "6": 11, "7": 12, "8": 10, "9": 12, "10": 2}
+        },
+        "Coro": {
+          "stats": {"registros": 62, "notaMedia": 7.42, "desviacion": 0.68, "moda": 7, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": 7, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 2, "6": 2, "7": 31, "8": 26, "9": 1, "10": 0}
+        },
+        "Conjunto": {
+          "stats": {"registros": 62, "notaMedia": 7.12, "desviacion": 0.98, "moda": 7, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": 7, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 6, "6": 12, "7": 24, "8": 17, "9": 3, "10": 0}
+        },
+        "Arpa": {
+          "stats": {"registros": 1, "notaMedia": 7.08, "desviacion": 0.00, "moda": null, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": null, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 1, "8": 0, "9": 0, "10": 0}
+        },
+        "Clarinete": {
+          "stats": {"registros": 1, "notaMedia": 9.85, "desviacion": 0.00, "moda": null, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": null, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0, "8": 0, "9": 0, "10": 1}
+        },
+        "Contrabajo": {
+          "stats": {"registros": 1, "notaMedia": 8.85, "desviacion": 0.00, "moda": null, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": null, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0, "8": 0, "9": 1, "10": 0}
+        },
+        "Flauta Travesera": {
+          "stats": {"registros": 5, "notaMedia": 6.08, "desviacion": 0.58, "moda": 6, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": 6, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 1, "6": 3, "7": 1, "8": 0, "9": 0, "10": 0}
+        },
+        "Guitarra": {
+          "stats": {"registros": 7, "notaMedia": 5.78, "desviacion": 1.42, "moda": 7, "aprobados": 72.5, "suspendidos": 27.5, "modaAprobados": 7, "modaSuspendidos": 4},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 2, "5": 2, "6": 0, "7": 2, "8": 1, "9": 0, "10": 0}
+        },
+        "Oboe": {
+          "stats": {"registros": 2, "notaMedia": 7.08, "desviacion": 0.95, "moda": null, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": null, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 1, "7": 0, "8": 1, "9": 0, "10": 0}
+        },
+        "Percusión": {
+          "stats": {"registros": 8, "notaMedia": 7.08, "desviacion": 1.88, "moda": 7, "aprobados": 76.0, "suspendidos": 24.0, "modaAprobados": 7, "modaSuspendidos": 4},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 2, "5": 0, "6": 0, "7": 3, "8": 0, "9": 3, "10": 0}
+        },
+        "Piano": {
+          "stats": {"registros": 17, "notaMedia": 7.82, "desviacion": 1.28, "moda": 7, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": 7, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 1, "6": 1, "7": 6, "8": 4, "9": 3, "10": 2}
+        },
+        "Saxofón": {
+          "stats": {"registros": 2, "notaMedia": 6.08, "desviacion": 0.00, "moda": 6, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": 6, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 2, "7": 0, "8": 0, "9": 0, "10": 0}
+        },
+        "Trombón": {
+          "stats": {"registros": 1, "notaMedia": 5.08, "desviacion": 0.00, "moda": null, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": null, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 1, "6": 0, "7": 0, "8": 0, "9": 0, "10": 0}
+        },
+        "Trompa": {
+          "stats": {"registros": 1, "notaMedia": 5.08, "desviacion": 0.00, "moda": null, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": null, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 1, "6": 0, "7": 0, "8": 0, "9": 0, "10": 0}
+        },
+        "Trompeta": {
+          "stats": {"registros": 1, "notaMedia": 8.85, "desviacion": 0.00, "moda": null, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": null, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0, "8": 0, "9": 1, "10": 0}
+        },
+        "Viola": {
+          "stats": {"registros": 1, "notaMedia": 7.08, "desviacion": 0.00, "moda": null, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": null, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 1, "8": 0, "9": 0, "10": 0}
+        },
+        "Violín": {
+          "stats": {"registros": 7, "notaMedia": 7.22, "desviacion": 1.58, "moda": 8, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": 8, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 2, "6": 1, "7": 0, "8": 2, "9": 2, "10": 0}
+        },
+        "Violoncello": {
+          "stats": {"registros": 5, "notaMedia": 6.88, "desviacion": 1.12, "moda": 8, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": 8, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 1, "6": 1, "7": 1, "8": 2, "9": 0, "10": 0}
+        }
+      },
+      "4EEM": {
+        "Total": {
+          "stats": {"registros": 292, "notaMedia": 7.25, "desviacion": 1.35, "moda": 7, "aprobados": 95.8, "suspendidos": 4.2, "modaAprobados": 7, "modaSuspendidos": 4},
+          "distribucion": {"1": 0, "2": 0, "3": 2, "4": 12, "5": 25, "6": 38, "7": 98, "8": 68, "9": 43, "10": 6}
+        },
+        "Total Especialidad": {
+          "stats": {"registros": 77, "notaMedia": 6.48, "desviacion": 1.48, "moda": 7, "aprobados": 91.2, "suspendidos": 8.8, "modaAprobados": 7, "modaSuspendidos": 4},
+          "distribucion": {"1": 0, "2": 0, "3": 2, "4": 5, "5": 17, "6": 16, "7": 20, "8": 10, "9": 6, "10": 1}
+        },
+        "Total no Especialidad": {
+          "stats": {"registros": 215, "notaMedia": 7.52, "desviacion": 1.18, "moda": 7, "aprobados": 96.8, "suspendidos": 3.2, "modaAprobados": 7, "modaSuspendidos": 4},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 7, "5": 8, "6": 22, "7": 78, "8": 58, "9": 37, "10": 5}
+        },
+        "Lenguaje Musical": {
+          "stats": {"registros": 75, "notaMedia": 7.58, "desviacion": 1.52, "moda": 9, "aprobados": 95.0, "suspendidos": 5.0, "modaAprobados": 9, "modaSuspendidos": 4},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 4, "5": 5, "6": 11, "7": 18, "8": 12, "9": 20, "10": 5}
+        },
+        "Coro": {
+          "stats": {"registros": 70, "notaMedia": 7.55, "desviacion": 0.92, "moda": 7, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": 7, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 1, "6": 8, "7": 31, "8": 18, "9": 12, "10": 0}
+        },
+        "Conjunto": {
+          "stats": {"registros": 72, "notaMedia": 7.45, "desviacion": 0.98, "moda": 7, "aprobados": 96.8, "suspendidos": 3.2, "modaAprobados": 7, "modaSuspendidos": 4},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 2, "5": 2, "6": 4, "7": 30, "8": 28, "9": 6, "10": 0}
+        },
+        "Clarinete": {
+          "stats": {"registros": 2, "notaMedia": 6.58, "desviacion": 1.45, "moda": null, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": null, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 1, "6": 0, "7": 0, "8": 1, "9": 0, "10": 0}
+        },
+        "Flauta Travesera": {
+          "stats": {"registros": 11, "notaMedia": 6.52, "desviacion": 1.32, "moda": 7, "aprobados": 91.5, "suspendidos": 8.5, "modaAprobados": 7, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 1, "5": 2, "6": 2, "7": 4, "8": 1, "9": 1, "10": 0}
+        },
+        "Guitarra": {
+          "stats": {"registros": 9, "notaMedia": 5.28, "desviacion": 0.88, "moda": 5, "aprobados": 78.5, "suspendidos": 21.5, "modaAprobados": 5, "modaSuspendidos": 4},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 2, "5": 4, "6": 2, "7": 1, "8": 0, "9": 0, "10": 0}
+        },
+        "Oboe": {
+          "stats": {"registros": 1, "notaMedia": 8.85, "desviacion": 0.00, "moda": null, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": null, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0, "8": 0, "9": 1, "10": 0}
+        },
+        "Percusión": {
+          "stats": {"registros": 7, "notaMedia": 6.52, "desviacion": 0.85, "moda": 6, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": 6, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 1, "6": 3, "7": 2, "8": 1, "9": 0, "10": 0}
+        },
+        "Piano": {
+          "stats": {"registros": 20, "notaMedia": 6.62, "desviacion": 1.82, "moda": 7, "aprobados": 85.5, "suspendidos": 14.5, "modaAprobados": 7, "modaSuspendidos": 3},
+          "distribucion": {"1": 0, "2": 0, "3": 2, "4": 1, "5": 2, "6": 4, "7": 5, "8": 3, "9": 2, "10": 1}
+        },
+        "Saxofón": {
+          "stats": {"registros": 7, "notaMedia": 5.52, "desviacion": 0.68, "moda": 5, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": 5, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 5, "6": 1, "7": 1, "8": 0, "9": 0, "10": 0}
+        },
+        "Trombón": {
+          "stats": {"registros": 1, "notaMedia": 5.08, "desviacion": 0.00, "moda": null, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": null, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 1, "6": 0, "7": 0, "8": 0, "9": 0, "10": 0}
+        },
+        "Trompeta": {
+          "stats": {"registros": 1, "notaMedia": 8.85, "desviacion": 0.00, "moda": null, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": null, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0, "8": 0, "9": 1, "10": 0}
+        },
+        "Viola": {
+          "stats": {"registros": 3, "notaMedia": 6.75, "desviacion": 0.42, "moda": 7, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": 7, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 1, "7": 2, "8": 0, "9": 0, "10": 0}
+        },
+        "Violín": {
+          "stats": {"registros": 7, "notaMedia": 7.22, "desviacion": 0.78, "moda": 8, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": 8, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 2, "7": 2, "8": 3, "9": 0, "10": 0}
+        },
+        "Violoncello": {
+          "stats": {"registros": 5, "notaMedia": 7.08, "desviacion": 1.62, "moda": 7, "aprobados": 80.5, "suspendidos": 19.5, "modaAprobados": 7, "modaSuspendidos": null},
+          "distribucion": {"1": 0, "2": 0, "3": 0, "4": 1, "5": 0, "6": 0, "7": 2, "8": 1, "9": 1, "10": 0}
+        }
+      }
+    },
+    "1EV-EPM": {
+      "GLOBAL": {
+        "Total": {"stats": {"registros": 1850, "notaMedia": 7.12, "desviacion": 1.88, "moda": 8, "aprobados": 92.2, "suspendidos": 7.8, "modaAprobados": 8, "modaSuspendidos": 4}, "distribucion": {"1": 65, "2": 7, "3": 12, "4": 75, "5": 170, "6": 285, "7": 400, "8": 410, "9": 348, "10": 78}},
+        "Total Especialidad": {"stats": {"registros": 405, "notaMedia": 6.65, "desviacion": 1.80, "moda": 6, "aprobados": 89.0, "suspendidos": 11.0, "modaAprobados": 6, "modaSuspendidos": 4}, "distribucion": {"1": 14, "2": 1, "3": 5, "4": 30, "5": 48, "6": 98, "7": 80, "8": 72, "9": 52, "10": 5}},
+        "Total No Especialidad": {"stats": {"registros": 1445, "notaMedia": 7.22, "desviacion": 1.88, "moda": 8, "aprobados": 93.0, "suspendidos": 7.0, "modaAprobados": 8, "modaSuspendidos": 1}, "distribucion": {"1": 51, "2": 6, "3": 8, "4": 46, "5": 125, "6": 188, "7": 320, "8": 335, "9": 290, "10": 76}},
+        "Teórica Troncal": {"stats": {"registros": 395, "notaMedia": 7.40, "desviacion": 2.02, "moda": 9, "aprobados": 92.0, "suspendidos": 8.0, "modaAprobados": 9, "modaSuspendidos": 4}, "distribucion": {"1": 15, "2": 1, "3": 2, "4": 18, "5": 34, "6": 52, "7": 65, "8": 78, "9": 88, "10": 42}},
+        "Música de Cámara": {"stats": {"registros": 245, "notaMedia": 7.58, "desviacion": 1.38, "moda": 8, "aprobados": 97.5, "suspendidos": 2.5, "modaAprobados": 8, "modaSuspendidos": 1}, "distribucion": {"1": 4, "2": 0, "3": 0, "4": 3, "5": 9, "6": 22, "7": 72, "8": 78, "9": 55, "10": 2}},
+        "Orquesta/Banda/Conjunto": {"stats": {"registros": 275, "notaMedia": 6.95, "desviacion": 1.58, "moda": 8, "aprobados": 94.5, "suspendidos": 5.5, "modaAprobados": 8, "modaSuspendidos": 4}, "distribucion": {"1": 5, "2": 2, "3": 1, "4": 9, "5": 36, "6": 42, "7": 72, "8": 75, "9": 32, "10": 1}},
+        "Arpa": {"stats": {"registros": 2, "notaMedia": 7.58, "desviacion": 0.45, "moda": null, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": null, "modaSuspendidos": null}, "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 1, "8": 1, "9": 0, "10": 0}},
+        "Bajo Eléctrico": {"stats": {"registros": 3, "notaMedia": 8.42, "desviacion": 0.42, "moda": 8, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": 8, "modaSuspendidos": null}, "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0, "8": 2, "9": 1, "10": 0}},
+        "Canto": {"stats": {"registros": 14, "notaMedia": 8.08, "desviacion": 1.28, "moda": 9, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": 9, "modaSuspendidos": null}, "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 1, "6": 1, "7": 2, "8": 4, "9": 5, "10": 1}},
+        "Clarinete": {"stats": {"registros": 42, "notaMedia": 6.88, "desviacion": 1.58, "moda": 7, "aprobados": 95.5, "suspendidos": 4.5, "modaAprobados": 7, "modaSuspendidos": null}, "distribucion": {"1": 1, "2": 0, "3": 0, "4": 1, "5": 7, "6": 7, "7": 14, "8": 8, "9": 3, "10": 1}},
+        "Contrabajo": {"stats": {"registros": 4, "notaMedia": 7.32, "desviacion": 1.25, "moda": 6, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": 6, "modaSuspendidos": null}, "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 2, "7": 0, "8": 1, "9": 1, "10": 0}},
+        "Fagot": {"stats": {"registros": 1, "notaMedia": 8.08, "desviacion": 0.00, "moda": null, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": null, "modaSuspendidos": null}, "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0, "8": 1, "9": 0, "10": 0}},
+        "Flauta Travesera": {"stats": {"registros": 28, "notaMedia": 6.15, "desviacion": 1.68, "moda": 6, "aprobados": 82.0, "suspendidos": 18.0, "modaAprobados": 6, "modaSuspendidos": 4}, "distribucion": {"1": 1, "2": 0, "3": 0, "4": 4, "5": 4, "6": 9, "7": 5, "8": 3, "9": 2, "10": 0}},
+        "Guitarra": {"stats": {"registros": 21, "notaMedia": 6.68, "desviacion": 2.15, "moda": 7, "aprobados": 85.5, "suspendidos": 14.5, "modaAprobados": 7, "modaSuspendidos": null}, "distribucion": {"1": 1, "2": 0, "3": 1, "4": 1, "5": 2, "6": 4, "7": 5, "8": 2, "9": 4, "10": 1}},
+        "Guitarra Eléctrica": {"stats": {"registros": 5, "notaMedia": 6.28, "desviacion": 2.72, "moda": null, "aprobados": 80.5, "suspendidos": 19.5, "modaAprobados": null, "modaSuspendidos": null}, "distribucion": {"1": 1, "2": 0, "3": 0, "4": 0, "5": 0, "6": 1, "7": 1, "8": 1, "9": 1, "10": 0}},
+        "Oboe": {"stats": {"registros": 14, "notaMedia": 6.78, "desviacion": 1.05, "moda": 7, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": 7, "modaSuspendidos": null}, "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 2, "6": 4, "7": 5, "8": 2, "9": 1, "10": 0}},
+        "Percusión": {"stats": {"registros": 25, "notaMedia": 7.15, "desviacion": 1.32, "moda": 6, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": 6, "modaSuspendidos": null}, "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 3, "6": 9, "7": 1, "8": 8, "9": 4, "10": 0}},
+        "Piano": {"stats": {"registros": 86, "notaMedia": 6.88, "desviacion": 1.88, "moda": 8, "aprobados": 87.5, "suspendidos": 12.5, "modaAprobados": 8, "modaSuspendidos": 4}, "distribucion": {"1": 2, "2": 1, "3": 1, "4": 7, "5": 7, "6": 19, "7": 13, "8": 20, "9": 14, "10": 2}},
+        "Saxofón": {"stats": {"registros": 30, "notaMedia": 5.72, "desviacion": 1.78, "moda": 7, "aprobados": 76.5, "suspendidos": 23.5, "modaAprobados": 7, "modaSuspendidos": 4}, "distribucion": {"1": 2, "2": 0, "3": 1, "4": 4, "5": 4, "6": 9, "7": 8, "8": 2, "9": 0, "10": 0}},
+        "Trombón": {"stats": {"registros": 5, "notaMedia": 6.88, "desviacion": 0.72, "moda": 6, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": 6, "modaSuspendidos": null}, "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 2, "7": 2, "8": 1, "9": 0, "10": 0}},
+        "Trompa": {"stats": {"registros": 9, "notaMedia": 6.75, "desviacion": 1.22, "moda": 6, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": 6, "modaSuspendidos": null}, "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 1, "6": 5, "7": 0, "8": 2, "9": 1, "10": 0}},
+        "Trompeta": {"stats": {"registros": 35, "notaMedia": 6.45, "desviacion": 1.48, "moda": 5, "aprobados": 91.5, "suspendidos": 8.5, "modaAprobados": 5, "modaSuspendidos": 4}, "distribucion": {"1": 0, "2": 0, "3": 0, "4": 3, "5": 11, "6": 4, "7": 9, "8": 4, "9": 4, "10": 0}},
+        "Tuba": {"stats": {"registros": 10, "notaMedia": 7.58, "desviacion": 1.38, "moda": 9, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": 9, "modaSuspendidos": null}, "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 1, "6": 2, "7": 2, "8": 1, "9": 4, "10": 0}},
+        "Viola": {"stats": {"registros": 13, "notaMedia": 6.15, "desviacion": 2.52, "moda": 6, "aprobados": 77.5, "suspendidos": 22.5, "modaAprobados": 6, "modaSuspendidos": 1}, "distribucion": {"1": 2, "2": 0, "3": 0, "4": 1, "5": 0, "6": 4, "7": 1, "8": 3, "9": 2, "10": 0}},
+        "Violín": {"stats": {"registros": 46, "notaMedia": 6.28, "desviacion": 1.65, "moda": 6, "aprobados": 85.0, "suspendidos": 15.0, "modaAprobados": 6, "modaSuspendidos": 4}, "distribucion": {"1": 1, "2": 0, "3": 0, "4": 6, "5": 7, "6": 14, "7": 9, "8": 3, "9": 6, "10": 0}},
+        "Violoncello": {"stats": {"registros": 17, "notaMedia": 6.12, "desviacion": 2.48, "moda": 8, "aprobados": 75.5, "suspendidos": 24.5, "modaAprobados": 8, "modaSuspendidos": 1}, "distribucion": {"1": 2, "2": 0, "3": 1, "4": 1, "5": 1, "6": 3, "7": 2, "8": 5, "9": 2, "10": 0}},
+        "Piano Complementario": {"stats": {"registros": 145, "notaMedia": 7.32, "desviacion": 1.42, "moda": 8, "aprobados": 98.2, "suspendidos": 1.8, "modaAprobados": 8, "modaSuspendidos": 4}, "distribucion": {"1": 1, "2": 0, "3": 0, "4": 2, "5": 15, "6": 28, "7": 28, "8": 40, "9": 28, "10": 3}},
+        "Conjunto": {"stats": {"registros": 58, "notaMedia": 7.52, "desviacion": 1.52, "moda": 8, "aprobados": 98.5, "suspendidos": 1.5, "modaAprobados": 8, "modaSuspendidos": null}, "distribucion": {"1": 1, "2": 0, "3": 0, "4": 0, "5": 6, "6": 5, "7": 13, "8": 18, "9": 14, "10": 1}},
+        "Acompañamiento": {"stats": {"registros": 30, "notaMedia": 6.72, "desviacion": 1.85, "moda": 7, "aprobados": 93.5, "suspendidos": 6.5, "modaAprobados": 7, "modaSuspendidos": 1}, "distribucion": {"1": 2, "2": 0, "3": 0, "4": 0, "5": 1, "6": 10, "7": 9, "8": 3, "9": 5, "10": 0}},
+        "Coro": {"stats": {"registros": 44, "notaMedia": 8.42, "desviacion": 2.02, "moda": 10, "aprobados": 95.8, "suspendidos": 4.2, "modaAprobados": 10, "modaSuspendidos": null}, "distribucion": {"1": 1, "2": 0, "3": 0, "4": 1, "5": 4, "6": 1, "7": 4, "8": 6, "9": 9, "10": 18}},
+        "Idioma Aplicado al Canto": {"stats": {"registros": 13, "notaMedia": 7.45, "desviacion": 1.98, "moda": 7, "aprobados": 92.8, "suspendidos": 7.2, "modaAprobados": 7, "modaSuspendidos": null}, "distribucion": {"1": 1, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 5, "8": 3, "9": 4, "10": 0}},
+        "Tabalet": {"stats": {"registros": 3, "notaMedia": 8.08, "desviacion": 0.78, "moda": null, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": null, "modaSuspendidos": null}, "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 1, "8": 1, "9": 1, "10": 0}},
+        "Historia de la Música": {"stats": {"registros": 122, "notaMedia": 6.22, "desviacion": 2.48, "moda": 9, "aprobados": 77.2, "suspendidos": 22.8, "modaAprobados": 9, "modaSuspendidos": 1}, "distribucion": {"1": 14, "2": 2, "3": 2, "4": 12, "5": 14, "6": 20, "7": 20, "8": 14, "9": 20, "10": 4}},
+        "Creatividad y Música": {"stats": {"registros": 20, "notaMedia": 6.38, "desviacion": 1.45, "moda": 7, "aprobados": 95.2, "suspendidos": 4.8, "modaAprobados": 7, "modaSuspendidos": null}, "distribucion": {"1": 1, "2": 0, "3": 0, "4": 0, "5": 2, "6": 5, "7": 10, "8": 2, "9": 0, "10": 0}},
+        "Cultura Audiovisual": {"stats": {"registros": 11, "notaMedia": 7.42, "desviacion": 2.18, "moda": 9, "aprobados": 91.2, "suspendidos": 8.8, "modaAprobados": 9, "modaSuspendidos": null}, "distribucion": {"1": 1, "2": 0, "3": 0, "4": 0, "5": 0, "6": 1, "7": 2, "8": 3, "9": 4, "10": 0}},
+        "Complemento Coral": {"stats": {"registros": 22, "notaMedia": 8.82, "desviacion": 1.52, "moda": 10, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": 10, "modaSuspendidos": null}, "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 2, "6": 0, "7": 2, "8": 3, "9": 5, "10": 10}},
+        "Fundamentos de Composición": {"stats": {"registros": 18, "notaMedia": 7.12, "desviacion": 2.60, "moda": 8, "aprobados": 83.0, "suspendidos": 17.0, "modaAprobados": 8, "modaSuspendidos": 1}, "distribucion": {"1": 2, "2": 0, "3": 1, "4": 0, "5": 0, "6": 0, "7": 3, "8": 6, "9": 5, "10": 1}},
+        "Fundamentos de Informática Musical": {"stats": {"registros": 10, "notaMedia": 6.38, "desviacion": 2.15, "moda": 6, "aprobados": 80.5, "suspendidos": 19.5, "modaAprobados": 6, "modaSuspendidos": null}, "distribucion": {"1": 0, "2": 0, "3": 1, "4": 1, "5": 2, "6": 3, "7": 0, "8": 0, "9": 2, "10": 1}},
+        "Complemento Pianístico": {"stats": {"registros": 8, "notaMedia": 6.32, "desviacion": 0.62, "moda": 6, "aprobados": 100.0, "suspendidos": 0.0, "modaAprobados": 6, "modaSuspendidos": null}, "distribucion": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 1, "6": 4, "7": 3, "8": 0, "9": 0, "10": 0}},
+        "Estética de la Música": {"stats": {"registros": 14, "notaMedia": 6.28, "desviacion": 2.48, "moda": 7, "aprobados": 79.2, "suspendidos": 20.8, "modaAprobados": 7, "modaSuspendidos": 1}, "distribucion": {"1": 2, "2": 0, "3": 0, "4": 1, "5": 1, "6": 1, "7": 5, "8": 1, "9": 3, "10": 0}}
+      },
+      "1EPM": {
+        "Total": {"stats": {"registros": 280, "notaMedia": 7.35, "desviacion": 1.42, "moda": 8, "aprobados": 97.5, "suspendidos": 2.5, "modaAprobados": 8, "modaSuspendidos": 4}, "distribucion": {"1": 0, "2": 0, "3": 2, "4": 7, "5": 28, "6": 45, "7": 68, "8": 70, "9": 52, "10": 8}},
+        "Total Especialidad": {"stats": {"registros": 93, "notaMedia": 7.02, "desviacion": 1.48, "moda": 6, "aprobados": 95.0, "suspendidos": 5.0, "modaAprobados": 6, "modaSuspendidos": 4}, "distribucion": {"1": 0, "2": 0, "3": 0, "4": 5, "5": 12, "6": 24, "7": 16, "8": 21, "9": 14, "10": 1}},
+        "Total No Especialidad": {"stats": {"registros": 187, "notaMedia": 7.52, "desviacion": 1.35, "moda": 7, "aprobados": 98.8, "suspendidos": 1.2, "modaAprobados": 7, "modaSuspendidos": 3}, "distribucion": {"1": 0, "2": 0, "3": 2, "4": 2, "5": 17, "6": 21, "7": 52, "8": 50, "9": 38, "10": 5}},
+        "Lenguaje Musical": {"stats": {"registros": 88, "notaMedia": 7.85, "desviacion": 1.38, "moda": 9, "aprobados": 99.0, "suspendidos": 1.0, "modaAprobados": 9, "modaSuspendidos": null}, "distribucion": {"1": 0, "2": 0, "3": 1, "4": 0, "5": 3, "6": 14, "7": 18, "8": 22, "9": 23, "10": 7}},
+        "Orquesta/Banda/Conjunto": {"stats": {"registros": 62, "notaMedia": 6.95, "desviacion": 1.38, "moda": 7, "aprobados": 97.2, "suspendidos": 2.8, "modaAprobados": 7, "modaSuspendidos": null}, "distribucion": {"1": 0, "2": 0, "3": 1, "4": 1, "5": 13, "6": 5, "7": 22, "8": 13, "9": 7, "10": 0}}
+      },
+      "2EPM": {
+        "Total": {"stats": {"registros": 238, "notaMedia": 6.85, "desviacion": 1.68, "moda": 8, "aprobados": 92.2, "suspendidos": 7.8, "modaAprobados": 8, "modaSuspendidos": 4}, "distribucion": {"1": 4, "2": 0, "3": 0, "4": 16, "5": 40, "6": 43, "7": 44, "8": 55, "9": 34, "10": 2}},
+        "Total Especialidad": {"stats": {"registros": 62, "notaMedia": 6.35, "desviacion": 1.75, "moda": 6, "aprobados": 87.2, "suspendidos": 12.8, "modaAprobados": 6, "modaSuspendidos": 4}, "distribucion": {"1": 3, "2": 0, "3": 0, "4": 5, "5": 7, "6": 20, "7": 10, "8": 14, "9": 3, "10": 0}},
+        "Total No Especialidad": {"stats": {"registros": 176, "notaMedia": 7.02, "desviacion": 1.62, "moda": 8, "aprobados": 94.0, "suspendidos": 6.0, "modaAprobados": 8, "modaSuspendidos": 4}, "distribucion": {"1": 1, "2": 0, "3": 0, "4": 11, "5": 34, "6": 24, "7": 34, "8": 40, "9": 30, "10": 2}},
+        "Lenguaje Musical": {"stats": {"registros": 60, "notaMedia": 6.42, "desviacion": 1.78, "moda": 5, "aprobados": 86.8, "suspendidos": 13.2, "modaAprobados": 5, "modaSuspendidos": 4}, "distribucion": {"1": 1, "2": 0, "3": 0, "4": 8, "5": 15, "6": 12, "7": 8, "8": 7, "9": 8, "10": 1}}
+      },
+      "3EPM": {
+        "Total": {"stats": {"registros": 298, "notaMedia": 7.55, "desviacion": 1.72, "moda": 8, "aprobados": 94.5, "suspendidos": 5.5, "modaAprobados": 8, "modaSuspendidos": 4}, "distribucion": {"1": 4, "2": 1, "3": 1, "4": 12, "5": 19, "6": 41, "7": 60, "8": 74, "9": 55, "10": 31}},
+        "Total Especialidad": {"stats": {"registros": 63, "notaMedia": 6.85, "desviacion": 1.92, "moda": 7, "aprobados": 84.2, "suspendidos": 15.8, "modaAprobados": 7, "modaSuspendidos": 4}, "distribucion": {"1": 2, "2": 0, "3": 1, "4": 7, "5": 5, "6": 7, "7": 17, "8": 13, "9": 10, "10": 1}},
+        "Total No Especialidad": {"stats": {"registros": 235, "notaMedia": 7.72, "desviacion": 1.62, "moda": 8, "aprobados": 97.5, "suspendidos": 2.5, "modaAprobados": 8, "modaSuspendidos": 4}, "distribucion": {"1": 2, "2": 1, "3": 0, "4": 5, "5": 15, "6": 35, "7": 44, "8": 60, "9": 44, "10": 29}},
+        "Armonía": {"stats": {"registros": 60, "notaMedia": 8.50, "desviacion": 1.95, "moda": 10, "aprobados": 95.2, "suspendidos": 4.8, "modaAprobados": 10, "modaSuspendidos": 1}, "distribucion": {"1": 2, "2": 0, "3": 0, "4": 1, "5": 2, "6": 2, "7": 5, "8": 12, "9": 15, "10": 21}}
+      },
+      "4EPM": {
+        "Total": {"stats": {"registros": 305, "notaMedia": 7.28, "desviacion": 1.78, "moda": 8, "aprobados": 93.0, "suspendidos": 7.0, "modaAprobados": 8, "modaSuspendidos": 4}, "distribucion": {"1": 7, "2": 1, "3": 1, "4": 14, "5": 24, "6": 43, "7": 68, "8": 70, "9": 60, "10": 17}},
+        "Total Especialidad": {"stats": {"registros": 62, "notaMedia": 6.70, "desviacion": 1.78, "moda": 6, "aprobados": 90.5, "suspendidos": 9.5, "modaAprobados": 6, "modaSuspendidos": 4}, "distribucion": {"1": 2, "2": 0, "3": 0, "4": 4, "5": 8, "6": 15, "7": 14, "8": 10, "9": 8, "10": 1}},
+        "Total No Especialidad": {"stats": {"registros": 243, "notaMedia": 7.42, "desviacion": 1.75, "moda": 8, "aprobados": 93.8, "suspendidos": 6.2, "modaAprobados": 8, "modaSuspendidos": 4}, "distribucion": {"1": 5, "2": 1, "3": 1, "4": 10, "5": 17, "6": 28, "7": 54, "8": 62, "9": 50, "10": 15}},
+        "Armonía": {"stats": {"registros": 64, "notaMedia": 7.62, "desviacion": 2.10, "moda": 9, "aprobados": 90.8, "suspendidos": 9.2, "modaAprobados": 9, "modaSuspendidos": 4}, "distribucion": {"1": 2, "2": 1, "3": 1, "4": 2, "5": 3, "6": 7, "7": 9, "8": 13, "9": 20, "10": 6}}
+      },
+      "5EPM": {
+        "Total": {"stats": {"registros": 315, "notaMedia": 6.82, "desviacion": 2.00, "moda": 8, "aprobados": 88.8, "suspendidos": 11.2, "modaAprobados": 8, "modaSuspendidos": 1}, "distribucion": {"1": 16, "2": 3, "3": 5, "4": 14, "5": 28, "6": 55, "7": 64, "8": 73, "9": 52, "10": 5}},
+        "Total Especialidad": {"stats": {"registros": 54, "notaMedia": 6.70, "desviacion": 1.82, "moda": 6, "aprobados": 89.0, "suspendidos": 11.0, "modaAprobados": 6, "modaSuspendidos": 4}, "distribucion": {"1": 1, "2": 1, "3": 1, "4": 3, "5": 5, "6": 17, "7": 8, "8": 8, "9": 9, "10": 1}},
+        "Total No Especialidad": {"stats": {"registros": 261, "notaMedia": 6.85, "desviacion": 2.02, "moda": 8, "aprobados": 88.8, "suspendidos": 11.2, "modaAprobados": 8, "modaSuspendidos": 1}, "distribucion": {"1": 15, "2": 2, "3": 4, "4": 11, "5": 24, "6": 38, "7": 55, "8": 65, "9": 43, "10": 4}},
+        "Análisis": {"stats": {"registros": 54, "notaMedia": 6.82, "desviacion": 2.08, "moda": 8, "aprobados": 85.2, "suspendidos": 14.8, "modaAprobados": 8, "modaSuspendidos": 4}, "distribucion": {"1": 3, "2": 0, "3": 0, "4": 5, "5": 5, "6": 9, "7": 9, "8": 14, "9": 9, "10": 0}}
+      },
+      "6EPM": {
+        "Total": {"stats": {"registros": 420, "notaMedia": 6.88, "desviacion": 2.20, "moda": 7, "aprobados": 88.8, "suspendidos": 11.2, "modaAprobados": 7, "modaSuspendidos": 1}, "distribucion": {"1": 33, "2": 1, "3": 2, "4": 15, "5": 35, "6": 62, "7": 100, "8": 74, "9": 80, "10": 18}},
+        "Total Especialidad": {"stats": {"registros": 77, "notaMedia": 6.22, "desviacion": 2.00, "moda": 6, "aprobados": 85.8, "suspendidos": 14.2, "modaAprobados": 6, "modaSuspendidos": 1}, "distribucion": {"1": 5, "2": 0, "3": 2, "4": 5, "5": 14, "6": 17, "7": 16, "8": 10, "9": 8, "10": 0}},
+        "Total No Especialidad": {"stats": {"registros": 343, "notaMedia": 7.02, "desviacion": 2.22, "moda": 7, "aprobados": 89.5, "suspendidos": 10.5, "modaAprobados": 7, "modaSuspendidos": 1}, "distribucion": {"1": 28, "2": 1, "3": 0, "4": 11, "5": 21, "6": 45, "7": 84, "8": 64, "9": 70, "10": 19}},
+        "Análisis": {"stats": {"registros": 73, "notaMedia": 7.02, "desviacion": 2.22, "moda": 7, "aprobados": 90.5, "suspendidos": 9.5, "modaAprobados": 7, "modaSuspendidos": 1}, "distribucion": {"1": 6, "2": 0, "3": 0, "4": 1, "5": 6, "6": 11, "7": 18, "8": 14, "9": 13, "10": 4}}
+      }
+    }
+  },
+  "correlaciones": {
+    "1EV-EEM": [
+      {"Tipo": "COR", "Nivel": "1EEM", "Asignatura1": "Lenguaje Musical", "Asignatura2": "Coro", "Correlacion": 0.19, "Interpretacion": "Muy débil"},
+      {"Tipo": "COR", "Nivel": "1EEM", "Asignatura1": "Lenguaje Musical", "Asignatura2": "Especialidad", "Correlacion": 0.48, "Interpretacion": "Moderada"},
+      {"Tipo": "COR", "Nivel": "1EEM", "Asignatura1": "Coro", "Asignatura2": "Especialidad", "Correlacion": 0.20, "Interpretacion": "Muy débil"},
+      {"Tipo": "COR", "Nivel": "2EEM", "Asignatura1": "Lenguaje Musical", "Asignatura2": "Coro", "Correlacion": 0.43, "Interpretacion": "Moderada"},
+      {"Tipo": "COR", "Nivel": "2EEM", "Asignatura1": "Lenguaje Musical", "Asignatura2": "Especialidad", "Correlacion": 0.58, "Interpretacion": "Moderada"},
+      {"Tipo": "COR", "Nivel": "2EEM", "Asignatura1": "Coro", "Asignatura2": "Especialidad", "Correlacion": 0.41, "Interpretacion": "Moderada"},
+      {"Tipo": "COR", "Nivel": "3EEM", "Asignatura1": "Lenguaje Musical", "Asignatura2": "Coro", "Correlacion": 0.43, "Interpretacion": "Moderada"},
+      {"Tipo": "COR", "Nivel": "3EEM", "Asignatura1": "Lenguaje Musical", "Asignatura2": "Conjunto", "Correlacion": 0.43, "Interpretacion": "Moderada"},
+      {"Tipo": "COR", "Nivel": "3EEM", "Asignatura1": "Lenguaje Musical", "Asignatura2": "Especialidad", "Correlacion": 0.58, "Interpretacion": "Moderada"},
+      {"Tipo": "COR", "Nivel": "3EEM", "Asignatura1": "Coro", "Asignatura2": "Conjunto", "Correlacion": 0.09, "Interpretacion": "Muy débil"},
+      {"Tipo": "COR", "Nivel": "3EEM", "Asignatura1": "Coro", "Asignatura2": "Especialidad", "Correlacion": 0.36, "Interpretacion": "Débil"},
+      {"Tipo": "COR", "Nivel": "3EEM", "Asignatura1": "Conjunto", "Asignatura2": "Especialidad", "Correlacion": 0.56, "Interpretacion": "Moderada"},
+      {"Tipo": "COR", "Nivel": "4EEM", "Asignatura1": "Lenguaje Musical", "Asignatura2": "Coro", "Correlacion": 0.06, "Interpretacion": "Muy débil"},
+      {"Tipo": "COR", "Nivel": "4EEM", "Asignatura1": "Lenguaje Musical", "Asignatura2": "Conjunto", "Correlacion": 0.43, "Interpretacion": "Moderada"},
+      {"Tipo": "COR", "Nivel": "4EEM", "Asignatura1": "Lenguaje Musical", "Asignatura2": "Especialidad", "Correlacion": 0.52, "Interpretacion": "Moderada"},
+      {"Tipo": "COR", "Nivel": "4EEM", "Asignatura1": "Coro", "Asignatura2": "Conjunto", "Correlacion": -0.13, "Interpretacion": "Inversa"},
+      {"Tipo": "COR", "Nivel": "4EEM", "Asignatura1": "Coro", "Asignatura2": "Especialidad", "Correlacion": 0.15, "Interpretacion": "Muy débil"},
+      {"Tipo": "COR", "Nivel": "4EEM", "Asignatura1": "Conjunto", "Asignatura2": "Especialidad", "Correlacion": 0.43, "Interpretacion": "Moderada"}
+    ],
+    "1EV-EPM": [
+      {"Tipo": "COR", "Nivel": "1EPM", "Asignatura1": "Lenguaje Musical", "Asignatura2": "Orquesta/Banda/Conjunto", "Correlacion": 0.31, "Interpretacion": "Débil"},
+      {"Tipo": "COR", "Nivel": "1EPM", "Asignatura1": "Lenguaje Musical", "Asignatura2": "Especialidad", "Correlacion": 0.54, "Interpretacion": "Moderada"},
+      {"Tipo": "COR", "Nivel": "1EPM", "Asignatura1": "Orquesta/Banda/Conjunto", "Asignatura2": "Especialidad", "Correlacion": 0.63, "Interpretacion": "Fuerte"},
+      {"Tipo": "COR", "Nivel": "2EPM", "Asignatura1": "Lenguaje Musical", "Asignatura2": "Orquesta/Banda/Conjunto", "Correlacion": 0.23, "Interpretacion": "Débil"},
+      {"Tipo": "COR", "Nivel": "2EPM", "Asignatura1": "Lenguaje Musical", "Asignatura2": "Especialidad", "Correlacion": 0.46, "Interpretacion": "Moderada"},
+      {"Tipo": "COR", "Nivel": "2EPM", "Asignatura1": "Orquesta/Banda/Conjunto", "Asignatura2": "Especialidad", "Correlacion": 0.47, "Interpretacion": "Moderada"},
+      {"Tipo": "COR", "Nivel": "3EPM", "Asignatura1": "Armonía", "Asignatura2": "Orquesta/Banda/Conjunto", "Correlacion": 0.59, "Interpretacion": "Moderada"},
+      {"Tipo": "COR", "Nivel": "3EPM", "Asignatura1": "Armonía", "Asignatura2": "Música de Cámara", "Correlacion": 0.31, "Interpretacion": "Débil"},
+      {"Tipo": "COR", "Nivel": "3EPM", "Asignatura1": "Armonía", "Asignatura2": "Especialidad", "Correlacion": 0.30, "Interpretacion": "Débil"},
+      {"Tipo": "COR", "Nivel": "3EPM", "Asignatura1": "Orquesta/Banda/Conjunto", "Asignatura2": "Música de Cámara", "Correlacion": 0.52, "Interpretacion": "Moderada"},
+      {"Tipo": "COR", "Nivel": "3EPM", "Asignatura1": "Música de Cámara", "Asignatura2": "Especialidad", "Correlacion": 0.62, "Interpretacion": "Fuerte"},
+      {"Tipo": "COR", "Nivel": "4EPM", "Asignatura1": "Armonía", "Asignatura2": "Orquesta/Banda/Conjunto", "Correlacion": 0.52, "Interpretacion": "Moderada"},
+      {"Tipo": "COR", "Nivel": "4EPM", "Asignatura1": "Armonía", "Asignatura2": "Música de Cámara", "Correlacion": 0.37, "Interpretacion": "Débil"},
+      {"Tipo": "COR", "Nivel": "4EPM", "Asignatura1": "Armonía", "Asignatura2": "Especialidad", "Correlacion": 0.63, "Interpretacion": "Fuerte"},
+      {"Tipo": "COR", "Nivel": "4EPM", "Asignatura1": "Orquesta/Banda/Conjunto", "Asignatura2": "Especialidad", "Correlacion": 0.66, "Interpretacion": "Fuerte"},
+      {"Tipo": "COR", "Nivel": "5EPM", "Asignatura1": "Análisis", "Asignatura2": "Orquesta/Banda/Conjunto", "Correlacion": 0.38, "Interpretacion": "Débil"},
+      {"Tipo": "COR", "Nivel": "5EPM", "Asignatura1": "Análisis", "Asignatura2": "Música de Cámara", "Correlacion": 0.52, "Interpretacion": "Moderada"},
+      {"Tipo": "COR", "Nivel": "5EPM", "Asignatura1": "Análisis", "Asignatura2": "Especialidad", "Correlacion": 0.42, "Interpretacion": "Moderada"},
+      {"Tipo": "COR", "Nivel": "5EPM", "Asignatura1": "Música de Cámara", "Asignatura2": "Especialidad", "Correlacion": 0.61, "Interpretacion": "Fuerte"},
+      {"Tipo": "COR", "Nivel": "6EPM", "Asignatura1": "Análisis", "Asignatura2": "Orquesta/Banda/Conjunto", "Correlacion": 0.51, "Interpretacion": "Moderada"},
+      {"Tipo": "COR", "Nivel": "6EPM", "Asignatura1": "Análisis", "Asignatura2": "Música de Cámara", "Correlacion": 0.44, "Interpretacion": "Moderada"},
+      {"Tipo": "COR", "Nivel": "6EPM", "Asignatura1": "Análisis", "Asignatura2": "Especialidad", "Correlacion": 0.39, "Interpretacion": "Débil"},
+      {"Tipo": "COR", "Nivel": "6EPM", "Asignatura1": "Orquesta/Banda/Conjunto", "Asignatura2": "Música de Cámara", "Correlacion": 0.72, "Interpretacion": "Fuerte"},
+      {"Tipo": "COR", "Nivel": "6EPM", "Asignatura1": "Música de Cámara", "Asignatura2": "Especialidad", "Correlacion": 0.34, "Interpretacion": "Débil"}
+    ]
+  },
+  "agrupaciones": {
+    "1EV-EEM": {
+      "lenguaje musical": ["Referencia"],
+      "coro": ["NoEspecialidad", "LenguajeVoz"],
+      "conjunto": ["NoEspecialidad"],
+      "arpa": ["Especialidad", "Cuerda"],
+      "clarinete": ["Especialidad", "Madera"],
+      "contrabajo": ["Especialidad", "Cuerda"],
+      "fagot": ["Especialidad", "Madera"],
+      "flauta travesera": ["Especialidad", "Madera"],
+      "guitarra": ["Especialidad", "Cuerda"],
+      "oboe": ["Especialidad", "Madera"],
+      "percusión": ["Especialidad", "Metal"],
+      "piano": ["Especialidad", "Tecla"],
+      "saxofón": ["Especialidad", "Madera"],
+      "trombón": ["Especialidad", "Metal"],
+      "trompa": ["Especialidad", "Metal"],
+      "trompeta": ["Especialidad", "Metal"],
+      "viola": ["Especialidad", "Cuerda"],
+      "violín": ["Especialidad", "Cuerda"],
+      "violoncello": ["Especialidad", "Cuerda"]
+    },
+    "1EV-EPM": {
+      "lenguaje musical": ["Referencia", "TeoricaTroncal"],
+      "armonía": ["Referencia", "TeoricaTroncal"],
+      "análisis": ["Referencia", "TeoricaTroncal"],
+      "música de cámara": ["Referencia", "NoEspecialidad"],
+      "orquesta/banda/conjunto": ["Referencia", "NoEspecialidad"],
+      "arpa": ["Especialidad", "Cuerda"],
+      "bajo eléctrico": ["Especialidad", "Cuerda"],
+      "canto": ["Especialidad", "LenguajeVoz"],
+      "clarinete": ["Especialidad", "Madera"],
+      "contrabajo": ["Especialidad", "Cuerda"],
+      "dolçaina": ["Especialidad", "Madera"],
+      "fagot": ["Especialidad", "Madera"],
+      "flauta travesera": ["Especialidad", "Madera"],
+      "guitarra": ["Especialidad", "Cuerda"],
+      "guitarra eléctrica": ["Especialidad", "Cuerda"],
+      "oboe": ["Especialidad", "Madera"],
+      "percusión": ["Especialidad", "Metal"],
+      "piano": ["Especialidad", "Tecla"],
+      "saxofón": ["Especialidad", "Madera"],
+      "trombón": ["Especialidad", "Metal"],
+      "trompa": ["Especialidad", "Metal"],
+      "trompeta": ["Especialidad", "Metal"],
+      "tuba": ["Especialidad", "Metal"],
+      "viola": ["Especialidad", "Cuerda"],
+      "violín": ["Especialidad", "Cuerda"],
+      "violoncello": ["Especialidad", "Cuerda"],
+      "piano complementario": ["NoEspecialidad"],
+      "conjunto": ["NoEspecialidad"],
+      "acompañamiento": ["NoEspecialidad"],
+      "coro": ["NoEspecialidad"],
+      "idioma aplicado al canto": ["NoEspecialidad"],
+      "tabalet": ["NoEspecialidad"],
+      "historia de la música": ["NoEspecialidad"],
+      "creatividad y música": ["Optativas"],
+      "cultura audiovisual": ["Optativas"],
+      "complemento coral": ["Optativas"],
+      "fundamentos de composición": ["Optativas"],
+      "fundamentos de informática musical": ["Optativas"],
+      "complemento pianístico": ["Optativas"],
+      "estética de la música": ["Optativas"]
+    }
+  }
+}
