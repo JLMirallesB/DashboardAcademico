@@ -24,6 +24,7 @@ import { LanguageSwitcher } from '../common/LanguageSwitcher';
  * @param {string} language - Idioma actual
  * @param {Function} onLanguageChange - Callback al cambiar idioma
  * @param {Object} actions - Callbacks para acciones
+ * @param {string} supportUrl - URL para donaciones
  * @param {Function} t - Función de traducción
  */
 export const Sidebar = ({
@@ -39,6 +40,7 @@ export const Sidebar = ({
   language,
   onLanguageChange,
   actions,
+  supportUrl,
   t
 }) => {
   return (
@@ -155,6 +157,36 @@ export const Sidebar = ({
           collapsed={collapsed}
           t={t}
         />
+
+        <div className={`mt-3 ${collapsed ? 'flex justify-center' : ''}`}>
+          <a
+            href={supportUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`
+              w-full flex items-center gap-3 px-4 py-3 rounded-lg
+              transition-colors
+              text-gray-700 hover:bg-white hover:text-gray-900
+              ${collapsed ? 'justify-center px-2' : ''}
+            `}
+            title={collapsed ? t('supportButton') : undefined}
+            aria-label={t('supportButton')}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 8h4a4 4 0 010 8h-4m0-8H8a4 4 0 000 8h2m0-8V4m0 16v-4" />
+            </svg>
+            {!collapsed && (
+              <span className="text-sm font-medium truncate">
+                {t('supportButton')}
+              </span>
+            )}
+          </a>
+          {!collapsed && (
+            <p className="px-4 text-[10px] text-gray-500 mt-1">
+              {t('supportTitle')}
+            </p>
+          )}
+        </div>
       </div>
     </aside>
   );

@@ -2,7 +2,7 @@ export const translations = {
   es: {
     // General
     appTitle: 'Dashboard Académico',
-    appSubtitle: 'Análisis de rendimiento por curso, asignatura y trimestre',
+    appSubtitle: 'Análisis de rendimiento por curso, asignatura y trimestre para Conservatorios Elementales y Profesionales de Música',
     loadData: 'Cargar datos',
 
     // Acciones
@@ -226,6 +226,10 @@ export const translations = {
     replaceConfirm: 'El trimestre {trimester} ya está cargado. ¿Quieres reemplazar los datos existentes?',
     noCorrelationData: 'No hay datos de correlaciones para este trimestre.',
     csvInstructions: 'Exporta los datos desde la hoja EXPORTAR de tu Excel en formato CSV, o importa un archivo JSON previamente guardado.',
+    templatesTitle: 'Plantillas Excel',
+    templatesSubtitle: 'Descarga la plantilla de tu etapa para generar el CSV.',
+    downloadTemplateEEM: 'Descargar plantilla EEM',
+    downloadTemplateEPM: 'Descargar plantilla EPM',
     trimestersLoadedLabel: 'Trimestres cargados:',
     errorParsingJSON: 'Error al parsear el archivo JSON',
     noDataForReport: 'No hay datos cargados para generar el informe',
@@ -346,11 +350,15 @@ export const translations = {
     // Footer
     designedBy: 'App diseñada por',
     withHelpOf: 'con ayuda de Claude',
+    supportTitle: 'Apoya el proyecto',
+    supportButton: 'Invítame a un café',
+    supportFooter: '¿Te gusta el proyecto? Invítame a un café en',
+    supportLink: 'Ko-fi',
   },
   va: {
     // General
     appTitle: 'Tauler Acadèmic',
-    appSubtitle: 'Anàlisi de rendiment per curs, assignatura i trimestre',
+    appSubtitle: 'Anàlisi de rendiment per curs, assignatura i trimestre per a Conservatoris Elementals i Professionals de Música',
     loadData: 'Carregar dades',
 
     // Accions
@@ -574,6 +582,10 @@ export const translations = {
     replaceConfirm: 'El trimestre {trimester} ja està carregat. Vols reemplaçar les dades existents?',
     noCorrelationData: 'No hi ha dades de correlacions per a aquest trimestre.',
     csvInstructions: 'Exporta les dades des del full EXPORTAR del teu Excel en format CSV, o importa un arxiu JSON prèviament guardat.',
+    templatesTitle: 'Plantilles Excel',
+    templatesSubtitle: 'Descarrega la plantilla de la teua etapa per a generar el CSV.',
+    downloadTemplateEEM: 'Descarregar plantilla EEM',
+    downloadTemplateEPM: 'Descarregar plantilla EPM',
     trimestersLoadedLabel: 'Trimestres carregats:',
     errorParsingJSON: 'Error en parsejar l\'arxiu JSON',
     noDataForReport: 'No hi ha dades carregades per a generar l\'informe',
@@ -694,5 +706,9 @@ export const translations = {
     // Footer
     designedBy: 'App dissenyada per',
     withHelpOf: 'amb ajuda de Claude',
+    supportTitle: 'Dona suport al projecte',
+    supportButton: 'Convida\'m a un cafè',
+    supportFooter: 'T\'agrada el projecte? Convida\'m a un cafè en',
+    supportLink: 'Ko-fi',
   }
 };

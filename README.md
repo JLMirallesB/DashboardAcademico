@@ -1,4 +1,4 @@
-# Dashboard Académico v2.4.0
+# Dashboard Académico v3.4.0
 
 ---
 
@@ -55,6 +55,11 @@ Proyecto de código abierto disponible en GitHub
 1. Hacer clic en **"Importar JSON guardado"**
 2. Seleccionar un archivo JSON previamente exportado desde la aplicación
 3. Se restaura el estado completo con todos los trimestres cargados
+
+**Plantillas Excel:**
+- [Descargar plantilla EEM](public/data/ANALIZADOR_ELEMENTAL_V2.xlsx)
+- [Descargar plantilla EPM](public/data/ANALIZADOR_PROFESIONAL_v2.xlsx)
+- Usa la plantilla de tu etapa para generar el CSV.
 
 **Gestión de Trimestres:**
 - **Ver trimestres cargados**: Botón "Gestionar datos cargados" muestra todos los trimestres disponibles
@@ -532,6 +537,11 @@ Projecte de codi obert disponible en GitHub
 1. Fer clic en **"Importar JSON guardat"**
 2. Seleccionar un arxiu JSON prèviament exportat des de l'aplicació
 3. Es restaura l'estat complet amb tots els trimestres carregats
+
+**Plantilles Excel:**
+- [Descarregar plantilla EEM](public/data/ANALIZADOR_ELEMENTAL_V2.xlsx)
+- [Descarregar plantilla EPM](public/data/ANALIZADOR_PROFESIONAL_v2.xlsx)
+- Usa la plantilla de la teua etapa per a generar el CSV.
 
 **Gestió de Trimestres:**
 - **Veure trimestres carregats**: Botó "Gestionar dades carregades" mostra tots els trimestres disponibles

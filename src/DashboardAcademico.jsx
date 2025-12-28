@@ -20,6 +20,18 @@ import { PDFChartRenderer } from './components/pdf/PDFChartRenderer.jsx';
 import { generarInformePDF } from './services/pdfGenerator.js';
 import { captureChartAsImage, waitForRender } from './utils/chartCapture.js';
 
+const buildAssetUrl = (path) => {
+  const baseUrl = import.meta.env.BASE_URL || '/';
+  const normalizedBase = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
+  return `${normalizedBase}${path}`;
+};
+
+const EXCEL_TEMPLATE_URLS = {
+  eem: buildAssetUrl('data/ANALIZADOR_ELEMENTAL_V2.xlsx'),
+  epm: buildAssetUrl('data/ANALIZADOR_PROFESIONAL_v2.xlsx')
+};
+const SUPPORT_URL = 'https://ko-fi.com/miralles';
+
 const DashboardAcademico = () => {
   // Estado de idioma
   const [idioma, setIdioma] = useState('es');
@@ -1665,12 +1677,50 @@ const DashboardAcademico = () => {
                 {t('csvInstructions')}
               </p>
             </div>
+
+            <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200">
+              <div className="text-center mb-3">
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                  {t('templatesTitle')}
+                </p>
+                <p className="text-sm text-gray-600 mt-1">
+                  {t('templatesSubtitle')}
+                </p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <a
+                  href={EXCEL_TEMPLATE_URLS.eem}
+                  download
+                  className="w-full py-3 px-4 bg-gray-100 text-gray-800 rounded-lg border border-gray-300 hover:bg-gray-200 transition-colors font-medium text-sm flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                  </svg>
+                  {t('downloadTemplateEEM')}
+                </a>
+                <a
+                  href={EXCEL_TEMPLATE_URLS.epm}
+                  download
+                  className="w-full py-3 px-4 bg-gray-900 text-white rounded-lg hover:bg-black transition-colors font-medium text-sm flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                  </svg>
+                  {t('downloadTemplateEPM')}
+                </a>
+              </div>
+            </div>
           </div>
 
           {/* Footer */}
-          <p className="text-center text-sm text-gray-400 mt-8">
-            {t('designedBy')} <a href="https://jlmirall.es" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-gray-900 underline">José Luis Miralles Bono</a> {t('withHelpOf')}
-          </p>
+          <div className="text-center text-sm text-gray-400 mt-8 space-y-2">
+            <p>
+              {t('designedBy')} <a href="https://jlmirall.es" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-gray-900 underline">José Luis Miralles Bono</a> {t('withHelpOf')}
+            </p>
+            <p>
+              {t('supportFooter')} <a href={SUPPORT_URL} target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-gray-900 underline">{t('supportLink')}</a>
+            </p>
+          </div>
         </div>
 
         {/* Modal de Ayuda */}
@@ -1735,6 +1785,39 @@ const DashboardAcademico = () => {
                   </svg>
                   {t('importJSON')}
                 </button>
+              </div>
+
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="text-center mb-3">
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                    {t('templatesTitle')}
+                  </p>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {t('templatesSubtitle')}
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <a
+                    href={EXCEL_TEMPLATE_URLS.eem}
+                    download
+                    className="w-full py-3 px-4 bg-white text-gray-800 rounded-lg border border-gray-300 hover:bg-gray-100 transition-colors font-medium text-sm flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    {t('downloadTemplateEEM')}
+                  </a>
+                  <a
+                    href={EXCEL_TEMPLATE_URLS.epm}
+                    download
+                    className="w-full py-3 px-4 bg-gray-900 text-white rounded-lg hover:bg-black transition-colors font-medium text-sm flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    {t('downloadTemplateEPM')}
+                  </a>
+                </div>
               </div>
 
               {/* Lista de datos cargados */}
@@ -1865,6 +1948,7 @@ const DashboardAcademico = () => {
             onReport: () => setMostrarModalInforme(true),
             onHelp: () => setMostrarModalAyuda(true)
           },
+          supportUrl: SUPPORT_URL,
           t
         }}
         headerProps={{
