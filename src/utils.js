@@ -1,36 +1,15 @@
-/**
- * Utilidades comunes para el Dashboard Académico
- * Versión 1.9.2
+/* Utilidades comunes.
+ *
+ * La normalización de texto y todo lo de trimestres se movió a
+ * `src/nucleo/texto.js` y desde aquí solo se reexporta: tenía dos definiciones
+ * —una con acentos y otra sin— y de esa divergencia salía que el informe
+ * filtrado por agrupación perdiera Percusión, Violín y Saxofón.
  */
 
-/**
- * Normaliza una cadena de texto para comparaciones case-insensitive
- * @param {string} str - Cadena a normalizar
- * @returns {string} Cadena en minúsculas y sin espacios al inicio/final
- */
-export const normalizar = (str) => {
-  if (typeof str !== 'string') return '';
-  return str.toLowerCase().trim();
-};
+export { normalizar, parseTrimestre, getTrimestreBase, getTrimestreEtapa } from './nucleo/texto.js';
+import { normalizar, parseTrimestre } from './nucleo/texto.js';
 
-/**
- * Divide un trimestre en sus componentes (base y etapa) de forma segura
- * @param {string} trimestre - Trimestre en formato "1EV-EEM" o "2EV-EPM"
- * @returns {{base: string, etapa: string} | null} Objeto con base y etapa, o null si formato inválido
- */
-export const parseTrimestre = (trimestre) => {
-  if (typeof trimestre !== 'string' || !trimestre.includes('-')) {
-    return null;
-  }
-  const partes = trimestre.split('-');
-  if (partes.length !== 2) {
-    return null;
-  }
-  return {
-    base: partes[0],  // "1EV", "2EV", "3EV", "FINAL"
-    etapa: partes[1]  // "EEM" o "EPM"
-  };
-};
+
 
 /**
  * Obtiene el mejor trimestre para un nivel específico en modo TODOS
@@ -78,25 +57,7 @@ export const safeSplit = (str, separator, expectedLength = null) => {
   return parts;
 };
 
-/**
- * Obtiene el trimestre base de un trimestre completo de forma segura
- * @param {string} trimestre - Trimestre completo (ej: "1EV-EEM")
- * @returns {string} Base del trimestre (ej: "1EV") o el trimestre original si no tiene formato válido
- */
-export const getTrimestreBase = (trimestre) => {
-  const parsed = parseTrimestre(trimestre);
-  return parsed ? parsed.base : trimestre;
-};
 
-/**
- * Obtiene la etapa de un trimestre completo de forma segura
- * @param {string} trimestre - Trimestre completo (ej: "1EV-EEM")
- * @returns {string|null} Etapa del trimestre (ej: "EEM") o null si no tiene formato válido
- */
-export const getTrimestreEtapa = (trimestre) => {
-  const parsed = parseTrimestre(trimestre);
-  return parsed ? parsed.etapa : null;
-};
 
 /**
  * Verifica si una asignatura existe en un nivel (case-insensitive)

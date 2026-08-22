@@ -8,7 +8,8 @@ import { parseCSV as parseCSVService } from './services/csvParser.js';
 import { procesarDatos as procesarDatosService } from './services/dataProcessor.js';
 import { exportarJSON as exportarJSONService, procesarImportacionJSON } from './services/dataIO.js';
 import { useStatisticalCalculations } from './hooks/useStatisticalCalculations.js';
-import { useDifficultyAnalysis } from './hooks/useDifficultyAnalysis.js';
+import { analizarDificultad } from './nucleo/dificultad.js';
+import { serieEvolucionSelecciones, serieEvolucionNiveles } from './nucleo/evolucion.js';
 import { useKPICalculation } from './hooks/useKPICalculation.js';
 import KPICentro from './components/kpi/KPICentro.jsx';
 import KPIDetalle from './components/kpi/KPIDetalle.jsx';
@@ -1140,93 +1141,15 @@ const DashboardAcademico = () => {
   );
 
   // Análisis de dificultad de asignaturas
-  const analisisDificultad = useMemo(() => {
-    if (!trimestreSeleccionado || !datosCompletos[trimestreSeleccionado]) {
-      return null;
-    }
-
-    const datos = datosCompletos[trimestreSeleccionado];
-    const asignaturas = [];
-
-    // Recopilar todas las asignaturas según vista (filtrar por modo de etapa)
-    Object.entries(datos).forEach(([nivel, asigs]) => {
-      // Si vista es 'niveles', excluir GLOBAL. Si es 'global', solo incluir GLOBAL
-      if (vistaDificultad === 'niveles' && nivel === 'GLOBAL') return;
-      if (vistaDificultad === 'global' && nivel !== 'GLOBAL') return;
-      // Filtrar por etapa si no es GLOBAL (en modo TODOS no filtrar)
-      if (nivel !== 'GLOBAL' && modoEtapa !== 'TODOS' && detectarEtapa(nivel) !== modoEtapa) return;
-
-      Object.entries(asigs).forEach(([asig, data]) => {
-        if (asig === 'Total' || !data?.stats) return;
-
-        // Filtrar por número mínimo de alumnos
-        if (data.stats.registros < umbrales.alumnosMinimo) return;
-
-        const stats = data.stats;
-        const resultado = calcularResultado(stats);
-
-        // Determinar categoría de dificultad
-        let categoria = 'NEUTRAL';
-        let razon = '';
-
-        if (resultado === 'DIFÍCIL') {
-          categoria = 'DIFÍCIL';
-          const motivos = [];
-          if (stats.suspendidos >= umbrales.suspensosAlerta) {
-            motivos.push(`${(stats.suspendidos || 0).toFixed(1)}% de suspensos (umbral: ${umbrales.suspensosAlerta}%)`);
-          }
-          if (stats.notaMedia < umbrales.mediaCritica) {
-            motivos.push(`nota media de ${(stats.notaMedia || 0).toFixed(2)} (umbral crítico: ${umbrales.mediaCritica})`);
-          }
-          razon = `Esta asignatura tiene ${motivos.join(' y/o ')}`;
-        } else if (resultado === 'FÁCIL') {
-          categoria = 'FÁCIL';
-          const motivos = [];
-          if (stats.aprobados >= umbrales.aprobadosMinimo) {
-            motivos.push(`${(stats.aprobados || 0).toFixed(1)}% de aprobados (umbral: ${umbrales.aprobadosMinimo}%)`);
-          }
-          if (stats.notaMedia >= umbrales.mediaFacil) {
-            motivos.push(`nota media de ${(stats.notaMedia || 0).toFixed(2)} (umbral fácil: ${umbrales.mediaFacil})`);
-          }
-          razon = `Esta asignatura tiene ${motivos.join(' y/o ')}`;
-        } else {
-          razon = `Esta asignatura se encuentra en un rango equilibrado con ${(stats.aprobados || 0).toFixed(1)}% de aprobados y una nota media de ${(stats.notaMedia || 0).toFixed(2)}`;
-        }
-
-        asignaturas.push({
-          nivel,
-          asignatura: asig,
-          categoria,
-          razon,
-          notaMedia: stats.notaMedia,
-          desviacion: stats.desviacion,
-          moda: stats.moda,
-          aprobados: stats.aprobados,
-          suspendidos: stats.suspendidos,
-          modaAprobados: stats.modaAprobados,
-          modaSuspendidos: stats.modaSuspendidos,
-          registros: stats.registros
-        });
-      });
-    });
-
-    // Ordenar: DIFÍCIL primero, luego NEUTRAL, luego FÁCIL
-    const ordenCategoria = { 'DIFÍCIL': 0, 'NEUTRAL': 1, 'FÁCIL': 2 };
-    asignaturas.sort((a, b) => {
-      if (ordenCategoria[a.categoria] !== ordenCategoria[b.categoria]) {
-        return ordenCategoria[a.categoria] - ordenCategoria[b.categoria];
-      }
-      // Dentro de cada categoría, ordenar por nota media ascendente
-      return a.notaMedia - b.notaMedia;
-    });
-
-    // Agrupar por categoría
-    const dificiles = asignaturas.filter(a => a.categoria === 'DIFÍCIL');
-    const neutrales = asignaturas.filter(a => a.categoria === 'NEUTRAL');
-    const faciles = asignaturas.filter(a => a.categoria === 'FÁCIL');
-
-    return { dificiles, neutrales, faciles, todas: asignaturas };
-  }, [trimestreSeleccionado, datosCompletos, calcularResultado, umbrales, vistaDificultad, modoEtapa, detectarEtapa]);
+  /* El cálculo vive en `src/nucleo/dificultad.js`, sin React y probado en node.
+     Antes eran 90 líneas dentro de este render, y por eso no había forma de
+     ejercitarlo. */
+  const analisisDificultad = useMemo(
+    () => (trimestreSeleccionado && datosCompletos[trimestreSeleccionado])
+      ? analizarDificultad(datosCompletos[trimestreSeleccionado],
+          { umbrales, vista: vistaDificultad, modoEtapa })
+      : null,
+    [trimestreSeleccionado, datosCompletos, umbrales, vistaDificultad, modoEtapa]);
 
   // Datos de tendencias transversales para el PDF
   const tendenciasParaPDF = useMemo(() => {
@@ -1268,44 +1191,10 @@ const DashboardAcademico = () => {
   }, [trimestreSeleccionado, datosCompletos, todasLasAsignaturas, nivelesSinGlobalEtapa, modoEtapa, trimestresDisponibles, detectarEtapa, calcularTendencia]);
 
   // Datos de evolución de notas medias por trimestre para el PDF
-  const datosEvolucionNotasPDF = useMemo(() => {
-    if (trimestresDisponibles.length < 2) return null;
-
-    // Ordenar trimestres cronológicamente
-    const trimestresOrdenados = [...trimestresDisponibles].sort((a, b) => {
-      const orden = { '1EV': 1, '2EV': 2, '3EV': 3, 'FINAL': 4 };
-      const baseA = getTrimestreBase(a);
-      const baseB = getTrimestreBase(b);
-      return (orden[baseA] || 99) - (orden[baseB] || 99);
-    });
-
-    // Obtener niveles únicos (sin GLOBAL)
-    const nivelesSet = new Set();
-    trimestresOrdenados.forEach(trim => {
-      Object.keys(datosCompletos[trim] || {}).forEach(nivel => {
-        if (nivel !== 'GLOBAL') nivelesSet.add(nivel);
-      });
-    });
-    const niveles = Array.from(nivelesSet).sort((a, b) => {
-      const numA = parseInt(a.match(/\d+/)?.[0] || '0');
-      const numB = parseInt(b.match(/\d+/)?.[0] || '0');
-      return numA - numB;
-    });
-
-    // Construir datos: cada punto es un trimestre, con nota media por nivel
-    const datos = trimestresOrdenados.map(trim => {
-      const punto = { trimestre: getTrimestreBase(trim) };
-      niveles.forEach(nivel => {
-        const totalData = datosCompletos[trim]?.[nivel]?.['Total'];
-        if (totalData?.stats?.notaMedia) {
-          punto[nivel] = totalData.stats.notaMedia;
-        }
-      });
-      return punto;
-    });
-
-    return { datos, niveles };
-  }, [trimestresDisponibles, datosCompletos]);
+  // Datos de evolución de notas medias por trimestre para el PDF
+  const datosEvolucionNotasPDF = useMemo(
+    () => serieEvolucionNiveles({ trimestresDisponibles, datosCompletos }),
+    [trimestresDisponibles, datosCompletos]);
 
   // Datos de distribución de notas por asignatura para el PDF
   // Para cada asignatura, muestra la distribución (1-10) con una línea por cada curso
@@ -3686,28 +3575,13 @@ const DashboardAcademico = () => {
                   // Colores para las diferentes selecciones
                   const colores = ['#1a1a2e', '#3b82f6', '#ef4444', '#22c55e', '#f59e0b', '#ec4899', '#06b6d4', '#8b5cf6', '#14b8a6', '#f97316', '#a855f7', '#f43f5e', '#84cc16', '#0ea5e9', '#f472b6'];
 
-                  // Preparar datos combinados de todas las selecciones
-                  // Filtrar trimestres según modoEtapa
-                  const trimestresFiltrados = trimestresDisponibles.filter(t => {
-                    if (modoEtapa === 'TODOS') return true;
-                    const parsed = parseTrimestre(t);
-                    return parsed && parsed.etapa === modoEtapa;
+                  // El cálculo vive en `src/nucleo/evolucion.js`
+                  const { puntos: datosEvolucion, hayDatos } = serieEvolucionSelecciones({
+                    trimestresDisponibles,
+                    datosCompletos,
+                    selecciones: seleccionesEvolucion,
+                    modoEtapa
                   });
-                  const datosEvolucion = trimestresFiltrados.map(trim => {
-                    const punto = { trimestre: trim };
-                    seleccionesEvolucion.forEach((sel, idx) => {
-                      const d = datosCompletos[trim]?.[sel.nivel]?.[sel.asignatura];
-                      const label = `${sel.nivel}-${sel.asignatura}`;
-                      punto[`notaMedia_${idx}`] = d?.stats?.notaMedia || null;
-                      punto[`label_${idx}`] = label;
-                    });
-                    return punto;
-                  });
-
-                  // Verificar que haya al menos una selección con datos
-                  const hayDatos = datosEvolucion.some(punto =>
-                    seleccionesEvolucion.some((_, idx) => punto[`notaMedia_${idx}`] !== null)
-                  );
 
                   if (!hayDatos) {
                     return (
