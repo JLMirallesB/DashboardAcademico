@@ -12,6 +12,7 @@ import { analizarDificultad } from './nucleo/dificultad.js';
 import { serieEvolucionSelecciones, serieEvolucionNiveles } from './nucleo/evolucion.js';
 import { compararTrimestres, esFilaTotal } from './nucleo/texto.js';
 import { diferencia, decimalesDe } from './nucleo/comparacion.js';
+import { paresDe, porPares, porNiveles, paresMasFuertes } from './nucleo/correlaciones.js';
 import { useKPICalculation } from './hooks/useKPICalculation.js';
 import KPICentro from './components/kpi/KPICentro.jsx';
 import KPIDetalle from './components/kpi/KPIDetalle.jsx';
@@ -972,117 +973,37 @@ const DashboardAcademico = () => {
     });
   }, [trimestreSeleccionado, correlacionesCompletas, ordenCorrelaciones]);
 
-  // Tipos de correlaciones únicos para el gráfico de evolución
-  const tiposCorrelacion = useMemo(() => {
-    const tipos = new Set();
-    Object.values(correlacionesCompletas).forEach(corrs => {
-      corrs.forEach(c => {
-        // Filtrar por etapa del nivel
-        const etapaNivel = detectarEtapa(c.Nivel);
-        if (modoEtapa === 'TODOS' || etapaNivel === modoEtapa) {
-          tipos.add(`${c.Asignatura1}-${c.Asignatura2}`);
-        }
-      });
-    });
-    return Array.from(tipos);
-  }, [correlacionesCompletas, modoEtapa, detectarEtapa]);
+  /* Las correlaciones del trimestre SELECCIONADO.
+     Antes se recorrían todos los trimestres cargados escribiendo en la misma
+     clave, así que ganaba el último: con la primera evaluación en 0,82 y la
+     segunda en 0,55 la gráfica enseñaba 0,55, sin decir que había descartado
+     la otra, y si los ficheros se cargaban en otro orden el número cambiaba
+     sin cambiar los datos. Ninguna de las dos gráficas tiene el tiempo como
+     eje —una pone los pares y otra los niveles—, así que no había sitio donde
+     poner el segundo trimestre. Ver `src/nucleo/correlaciones.js`. */
+  const correlacionesDelTrimestre = useMemo(
+    () => correlacionesCompletas[trimestreSeleccionado] || [],
+    [correlacionesCompletas, trimestreSeleccionado]);
 
-  // Datos para gráfico de evolución de correlaciones
-  const datosEvolucionCorrelaciones = useMemo(() => {
-    if (tiposCorrelacion.length === 0) return [];
+  const paresCorrelacion = useMemo(
+    () => paresDe(correlacionesDelTrimestre, modoEtapa),
+    [correlacionesDelTrimestre, modoEtapa]);
 
-    return tiposCorrelacion.map(tipo => {
-      const [asig1, asig2] = tipo.split('-');
-      const punto = {
-        par: `${abreviarAsignatura(asig1)}-${abreviarAsignatura(asig2)}`,
-        parCompleto: `${asig1} ↔ ${asig2}`
-      };
+  const datosEvolucionCorrelaciones = useMemo(
+    () => porPares(correlacionesDelTrimestre, paresCorrelacion, nivelesSinGlobalEtapa, abreviarAsignatura),
+    [correlacionesDelTrimestre, paresCorrelacion, nivelesSinGlobalEtapa, abreviarAsignatura]);
 
-      nivelesSinGlobalEtapa.forEach(nivel => {
-        // Buscar en todos los trimestres
-        Object.entries(correlacionesCompletas).forEach(([trim, corrs]) => {
-          const corr = corrs.find(c => 
-            c.Asignatura1 === asig1 && c.Asignatura2 === asig2 && c.Nivel === nivel
-          );
-          if (corr) {
-            if (!punto[nivel]) punto[nivel] = {};
-            punto[nivel] = corr.Correlacion;
-          }
-        });
-      });
+  const datosEvolucionCorrelacionesAlt = useMemo(
+    () => porNiveles(correlacionesDelTrimestre,
+      paresMasFuertes(correlacionesDelTrimestre, paresCorrelacion, nivelesSinGlobalEtapa, 10),
+      nivelesSinGlobalEtapa, abreviarAsignatura),
+    [correlacionesDelTrimestre, paresCorrelacion, nivelesSinGlobalEtapa, abreviarAsignatura]);
 
-      return punto;
-    });
-  }, [tiposCorrelacion, correlacionesCompletas, nivelesSinGlobalEtapa]);
-
-  // Datos alternativos para gráfico de evolución de correlaciones (eje X = niveles, líneas = pares)
-  const datosEvolucionCorrelacionesAlt = useMemo(() => {
-    if (tiposCorrelacion.length === 0) return [];
-
-    // Calcular promedio de correlaciones para cada par de asignaturas
-    const promediosPares = {};
-    tiposCorrelacion.forEach(tipo => {
-      const [asig1, asig2] = tipo.split('-');
-      let suma = 0;
-      let count = 0;
-
-      nivelesSinGlobalEtapa.forEach(nivel => {
-        Object.entries(correlacionesCompletas).forEach(([trim, corrs]) => {
-          const corr = corrs.find(c =>
-            c.Asignatura1 === asig1 && c.Asignatura2 === asig2 && c.Nivel === nivel
-          );
-          if (corr && corr.Correlacion !== null) {
-            suma += Math.abs(corr.Correlacion);
-            count++;
-          }
-        });
-      });
-
-      promediosPares[tipo] = count > 0 ? suma / count : 0;
-    });
-
-    // Seleccionar los 10 pares más relevantes (mayor correlación promedio)
-    const paresOrdenados = Object.entries(promediosPares)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10)
-      .map(([tipo]) => tipo);
-
-    // Crear estructura de datos con eje X = niveles
-    return nivelesSinGlobalEtapa.map(nivel => {
-      const punto = { nivel };
-
-      paresOrdenados.forEach(tipo => {
-        const [asig1, asig2] = tipo.split('-');
-        const parAbreviado = `${abreviarAsignatura(asig1)}-${abreviarAsignatura(asig2)}`;
-
-        // Buscar correlación en todos los trimestres para este nivel y par
-        Object.entries(correlacionesCompletas).forEach(([trim, corrs]) => {
-          const corr = corrs.find(c =>
-            c.Asignatura1 === asig1 && c.Asignatura2 === asig2 && c.Nivel === nivel
-          );
-          if (corr) {
-            punto[parAbreviado] = corr.Correlacion;
-          }
-        });
-      });
-
-      return punto;
-    });
-  }, [tiposCorrelacion, correlacionesCompletas, nivelesSinGlobalEtapa]);
-
-  // Obtener pares de asignaturas para el modo alternativo
   const paresCorrelacionesAlt = useMemo(() => {
-    if (datosEvolucionCorrelacionesAlt.length === 0) return [];
-
     const pares = new Set();
     datosEvolucionCorrelacionesAlt.forEach(punto => {
-      Object.keys(punto).forEach(key => {
-        if (key !== 'nivel') {
-          pares.add(key);
-        }
-      });
+      Object.keys(punto).forEach(key => { if (key !== 'nivel') pares.add(key); });
     });
-
     return Array.from(pares);
   }, [datosEvolucionCorrelacionesAlt]);
 
