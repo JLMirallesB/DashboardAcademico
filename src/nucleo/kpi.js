@@ -12,11 +12,12 @@
  * distintas de lo mismo.
  *
  * ---------------------------------------------------------------------------
- * LO QUE NO ARREGLA (todavía)
+ * CERO Y «NO HAY DATO» NO SON LO MISMO
  *
- * Esto es una extracción: mismo comportamiento, otro sitio. Los fallos
- * conocidos van marcados con TODO(fallo N) y se arreglan después, cada uno con
- * su prueba, para que el historial diga cuál cambió qué.
+ * Regla de este archivo: lo que no se puede calcular vale `null`, nunca 0. Un
+ * cero de relleno se lee como una medición —«las especialidades tienen
+ * desviación cero»— y en modo comparativo llegó a imprimir tres páginas
+ * enteras de informe a 0,00.
  */
 
 import { normalizar, buscarClave, esFilaTotal, getTrimestreBase } from './texto.js';
@@ -49,12 +50,13 @@ const agregadoPorPeso = (global, filtro) => {
     notaMedia: pesos > 0 ? notas / pesos : 0,
     aprobados: pesos > 0 ? aprob / pesos : 0,
     suspendidos: pesos > 0 ? susp / pesos : 0,
-    /* En este camino no hay de dónde sacarlas: la desviación y la moda de un
-       conjunto no se pueden recomponer desde las de sus partes.
-       TODO(fallo 12): devolver `null` y que la pantalla diga «—», en vez de un
-       cero que se lee como «desviación cero». */
-    desviacion: 0,
-    moda: 0
+    /* `null` y no cero: la desviación y la moda de un conjunto NO se pueden
+       recomponer desde las de sus partes, así que aquí no hay dato. Con un
+       cero, la tabla enseñaba «0.00 ↓100.0 %» para la desviación de
+       especialidades, que se lee como «las especialidades tienen desviación
+       cero» — y es una afirmación que nadie ha hecho. */
+    desviacion: null,
+    moda: null
   };
 };
 
@@ -70,8 +72,10 @@ const bloque = (global, nombreTotal, filtroRespaldo) => {
       moda: s.moda || 0
     };
   }
+  /* La fila agregada no está en el fichero y no hay forma de recomponerla:
+     nulls, para que la pantalla diga «—». */
   if (!filtroRespaldo) {
-    return { notaMedia: 0, aprobados: 0, suspendidos: 0, desviacion: 0, moda: 0 };
+    return { notaMedia: null, aprobados: null, suspendidos: null, desviacion: null, moda: null };
   }
   return agregadoPorPeso(global, filtroRespaldo);
 };
@@ -116,7 +120,7 @@ export const calcularKPIs = (datos, opciones) => {
      ahí solo podría encontrar una fila que se llame parecido. */
   const troncal = (modoEtapa === 'EPM' || modoEtapa === 'TODOS')
     ? bloque(global, 'Teórica Troncal', null)
-    : { notaMedia: 0, aprobados: 0, suspendidos: 0, desviacion: 0, moda: 0 };
+    : { notaMedia: null, aprobados: null, suspendidos: null, desviacion: null, moda: null };
 
   /* Cuántas asignaturas salen difíciles, fáciles o ni una cosa ni otra.
      Las filas de total se apartan aquí —esa es la razón de ser de
@@ -219,14 +223,16 @@ export const calcularKPIsGlobales = ({
       modoComparativo: true,
       kpisEEM,
       kpisEPM,
-      /* TODO(fallo 6): estos ceros son para los componentes que no saben de
-         modo comparativo. La pantalla los esquiva mirando `modoComparativo`,
-         pero el informe PDF no, y por eso imprime todos los KPIs a 0,00. */
-      notaMediaCentro: 0,
-      desviacionCentro: 0,
-      modaCentro: 0,
-      aprobadosCentro: 0,
-      suspendidosCentro: 0,
+      /* `null`, no cero. Estos campos existen para los componentes que no
+         saben de modo comparativo, y un cero de relleno se lee como un dato:
+         el informe PDF los imprimía tal cual y sacaba tres páginas de KPIs a
+         0,00. Con null, quien no sepa comparar enseña «—» y quien sepa mira
+         `modoComparativo` y usa los dos bloques. */
+      notaMediaCentro: null,
+      desviacionCentro: null,
+      modaCentro: null,
+      aprobadosCentro: null,
+      suspendidosCentro: null,
       asignaturasDificiles: ((kpisEEM && kpisEEM.asignaturasDificiles) || 0) +
                             ((kpisEPM && kpisEPM.asignaturasDificiles) || 0),
       asignaturasFaciles: ((kpisEEM && kpisEEM.asignaturasFaciles) || 0) +

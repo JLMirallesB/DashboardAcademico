@@ -81,6 +81,20 @@ seccion('4. Modo TODOS: dos bloques, nunca uno mezclado');
   comprobar('el alumnado de los dos bloques se lista junto pero sin sumarse en una media',
     k.alumnosPorCurso.length === 2);
 
+  /* CANDADO (fallo 6): en modo comparativo NO hay una nota media del centro, y
+     lo que se devuelve tiene que decir «no hay», no un cero. El informe leía
+     esos ceros y sacaba tres páginas de KPIs a 0,00 con las diferencias
+     porcentuales vacías, porque no se puede dividir por cero. */
+  comprobar('CANDADO: las cifras del centro son null, no ceros de relleno',
+    k.notaMediaCentro === null && k.aprobadosCentro === null && k.desviacionCentro === null,
+    JSON.stringify([k.notaMediaCentro, k.aprobadosCentro]));
+  comprobar('pero cada etapa sí tiene las suyas completas',
+    typeof k.kpisEEM.aprobadosCentro === 'number' && typeof k.kpisEPM.aprobadosCentro === 'number');
+  /* Lo que sí tiene sentido sumar se suma: contar asignaturas difíciles de las
+     dos etapas es una cuenta, no una media. */
+  comprobar('y lo que sí se puede sumar, se suma',
+    k.asignaturasDificiles === k.kpisEEM.asignaturasDificiles + k.kpisEPM.asignaturasDificiles);
+
   /* Coge la MISMA evaluación de cada etapa, no «el siguiente de la lista». */
   const k2 = calcularKPIsGlobales({
     trimestreSeleccionado: '2EV-EEM', datosCompletos, trimestresDisponibles,

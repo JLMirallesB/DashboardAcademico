@@ -35,16 +35,17 @@ export const esInverso = (clave) => clave === 'suspendidos';
 export const diferencia = (valor, base, clave) => {
   if (CLAVES_COMPARABLES.indexOf(clave) < 0) return null;
 
-  /* TODO(fallo 3): hoy no se distingue «sin dato» de cero. Si la referencia
-     trae la celda vacía, `7.2 - null` da 7,2 y se enseña como si la base
-     hubiera sido cero. */
+  /* «Sin dato» no es cero. Si la referencia trae la celda vacía, `7.2 - null`
+     daba 7,2 y se enseñaba como si la base hubiera sido cero — una mejora
+     inventada de siete puntos. */
   if (valor === null || valor === undefined || valor === '') return null;
   if (base === null || base === undefined || base === '') return null;
 
   const diff = valor - base;
 
-  /* TODO(fallo 3): esta es la lectura correcta, pero la pantalla todavía no la
-     usa — sigue pintando en verde todo lo que sea `diff >= 0`. */
+  /* La LECTURA, que no es el signo. Y el empate se marca aparte: pintar de
+     rojo una diferencia de exactamente cero hacía que un grupo idéntico al
+     centro pareciera peor que el centro. */
   const mejora = diff === 0 ? null : (esInverso(clave) ? diff < 0 : diff > 0);
 
   return { diff, mejora };

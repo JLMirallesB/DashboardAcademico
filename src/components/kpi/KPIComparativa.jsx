@@ -1,4 +1,5 @@
 import React from 'react';
+import { esInverso } from '../../nucleo/comparacion.js';
 
 /**
  * Componente KPIComparativa - Vista comparativa
@@ -10,23 +11,42 @@ import React from 'react';
 const KPIComparativa = ({ kpis, t, modoEtapa }) => {
   if (!kpis) return null;
 
-  // Calcular diferencias porcentuales con respecto al centro
+  /* Cuánto se aparta un grupo del centro, en porcentaje.
+     Devuelve `null` —y no cero— cuando no hay referencia o no hay dato: «no se
+     puede comparar» y «es idéntico al centro» son cosas distintas y se estaban
+     enseñando igual. */
   const calcularRelacion = (valor, valorCentro) => {
-    if (!valorCentro || valorCentro === 0) return 0;
-    const diff = ((valor - valorCentro) / valorCentro) * 100;
-    return diff;
+    if (valor === null || valor === undefined || valor === '') return null;
+    if (!valorCentro || valorCentro === 0) return null;
+    return ((valor - valorCentro) / valorCentro) * 100;
   };
 
-  const renderRelacion = (diff) => {
-    const isPositive = diff > 0;
-    const color = isPositive ? 'text-emerald-600' : 'text-red-600';
-    const icon = isPositive ? '↑' : '↓';
+  /* La flecha dice si el grupo está por encima o por debajo; el COLOR dice si
+     eso es mejor o peor, que no es lo mismo. Estar por encima del centro en
+     porcentaje de suspensos se pintaba en verde. Y una diferencia de
+     exactamente cero se pintaba en rojo con «↓ 0.0 %», así que un grupo
+     idéntico al centro parecía peor que el centro. */
+  const renderRelacion = (diff, clave) => {
+    if (diff === null || diff === undefined) {
+      return <span className="text-xs font-medium text-gray-400 ml-1">—</span>;
+    }
+    if (Math.abs(diff) < 0.05) {
+      return <span className="text-xs font-medium text-gray-500 ml-1">= 0.0%</span>;
+    }
+    const arriba = diff > 0;
+    const mejor = esInverso(clave) ? !arriba : arriba;
     return (
-      <span className={`text-xs font-medium ${color} ml-1`}>
-        {icon} {Math.abs(diff).toFixed(1)}%
+      <span className={`text-xs font-medium ${mejor ? 'text-emerald-600' : 'text-red-600'} ml-1`}>
+        {arriba ? '↑' : '↓'} {Math.abs(diff).toFixed(1)}%
       </span>
     );
   };
+
+  /* Un valor que no existe se enseña como «—», no como 0,00. Con la desviación
+     de especialidades ausente, la tabla decía «0.00 ↓100.0 %», que un lector
+     interpreta como «las especialidades tienen desviación cero». */
+  const conFormato = (metrica, valor) =>
+    (valor === null || valor === undefined || valor === '') ? '—' : metrica.formato(valor);
 
   const metricas = [
     {
@@ -117,7 +137,7 @@ const KPIComparativa = ({ kpis, t, modoEtapa }) => {
                   {/* Centro */}
                   <td className="py-3 px-4 text-center bg-gray-100">
                     <span className="text-xl font-bold text-gray-900">
-                      {metrica.formato(metrica.centro)}
+                      {conFormato(metrica, metrica.centro)}
                     </span>
                   </td>
 
@@ -125,9 +145,9 @@ const KPIComparativa = ({ kpis, t, modoEtapa }) => {
                   <td className="py-3 px-4 text-center bg-gray-50/50">
                     <div className="flex flex-col items-center">
                       <span className="text-xl font-bold text-gray-900">
-                        {metrica.formato(metrica.teoricaTroncal)}
+                        {conFormato(metrica, metrica.teoricaTroncal)}
                       </span>
-                      {renderRelacion(diffTT)}
+                      {renderRelacion(diffTT, metrica.key)}
                     </div>
                   </td>
 
@@ -135,9 +155,9 @@ const KPIComparativa = ({ kpis, t, modoEtapa }) => {
                   <td className="py-3 px-4 text-center">
                     <div className="flex flex-col items-center">
                       <span className="text-xl font-bold text-gray-900">
-                        {metrica.formato(metrica.especialidades)}
+                        {conFormato(metrica, metrica.especialidades)}
                       </span>
-                      {renderRelacion(diffEsp)}
+                      {renderRelacion(diffEsp, metrica.key)}
                     </div>
                   </td>
 
@@ -145,9 +165,9 @@ const KPIComparativa = ({ kpis, t, modoEtapa }) => {
                   <td className="py-3 px-4 text-center bg-gray-50/50">
                     <div className="flex flex-col items-center">
                       <span className="text-xl font-bold text-gray-900">
-                        {metrica.formato(metrica.noEspecialidades)}
+                        {conFormato(metrica, metrica.noEspecialidades)}
                       </span>
-                      {renderRelacion(diffNoEsp)}
+                      {renderRelacion(diffNoEsp, metrica.key)}
                     </div>
                   </td>
                 </tr>
@@ -205,16 +225,16 @@ const KPIComparativa = ({ kpis, t, modoEtapa }) => {
                 <td className="py-3 px-4 text-center bg-gray-50/50">
                   <div className="flex flex-col items-center">
                     <span className="text-xl font-bold text-gray-900">
-                      {metrica.formato(metrica.especialidades)}
+                      {conFormato(metrica, metrica.especialidades)}
                     </span>
-                    {renderRelacion(diffEsp)}
+                    {renderRelacion(diffEsp, metrica.key)}
                   </div>
                 </td>
 
                 {/* Centro */}
                 <td className="py-3 px-4 text-center bg-gray-100">
                   <span className="text-xl font-bold text-gray-900">
-                    {metrica.formato(metrica.centro)}
+                    {conFormato(metrica, metrica.centro)}
                   </span>
                 </td>
 
@@ -222,9 +242,9 @@ const KPIComparativa = ({ kpis, t, modoEtapa }) => {
                 <td className="py-3 px-4 text-center bg-gray-50/50">
                   <div className="flex flex-col items-center">
                     <span className="text-xl font-bold text-gray-900">
-                      {metrica.formato(metrica.noEspecialidades)}
+                      {conFormato(metrica, metrica.noEspecialidades)}
                     </span>
-                    {renderRelacion(diffNoEsp)}
+                    {renderRelacion(diffNoEsp, metrica.key)}
                   </div>
                 </td>
               </tr>

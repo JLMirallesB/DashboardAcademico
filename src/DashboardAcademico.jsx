@@ -10,6 +10,8 @@ import { exportarJSON as exportarJSONService, procesarImportacionJSON } from './
 import { useStatisticalCalculations } from './hooks/useStatisticalCalculations.js';
 import { analizarDificultad } from './nucleo/dificultad.js';
 import { serieEvolucionSelecciones, serieEvolucionNiveles } from './nucleo/evolucion.js';
+import { compararTrimestres, esFilaTotal } from './nucleo/texto.js';
+import { diferencia, decimalesDe } from './nucleo/comparacion.js';
 import { useKPICalculation } from './hooks/useKPICalculation.js';
 import KPICentro from './components/kpi/KPICentro.jsx';
 import KPIDetalle from './components/kpi/KPIDetalle.jsx';
@@ -134,9 +136,8 @@ const DashboardAcademico = () => {
 
   // Función auxiliar para renderizar opciones de asignaturas con separador
   const renderOpcionesAsignaturas = useCallback((asignaturas) => {
-    const totales = ['Total', 'Total Especialidad', 'Total no Especialidad'];
-    const tieneTotales = asignaturas.some(a => totales.includes(a));
-    const indexPrimerNoTotal = asignaturas.findIndex(a => !totales.includes(a));
+    const tieneTotales = asignaturas.some(a => esFilaTotal(a));
+    const indexPrimerNoTotal = asignaturas.findIndex(a => !esFilaTotal(a));
 
     return asignaturas.map((asig, idx) => {
       const esSeparador = tieneTotales && idx === indexPrimerNoTotal;
@@ -190,34 +191,16 @@ const DashboardAcademico = () => {
       [trimestre]: meta
     }));
 
+    /* El orden cronológico lo decide el núcleo (`compararTrimestres`), que es
+       el mismo criterio que usan la evolución y el informe. Estaba escrito a
+       mano aquí y en el PDF con dos tablas distintas, y la de aquí no conocía
+       el formato «1T/2T/3T» que el propio validador del proyecto documenta:
+       todos empataban al final y el orden pasaba a ser el de CARGA, con lo que
+       la evolución se dibujaba al revés y la tendencia salía con el signo
+       cambiado. */
     setTrimestresDisponibles(prev => {
       const nuevos = prev.includes(trimestre) ? prev : [...prev, trimestre];
-      return nuevos.sort((a, b) => {
-        // Extraer trimestre base y etapa
-        const parsedA = parseTrimestre(a);
-        const parsedB = parseTrimestre(b);
-
-        const trimA = parsedA?.base || a;
-        const etapaA = parsedA?.etapa;
-        const trimB = parsedB?.base || b;
-        const etapaB = parsedB?.etapa;
-
-        const orden = { '1EV': 1, '2EV': 2, '3EV': 3, 'FINAL': 4 };
-        const ordenTrimA = orden[trimA] || 99;
-        const ordenTrimB = orden[trimB] || 99;
-
-        // Primero ordenar por trimestre
-        if (ordenTrimA !== ordenTrimB) {
-          return ordenTrimA - ordenTrimB;
-        }
-
-        // Si el trimestre es igual, ordenar por etapa (EEM antes que EPM)
-        if (etapaA && etapaB) {
-          return etapaA.localeCompare(etapaB);
-        }
-
-        return 0;
-      });
+      return [...nuevos].sort(compararTrimestres);
     });
 
     if (!trimestreSeleccionado) {
@@ -349,7 +332,10 @@ const DashboardAcademico = () => {
         if (resultado.agrupacionesCompletas) setAgrupacionesCompletas(resultado.agrupacionesCompletas);
         if (resultado.umbrales) setUmbrales(resultado.umbrales);
         setMetadata(resultado.metadata);
-        setTrimestresDisponibles(resultado.trimestresDisponibles);
+        /* Se reordena al importar: el JSON guarda la lista tal como estaba
+           cuando se exportó, y si aquello ya venía desordenado el desorden
+           viajaba con el fichero. */
+        setTrimestresDisponibles([...(resultado.trimestresDisponibles || [])].sort(compararTrimestres));
 
         if (resultado.trimestresDisponibles.length > 0) {
           setTrimestreSeleccionado(resultado.trimestresDisponibles[0]);
@@ -1213,7 +1199,7 @@ const DashboardAcademico = () => {
       if (!datosNivel) return;
 
       Object.entries(datosNivel).forEach(([asig, data]) => {
-        if (asig === 'Total' || asig === 'Total Especialidad' || asig === 'Total no Especialidad') return;
+        if (esFilaTotal(asig)) return;
         if (!data?.distribucion) return;
 
         // Filtrar por grupo si hay filtro activo
@@ -1395,7 +1381,7 @@ const DashboardAcademico = () => {
     // Obtener datos GLOBAL
     if (datosTrimestre?.['GLOBAL']) {
       Object.entries(datosTrimestre['GLOBAL']).forEach(([asig, data]) => {
-        if (asig !== 'Total' && asig !== 'Total Especialidad' && asig !== 'Total no Especialidad' && data?.stats) {
+        if (!esFilaTotal(asig) && data?.stats) {
           // Filtrar por grupo si hay filtro activo
           if (!perteneceAGruposFiltrados(asig)) return;
 
@@ -1442,7 +1428,7 @@ const DashboardAcademico = () => {
       const datosNivel = datosCompletos[trimestreSeleccionado]?.[nivel];
       if (datosNivel) {
         Object.keys(datosNivel).forEach(asig => {
-          if (asig !== 'Total' && asig !== 'Total Especialidad' && asig !== 'Total no Especialidad') {
+          if (!esFilaTotal(asig)) {
             asignaturasSet.add(asig);
           }
         });
@@ -2097,7 +2083,7 @@ const DashboardAcademico = () => {
                   const datosNivel = datosCompletos[trim]?.['GLOBAL'];
                   if (datosNivel) {
                     Object.entries(datosNivel).forEach(([asignatura, datos]) => {
-                      if (asignatura !== 'Total' && asignatura !== 'Total Especialidad' && asignatura !== 'Total no Especialidad' && datos?.stats) {
+                      if (!esFilaTotal(asignatura) && datos?.stats) {
                         if (!asignaturasCombinadas.has(asignatura)) {
                           asignaturasCombinadas.set(asignatura, {
                             asignatura,
@@ -2152,7 +2138,7 @@ const DashboardAcademico = () => {
                 const datosNivel = datosCompletos[trimestreSeleccionado]?.['GLOBAL'];
                 if (datosNivel) {
                   Object.entries(datosNivel).forEach(([asignatura, datos]) => {
-                    if (asignatura !== 'Total' && asignatura !== 'Total Especialidad' && asignatura !== 'Total no Especialidad' && datos?.stats) {
+                    if (!esFilaTotal(asignatura) && datos?.stats) {
                       const notaMedia = datos.stats.notaMedia;
                       const desviacion = datos.stats.desviacion || 0;
                       const alumnos = datos.stats.registros || 0;
@@ -2174,7 +2160,7 @@ const DashboardAcademico = () => {
               const datosNivel = datosCompletos[trimestreSeleccionado]?.[nivelDispersion];
               if (datosNivel) {
                 Object.entries(datosNivel).forEach(([asignatura, datos]) => {
-                  if (asignatura !== 'Total' && asignatura !== 'Total Especialidad' && asignatura !== 'Total no Especialidad' && datos?.stats) {
+                  if (!esFilaTotal(asignatura) && datos?.stats) {
                     const notaMedia = datos.stats.notaMedia;
                     const desviacion = datos.stats.desviacion || 0;
                     const alumnos = datos.stats.registros || 0;
@@ -2770,18 +2756,24 @@ const DashboardAcademico = () => {
                       { label: `${t('mode')} ${t('failed')}`, title: t('failedMode'), key: 'modaSuspendidos', format: (v) => v ?? '—' }
                     ].map(({ label, title, key, format }) => {
                       const valor = datos.stats[key];
-                      let diff = null;
-                      if (idx > 0 && datosBase && ['notaMedia', 'aprobados', 'suspendidos'].includes(key)) {
-                        diff = valor - datosBase.stats[key];
-                      }
+                      /* La diferencia y su LECTURA las decide el núcleo. No es
+                         lo mismo el signo que la mejora: subir la nota media es
+                         mejorar, y subir el porcentaje de suspensos es
+                         empeorar. Antes las tres se pintaban con la misma
+                         regla —positivo, verde—, así que pasar de un 8,5 % a
+                         un 14 % de suspensos salía como «+5.5» EN VERDE. */
+                      const comp = (idx > 0 && datosBase)
+                        ? diferencia(valor, datosBase.stats[key], key) : null;
 
                       return (
                         <div key={key} className="bg-gray-50 rounded p-2 md:p-3 lg:p-4 text-center min-h-[60px] md:min-h-[70px] lg:min-h-[80px] flex flex-col justify-center" title={title}>
                           <div className="text-xs md:text-sm text-gray-500">{label}</div>
                           <div className="text-sm md:text-base lg:text-lg font-bold text-gray-900">{format(valor)}</div>
-                          {diff !== null && (
-                            <div className={`text-xs md:text-sm font-medium ${diff >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                              {diff >= 0 ? '+' : ''}{diff.toFixed(1)}
+                          {comp && (
+                            <div className={`text-xs md:text-sm font-medium ${
+                              comp.mejora === null ? 'text-gray-500'
+                                : comp.mejora ? 'text-green-600' : 'text-red-600'}`}>
+                              {comp.diff > 0 ? '+' : ''}{comp.diff.toFixed(decimalesDe(key))}
                             </div>
                           )}
                         </div>

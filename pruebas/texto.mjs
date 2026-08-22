@@ -87,4 +87,28 @@ seccion('6. El eje del tiempo: evaluaciones, no claves compuestas');
     evaluacionesDe(['3EV-EPM', '1EV-EEM']).join() === '1EV,3EV');
 }
 
+seccion('7. El filtro por agrupación del informe (fallo 10)');
+{
+  /* El mapa de agrupaciones se construye con `normalizar`, que CONSERVA los
+     acentos. El informe tenía su propia copia que los quitaba, así que
+     buscaba «percusion» en un mapa cuya clave es «percusión»: la asignatura
+     no pertenecía a ningún grupo, desaparecía del informe sin aviso, y la
+     portada seguía contando las que sí. */
+  const mapa = {};
+  ['Percusión', 'Violín', 'Saxofón', 'Órgano', 'Piano'].forEach((a) => {
+    mapa[normalizar(a)] = ['especialidad'];
+  });
+  const pertenece = (asig) => (mapa[normalizar(asig)] || []).indexOf('especialidad') >= 0;
+  comprobar('CANDADO: las asignaturas con tilde encuentran su grupo',
+    ['Percusión', 'Violín', 'Saxofón', 'Órgano'].every(pertenece),
+    ['Percusión', 'Violín', 'Saxofón', 'Órgano'].filter((a) => !pertenece(a)).join(' · '));
+  comprobar('y las que no tienen tilde también, claro', pertenece('Piano'));
+  /* Y la prueba de que el fallo era real: con la normalización que quitaba
+     acentos, ninguna de las cuatro casaba. */
+  const conAcentosQuitados = (asig) =>
+    (mapa[sinAcentos(asig)] || []).indexOf('especialidad') >= 0;
+  comprobar('CANDADO: quitar los acentos al buscar las pierde todas',
+    !['Percusión', 'Violín', 'Saxofón', 'Órgano'].some(conAcentosQuitados));
+}
+
 terminar('el criterio de totales, los acentos y el eje del tiempo.');

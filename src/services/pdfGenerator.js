@@ -6,6 +6,7 @@
 
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { esFilaTotal, normalizar as normalizarNucleo } from '../nucleo/texto.js';
 
 // Constantes de diseño
 const COLORS = {
@@ -90,15 +91,14 @@ export const generarInformePDF = async ({
     const contentWidth = PAGE.width - 2 * PAGE.margin;
     const contentStartY = PAGE.headerHeight + 5;
 
-    // Función para normalizar texto (sin tildes, minúsculas)
-    const normalizar = (texto) => {
-      if (!texto) return '';
-      return texto
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .trim();
-    };
+    /* La MISMA normalización que usa el resto del proyecto, y esto no es
+       cosmético. Esta copia local quitaba las tildes; el mapa de agrupaciones
+       se construye con la del núcleo, que las conserva. Así que al filtrar un
+       informe por grupo se buscaba «percusion» en un mapa cuya clave es
+       «percusión», no casaba, y **Percusión, Violín, Saxofón, Órgano, Acordeón
+       y Teórica Troncal desaparecían del informe sin ningún aviso** — mientras
+       la portada seguía diciendo «12 asignaturas en el grupo» cuando eran 18. */
+    const normalizar = normalizarNucleo;
 
     // Función para detectar la etapa educativa de un nivel
     const detectarEtapa = (nivel) => {
@@ -180,7 +180,7 @@ export const generarInformePDF = async ({
           const datosNivel = datosCompletos[trimestreSeleccionado]?.[nivel];
           if (datosNivel) {
             Object.keys(datosNivel).forEach(asig => {
-              if (asig !== 'Total' && asig !== 'Total Especialidad' && asig !== 'Total no Especialidad') {
+              if (!esFilaTotal(asig)) {
                 if (perteneceAGruposFiltrados(asig)) {
                   asignaturasDelGrupo++;
                 }
@@ -274,7 +274,7 @@ export const generarInformePDF = async ({
         const nivelData = datosCompletos[trimestreSeleccionado]?.[nivel];
         if (nivelData) {
           Object.keys(nivelData).forEach(asig => {
-            if (asig !== 'Total' && asig !== 'Total Especialidad' && asig !== 'Total no Especialidad') {
+            if (!esFilaTotal(asig)) {
               asignaturas.add(asig);
             }
           });
@@ -317,318 +317,339 @@ export const generarInformePDF = async ({
 
     // ========== KPIs VISUALES ==========
     if (configInforme.incluirKPIs !== false && kpisGlobales) {
-      onProgress?.(t('pdfGeneratingKPIs'));
-      addNewPage();
+    /* En modo TODOS no hay UNAS cifras del centro: elemental y profesional son
+       dos poblaciones distintas y su media conjunta no significa nada. El
+       núcleo lo dice devolviendo `modoComparativo` con los dos bloques
+       aparte, y la pantalla lo respeta.
 
-      pdf.setFontSize(18);
-      pdf.setTextColor(...COLORS.primary);
-      pdf.text(t('kpis'), PAGE.margin, contentStartY);
-      pdf.setTextColor(...COLORS.text);
+       El informe NO lo respetaba: leía `kpisGlobales.notaMediaCentro` a secas,
+       que en ese modo eran ceros de relleno, e imprimía tres páginas enteras
+       de KPIs a 0,00 — con las diferencias porcentuales vacías, porque no se
+       puede dividir por cero. Ahora se imprime un juego de páginas POR ETAPA,
+       cada uno rotulado con la suya. */
+    const bloquesKPI = (kpisGlobales && kpisGlobales.modoComparativo)
+      ? [{ etapa: 'EEM', kpis: kpisGlobales.kpisEEM },
+         { etapa: 'EPM', kpis: kpisGlobales.kpisEPM }].filter((b) => b.kpis)
+      : [{ etapa: null, kpis: kpisGlobales }];
 
-      // Dibujar cards de KPIs
-      const cardWidth = 62;
-      const cardHeight = 35;
-      const cardsPerRow = 4;
-      const cardSpacing = 6;
-      let cardY = contentStartY + 12;
-      let cardX = PAGE.margin;
-      let cardCount = 0;
+    for (const bloque of bloquesKPI) {
+      const kpisBloque = bloque.kpis;
+      const sufijoEtapa = bloque.etapa ? ` — ${bloque.etapa}` : '';
 
-      const drawKPICard = (label, value, color, unit = '') => {
-        // Fondo de la card
-        pdf.setFillColor(...COLORS.light);
-        pdf.roundedRect(cardX, cardY, cardWidth, cardHeight, 3, 3, 'F');
-
-        // Barra de color superior
-        pdf.setFillColor(...color);
-        pdf.roundedRect(cardX, cardY, cardWidth, 4, 3, 3, 'F');
-        pdf.rect(cardX, cardY + 2, cardWidth, 2, 'F');
-
-        // Valor
-        pdf.setFontSize(18);
-        pdf.setTextColor(...color);
-        pdf.text(`${value}${unit}`, cardX + cardWidth / 2, cardY + 18, { align: 'center' });
-
-        // Label
-        pdf.setFontSize(8);
-        pdf.setTextColor(...COLORS.textLight);
-        const labelLines = pdf.splitTextToSize(label, cardWidth - 4);
-        pdf.text(labelLines, cardX + cardWidth / 2, cardY + 26, { align: 'center' });
-
-        // Siguiente posición
-        cardCount++;
-        if (cardCount % cardsPerRow === 0) {
-          cardX = PAGE.margin;
-          cardY += cardHeight + cardSpacing;
-        } else {
-          cardX += cardWidth + cardSpacing;
-        }
-      };
-
-      // Primera fila: KPIs principales
-      drawKPICard(t('kpiCenterAvg'), (kpisGlobales.notaMediaCentro || 0).toFixed(2), COLORS.info);
-      drawKPICard(t('kpiStdDev'), (kpisGlobales.desviacionCentro || 0).toFixed(2), [99, 102, 241]); // Indigo
-      drawKPICard(t('kpiMode'), (kpisGlobales.modaCentro || 0).toString(), [139, 92, 246]); // Violet
-      drawKPICard(t('kpiPassedAvg'), (kpisGlobales.aprobadosCentro || 0).toFixed(1), COLORS.success, '%');
-
-      // Segunda fila: Especialidades
-      drawKPICard(t('kpiInstrAvg'), (kpisGlobales.notaMediaEspecialidades || kpisGlobales.notaMediaEsp || 0).toFixed(2), COLORS.warning);
-      drawKPICard(t('kpiPassedInstr'), (kpisGlobales.aprobadosEspecialidades || kpisGlobales.aprobadosEsp || 0).toFixed(1), COLORS.success, '%');
-      drawKPICard(t('kpiDifficult'), (kpisGlobales.asignaturasDificiles || kpisGlobales.countDificiles || 0).toString(), COLORS.danger);
-      drawKPICard(t('kpiEasy'), (kpisGlobales.asignaturasFaciles || kpisGlobales.countFaciles || 0).toString(), COLORS.success);
-
-      // Tercera fila: Referencia (si hay)
-      if (kpisGlobales.notasMediasRef && kpisGlobales.notasMediasRef.length > 0) {
-        kpisGlobales.notasMediasRef.forEach(ref => {
-          const label = ref.asignatura === 'Teórica Troncal' ? t('kpiTTAvg') : t('kpiLMAvg');
-          drawKPICard(label, (ref.notaMedia || 0).toFixed(2), [6, 182, 212]); // Cyan
-        });
-      }
-
-      addFooter(currentPage);
-
-      // Alumnos por curso (si hay datos) - en página separada
-      if (kpisGlobales.alumnosPorCurso && kpisGlobales.alumnosPorCurso.length > 0) {
+        onProgress?.(t('pdfGeneratingKPIs'));
         addNewPage();
 
         pdf.setFontSize(18);
         pdf.setTextColor(...COLORS.primary);
-        pdf.text(t('studentsPerCourse') || 'Alumnos por Curso', PAGE.margin, contentStartY);
+        pdf.text(t('kpis') + sufijoEtapa, PAGE.margin, contentStartY);
         pdf.setTextColor(...COLORS.text);
 
-        // Reiniciar posición de cards
-        cardY = contentStartY + 15;
-        cardX = PAGE.margin;
-        cardCount = 0;
+        // Dibujar cards de KPIs
+        const cardWidth = 62;
+        const cardHeight = 35;
+        const cardsPerRow = 4;
+        const cardSpacing = 6;
+        let cardY = contentStartY + 12;
+        let cardX = PAGE.margin;
+        let cardCount = 0;
 
-        kpisGlobales.alumnosPorCurso.forEach(({ nivel, alumnos }) => {
-          drawKPICard(nivel, alumnos.toString(), COLORS.warning);
-        });
-
-        addFooter(currentPage);
-      }
-
-      console.log('[PDF] KPI Centro completado, creando KPI Detalle...');
-
-      // ========== KPI DETALLE (Especialidades vs No Especialidades) ==========
-      addNewPage();
-      pdf.setFontSize(18);
-      pdf.setTextColor(...COLORS.primary);
-      pdf.text(t('kpiDetail') || 'KPIs - Detalle por Tipo', PAGE.margin, contentStartY);
-      pdf.setTextColor(...COLORS.text);
-
-      // Función para dibujar grupo de KPIs
-      const drawKPIGroup = (title, data, startX, color) => {
-        const groupWidth = 80;
-        let y = contentStartY + 18;
-
-        // Título del grupo
-        pdf.setFillColor(...color);
-        pdf.roundedRect(startX, y, groupWidth, 8, 2, 2, 'F');
-        pdf.setFontSize(11);
-        pdf.setTextColor(255, 255, 255);
-        pdf.text(title, startX + groupWidth / 2, y + 5.5, { align: 'center' });
-        y += 14;
-
-        // Métricas
-        const metrics = [
-          { label: t('avgGrade') || 'Nota Media', value: (data.notaMedia || 0).toFixed(2) },
-          { label: t('kpiStdDev') || 'Desviación', value: (data.desviacion || 0).toFixed(2) },
-          { label: t('kpiMode') || 'Moda', value: (data.moda || 0).toFixed(0) },
-          { label: t('passed') || '% Aprobados', value: `${(data.aprobados || 0).toFixed(1)}%` },
-          { label: t('failed') || '% Suspensos', value: `${(data.suspendidos || 0).toFixed(1)}%` }
-        ];
-
-        metrics.forEach(metric => {
+        const drawKPICard = (label, value, color, unit = '') => {
+          // Fondo de la card
           pdf.setFillColor(...COLORS.light);
-          pdf.roundedRect(startX, y, groupWidth, 18, 2, 2, 'F');
+          pdf.roundedRect(cardX, cardY, cardWidth, cardHeight, 3, 3, 'F');
 
+          // Barra de color superior
+          pdf.setFillColor(...color);
+          pdf.roundedRect(cardX, cardY, cardWidth, 4, 3, 3, 'F');
+          pdf.rect(cardX, cardY + 2, cardWidth, 2, 'F');
+
+          // Valor
+          pdf.setFontSize(18);
+          pdf.setTextColor(...color);
+          pdf.text(`${value}${unit}`, cardX + cardWidth / 2, cardY + 18, { align: 'center' });
+
+          // Label
           pdf.setFontSize(8);
           pdf.setTextColor(...COLORS.textLight);
-          pdf.text(metric.label, startX + 4, y + 6);
+          const labelLines = pdf.splitTextToSize(label, cardWidth - 4);
+          pdf.text(labelLines, cardX + cardWidth / 2, cardY + 26, { align: 'center' });
 
-          pdf.setFontSize(14);
-          pdf.setTextColor(...color);
-          pdf.text(metric.value, startX + groupWidth - 4, y + 13, { align: 'right' });
+          // Siguiente posición
+          cardCount++;
+          if (cardCount % cardsPerRow === 0) {
+            cardX = PAGE.margin;
+            cardY += cardHeight + cardSpacing;
+          } else {
+            cardX += cardWidth + cardSpacing;
+          }
+        };
 
-          y += 22;
+        // Primera fila: KPIs principales
+        drawKPICard(t('kpiCenterAvg'), (kpisBloque.notaMediaCentro || 0).toFixed(2), COLORS.info);
+        drawKPICard(t('kpiStdDev'), (kpisBloque.desviacionCentro || 0).toFixed(2), [99, 102, 241]); // Indigo
+        drawKPICard(t('kpiMode'), (kpisBloque.modaCentro || 0).toString(), [139, 92, 246]); // Violet
+        drawKPICard(t('kpiPassedAvg'), (kpisBloque.aprobadosCentro || 0).toFixed(1), COLORS.success, '%');
+
+        // Segunda fila: Especialidades
+        drawKPICard(t('kpiInstrAvg'), (kpisBloque.notaMediaEspecialidades || kpisBloque.notaMediaEsp || 0).toFixed(2), COLORS.warning);
+        drawKPICard(t('kpiPassedInstr'), (kpisBloque.aprobadosEspecialidades || kpisBloque.aprobadosEsp || 0).toFixed(1), COLORS.success, '%');
+        drawKPICard(t('kpiDifficult'), (kpisBloque.asignaturasDificiles || kpisBloque.countDificiles || 0).toString(), COLORS.danger);
+        drawKPICard(t('kpiEasy'), (kpisBloque.asignaturasFaciles || kpisBloque.countFaciles || 0).toString(), COLORS.success);
+
+        // Tercera fila: Referencia (si hay)
+        if (kpisBloque.notasMediasRef && kpisBloque.notasMediasRef.length > 0) {
+          kpisBloque.notasMediasRef.forEach(ref => {
+            const label = ref.asignatura === 'Teórica Troncal' ? t('kpiTTAvg') : t('kpiLMAvg');
+            drawKPICard(label, (ref.notaMedia || 0).toFixed(2), [6, 182, 212]); // Cyan
+          });
+        }
+
+        addFooter(currentPage);
+
+        // Alumnos por curso (si hay datos) - en página separada
+        if (kpisBloque.alumnosPorCurso && kpisBloque.alumnosPorCurso.length > 0) {
+          addNewPage();
+
+          pdf.setFontSize(18);
+          pdf.setTextColor(...COLORS.primary);
+          pdf.text(t('studentsPerCourse') || 'Alumnos por Curso', PAGE.margin, contentStartY);
+          pdf.setTextColor(...COLORS.text);
+
+          // Reiniciar posición de cards
+          cardY = contentStartY + 15;
+          cardX = PAGE.margin;
+          cardCount = 0;
+
+          kpisBloque.alumnosPorCurso.forEach(({ nivel, alumnos }) => {
+            drawKPICard(nivel, alumnos.toString(), COLORS.warning);
+          });
+
+          addFooter(currentPage);
+        }
+
+        console.log('[PDF] KPI Centro completado, creando KPI Detalle...');
+
+        // ========== KPI DETALLE (Especialidades vs No Especialidades) ==========
+        addNewPage();
+        pdf.setFontSize(18);
+        pdf.setTextColor(...COLORS.primary);
+        pdf.text(t('kpiDetail') || 'KPIs - Detalle por Tipo', PAGE.margin, contentStartY);
+        pdf.setTextColor(...COLORS.text);
+
+        // Función para dibujar grupo de KPIs
+        const drawKPIGroup = (title, data, startX, color) => {
+          const groupWidth = 80;
+          let y = contentStartY + 18;
+
+          // Título del grupo
+          pdf.setFillColor(...color);
+          pdf.roundedRect(startX, y, groupWidth, 8, 2, 2, 'F');
+          pdf.setFontSize(11);
+          pdf.setTextColor(255, 255, 255);
+          pdf.text(title, startX + groupWidth / 2, y + 5.5, { align: 'center' });
+          y += 14;
+
+          // Métricas
+          const metrics = [
+            { label: t('avgGrade') || 'Nota Media', value: (data.notaMedia || 0).toFixed(2) },
+            { label: t('kpiStdDev') || 'Desviación', value: (data.desviacion || 0).toFixed(2) },
+            { label: t('kpiMode') || 'Moda', value: (data.moda || 0).toFixed(0) },
+            { label: t('passed') || '% Aprobados', value: `${(data.aprobados || 0).toFixed(1)}%` },
+            { label: t('failed') || '% Suspensos', value: `${(data.suspendidos || 0).toFixed(1)}%` }
+          ];
+
+          metrics.forEach(metric => {
+            pdf.setFillColor(...COLORS.light);
+            pdf.roundedRect(startX, y, groupWidth, 18, 2, 2, 'F');
+
+            pdf.setFontSize(8);
+            pdf.setTextColor(...COLORS.textLight);
+            pdf.text(metric.label, startX + 4, y + 6);
+
+            pdf.setFontSize(14);
+            pdf.setTextColor(...color);
+            pdf.text(metric.value, startX + groupWidth - 4, y + 13, { align: 'right' });
+
+            y += 22;
+          });
+        };
+
+        // Determinar columnas según modoEtapa
+        const modoEtapa = bloque.etapa || configInforme.modoEtapa || 'TODOS';
+        const columnWidth = 80;
+        const columnGap = 12;
+
+        if (modoEtapa === 'EPM') {
+          // 3 columnas: Teórica Troncal, Especialidades, No Especialidades
+          const startX = PAGE.margin + (contentWidth - 3 * columnWidth - 2 * columnGap) / 2;
+
+          drawKPIGroup('Teórica Troncal', {
+            notaMedia: kpisBloque.notaMediaTeoricaTroncal,
+            desviacion: kpisBloque.desviacionTeoricaTroncal,
+            moda: kpisBloque.modaTeoricaTroncal,
+            aprobados: kpisBloque.aprobadosTeoricaTroncal,
+            suspendidos: kpisBloque.suspendidosTeoricaTroncal
+          }, startX, [6, 182, 212]); // Cyan
+
+          drawKPIGroup(t('specialties') || 'Especialidades', {
+            notaMedia: kpisBloque.notaMediaEspecialidades,
+            desviacion: kpisBloque.desviacionEspecialidades,
+            moda: kpisBloque.modaEspecialidades,
+            aprobados: kpisBloque.aprobadosEspecialidades,
+            suspendidos: kpisBloque.suspendidosEspecialidades
+          }, startX + columnWidth + columnGap, COLORS.warning);
+
+          drawKPIGroup(t('nonSpecialties') || 'No Especialidades', {
+            notaMedia: kpisBloque.notaMediaNoEspecialidades,
+            desviacion: kpisBloque.desviacionNoEspecialidades,
+            moda: kpisBloque.modaNoEspecialidades,
+            aprobados: kpisBloque.aprobadosNoEspecialidades,
+            suspendidos: kpisBloque.suspendidosNoEspecialidades
+          }, startX + 2 * (columnWidth + columnGap), [139, 92, 246]); // Purple
+        } else {
+          // 2 columnas: Especialidades, No Especialidades
+          const startX = PAGE.margin + (contentWidth - 2 * columnWidth - columnGap) / 2;
+
+          drawKPIGroup(t('specialties') || 'Especialidades', {
+            notaMedia: kpisBloque.notaMediaEspecialidades,
+            desviacion: kpisBloque.desviacionEspecialidades,
+            moda: kpisBloque.modaEspecialidades,
+            aprobados: kpisBloque.aprobadosEspecialidades,
+            suspendidos: kpisBloque.suspendidosEspecialidades
+          }, startX, COLORS.warning);
+
+          drawKPIGroup(t('nonSpecialties') || 'No Especialidades', {
+            notaMedia: kpisBloque.notaMediaNoEspecialidades,
+            desviacion: kpisBloque.desviacionNoEspecialidades,
+            moda: kpisBloque.modaNoEspecialidades,
+            aprobados: kpisBloque.aprobadosNoEspecialidades,
+            suspendidos: kpisBloque.suspendidosNoEspecialidades
+          }, startX + columnWidth + columnGap, [139, 92, 246]); // Purple
+        }
+
+        addFooter(currentPage);
+        console.log('[PDF] KPI Detalle completado, creando KPI Comparativa...');
+
+        // ========== KPI COMPARATIVA (Tabla) ==========
+        addNewPage();
+        pdf.setFontSize(18);
+        pdf.setTextColor(...COLORS.primary);
+        pdf.text((t('kpiComparison') || 'KPIs - Comparativa') + sufijoEtapa, PAGE.margin, contentStartY);
+        pdf.setTextColor(...COLORS.text);
+
+        // Preparar datos de comparativa
+        const calcDiff = (val, centro) => {
+          if (!centro || centro === 0) return '';
+          const diff = ((val - centro) / centro) * 100;
+          const sign = diff > 0 ? '+' : '';
+          return `(${sign}${diff.toFixed(1)}%)`;
+        };
+
+        const comparativaHead = modoEtapa === 'EPM'
+          ? [['Métrica', 'Centro', 'Teórica Troncal', 'Especialidades', 'No Especialidades']]
+          : [['Métrica', 'Especialidades', 'Centro', 'No Especialidades']];
+
+        const comparativaBody = modoEtapa === 'EPM' ? [
+          [
+            t('avgGrade') || 'Nota Media',
+            (kpisBloque.notaMediaCentro || 0).toFixed(2),
+            `${(kpisBloque.notaMediaTeoricaTroncal || 0).toFixed(2)} ${calcDiff(kpisBloque.notaMediaTeoricaTroncal, kpisBloque.notaMediaCentro)}`,
+            `${(kpisBloque.notaMediaEspecialidades || 0).toFixed(2)} ${calcDiff(kpisBloque.notaMediaEspecialidades, kpisBloque.notaMediaCentro)}`,
+            `${(kpisBloque.notaMediaNoEspecialidades || 0).toFixed(2)} ${calcDiff(kpisBloque.notaMediaNoEspecialidades, kpisBloque.notaMediaCentro)}`
+          ],
+          [
+            t('kpiStdDev') || 'Desviación',
+            (kpisBloque.desviacionCentro || 0).toFixed(2),
+            `${(kpisBloque.desviacionTeoricaTroncal || 0).toFixed(2)} ${calcDiff(kpisBloque.desviacionTeoricaTroncal, kpisBloque.desviacionCentro)}`,
+            `${(kpisBloque.desviacionEspecialidades || 0).toFixed(2)} ${calcDiff(kpisBloque.desviacionEspecialidades, kpisBloque.desviacionCentro)}`,
+            `${(kpisBloque.desviacionNoEspecialidades || 0).toFixed(2)} ${calcDiff(kpisBloque.desviacionNoEspecialidades, kpisBloque.desviacionCentro)}`
+          ],
+          [
+            t('kpiMode') || 'Moda',
+            (kpisBloque.modaCentro || 0).toFixed(0),
+            `${(kpisBloque.modaTeoricaTroncal || 0).toFixed(0)} ${calcDiff(kpisBloque.modaTeoricaTroncal, kpisBloque.modaCentro)}`,
+            `${(kpisBloque.modaEspecialidades || 0).toFixed(0)} ${calcDiff(kpisBloque.modaEspecialidades, kpisBloque.modaCentro)}`,
+            `${(kpisBloque.modaNoEspecialidades || 0).toFixed(0)} ${calcDiff(kpisBloque.modaNoEspecialidades, kpisBloque.modaCentro)}`
+          ],
+          [
+            t('passed') || '% Aprobados',
+            `${(kpisBloque.aprobadosCentro || 0).toFixed(1)}%`,
+            `${(kpisBloque.aprobadosTeoricaTroncal || 0).toFixed(1)}% ${calcDiff(kpisBloque.aprobadosTeoricaTroncal, kpisBloque.aprobadosCentro)}`,
+            `${(kpisBloque.aprobadosEspecialidades || 0).toFixed(1)}% ${calcDiff(kpisBloque.aprobadosEspecialidades, kpisBloque.aprobadosCentro)}`,
+            `${(kpisBloque.aprobadosNoEspecialidades || 0).toFixed(1)}% ${calcDiff(kpisBloque.aprobadosNoEspecialidades, kpisBloque.aprobadosCentro)}`
+          ],
+          [
+            t('failed') || '% Suspensos',
+            `${(kpisBloque.suspendidosCentro || 0).toFixed(1)}%`,
+            `${(kpisBloque.suspendidosTeoricaTroncal || 0).toFixed(1)}% ${calcDiff(kpisBloque.suspendidosTeoricaTroncal, kpisBloque.suspendidosCentro)}`,
+            `${(kpisBloque.suspendidosEspecialidades || 0).toFixed(1)}% ${calcDiff(kpisBloque.suspendidosEspecialidades, kpisBloque.suspendidosCentro)}`,
+            `${(kpisBloque.suspendidosNoEspecialidades || 0).toFixed(1)}% ${calcDiff(kpisBloque.suspendidosNoEspecialidades, kpisBloque.suspendidosCentro)}`
+          ]
+        ] : [
+          [
+            t('avgGrade') || 'Nota Media',
+            `${(kpisBloque.notaMediaEspecialidades || 0).toFixed(2)} ${calcDiff(kpisBloque.notaMediaEspecialidades, kpisBloque.notaMediaCentro)}`,
+            (kpisBloque.notaMediaCentro || 0).toFixed(2),
+            `${(kpisBloque.notaMediaNoEspecialidades || 0).toFixed(2)} ${calcDiff(kpisBloque.notaMediaNoEspecialidades, kpisBloque.notaMediaCentro)}`
+          ],
+          [
+            t('kpiStdDev') || 'Desviación',
+            `${(kpisBloque.desviacionEspecialidades || 0).toFixed(2)} ${calcDiff(kpisBloque.desviacionEspecialidades, kpisBloque.desviacionCentro)}`,
+            (kpisBloque.desviacionCentro || 0).toFixed(2),
+            `${(kpisBloque.desviacionNoEspecialidades || 0).toFixed(2)} ${calcDiff(kpisBloque.desviacionNoEspecialidades, kpisBloque.desviacionCentro)}`
+          ],
+          [
+            t('kpiMode') || 'Moda',
+            `${(kpisBloque.modaEspecialidades || 0).toFixed(0)} ${calcDiff(kpisBloque.modaEspecialidades, kpisBloque.modaCentro)}`,
+            (kpisBloque.modaCentro || 0).toFixed(0),
+            `${(kpisBloque.modaNoEspecialidades || 0).toFixed(0)} ${calcDiff(kpisBloque.modaNoEspecialidades, kpisBloque.modaCentro)}`
+          ],
+          [
+            t('passed') || '% Aprobados',
+            `${(kpisBloque.aprobadosEspecialidades || 0).toFixed(1)}% ${calcDiff(kpisBloque.aprobadosEspecialidades, kpisBloque.aprobadosCentro)}`,
+            `${(kpisBloque.aprobadosCentro || 0).toFixed(1)}%`,
+            `${(kpisBloque.aprobadosNoEspecialidades || 0).toFixed(1)}% ${calcDiff(kpisBloque.aprobadosNoEspecialidades, kpisBloque.aprobadosCentro)}`
+          ],
+          [
+            t('failed') || '% Suspensos',
+            `${(kpisBloque.suspendidosEspecialidades || 0).toFixed(1)}% ${calcDiff(kpisBloque.suspendidosEspecialidades, kpisBloque.suspendidosCentro)}`,
+            `${(kpisBloque.suspendidosCentro || 0).toFixed(1)}%`,
+            `${(kpisBloque.suspendidosNoEspecialidades || 0).toFixed(1)}% ${calcDiff(kpisBloque.suspendidosNoEspecialidades, kpisBloque.suspendidosCentro)}`
+          ]
+        ];
+
+        autoTable(pdf, {
+          startY: contentStartY + 10,
+          head: comparativaHead,
+          body: comparativaBody,
+          theme: 'grid',
+          headStyles: { fillColor: COLORS.primary, fontSize: 10, fontStyle: 'bold', halign: 'center' },
+          styles: { fontSize: 10, cellPadding: 5 },
+          columnStyles: modoEtapa === 'EPM' ? {
+            0: { cellWidth: 50, fontStyle: 'bold' },
+            1: { cellWidth: 50, halign: 'center', fillColor: [219, 234, 254] }, // Blue bg
+            2: { cellWidth: 55, halign: 'center' },
+            3: { cellWidth: 55, halign: 'center' },
+            4: { cellWidth: 55, halign: 'center' }
+          } : {
+            0: { cellWidth: 60, fontStyle: 'bold' },
+            1: { cellWidth: 70, halign: 'center' },
+            2: { cellWidth: 70, halign: 'center', fillColor: [219, 234, 254] }, // Blue bg
+            3: { cellWidth: 70, halign: 'center' }
+          },
+          margin: { left: PAGE.margin, right: PAGE.margin }
         });
-      };
 
-      // Determinar columnas según modoEtapa
-      const modoEtapa = configInforme.modoEtapa || 'TODOS';
-      const columnWidth = 80;
-      const columnGap = 12;
+        // Leyenda
+        const legendY = pdf.lastAutoTable?.finalY + 10 || contentStartY + 80;
+        pdf.setFontSize(9);
+        pdf.setTextColor(...COLORS.textLight);
+        pdf.text(t('comparisonLegend') || 'Los valores entre paréntesis indican la diferencia porcentual respecto al centro.', PAGE.margin, legendY);
 
-      if (modoEtapa === 'EPM') {
-        // 3 columnas: Teórica Troncal, Especialidades, No Especialidades
-        const startX = PAGE.margin + (contentWidth - 3 * columnWidth - 2 * columnGap) / 2;
+        addFooter(currentPage);
+        console.log('[PDF] KPI Comparativa completado');
+    }
 
-        drawKPIGroup('Teórica Troncal', {
-          notaMedia: kpisGlobales.notaMediaTeoricaTroncal,
-          desviacion: kpisGlobales.desviacionTeoricaTroncal,
-          moda: kpisGlobales.modaTeoricaTroncal,
-          aprobados: kpisGlobales.aprobadosTeoricaTroncal,
-          suspendidos: kpisGlobales.suspendidosTeoricaTroncal
-        }, startX, [6, 182, 212]); // Cyan
-
-        drawKPIGroup(t('specialties') || 'Especialidades', {
-          notaMedia: kpisGlobales.notaMediaEspecialidades,
-          desviacion: kpisGlobales.desviacionEspecialidades,
-          moda: kpisGlobales.modaEspecialidades,
-          aprobados: kpisGlobales.aprobadosEspecialidades,
-          suspendidos: kpisGlobales.suspendidosEspecialidades
-        }, startX + columnWidth + columnGap, COLORS.warning);
-
-        drawKPIGroup(t('nonSpecialties') || 'No Especialidades', {
-          notaMedia: kpisGlobales.notaMediaNoEspecialidades,
-          desviacion: kpisGlobales.desviacionNoEspecialidades,
-          moda: kpisGlobales.modaNoEspecialidades,
-          aprobados: kpisGlobales.aprobadosNoEspecialidades,
-          suspendidos: kpisGlobales.suspendidosNoEspecialidades
-        }, startX + 2 * (columnWidth + columnGap), [139, 92, 246]); // Purple
-      } else {
-        // 2 columnas: Especialidades, No Especialidades
-        const startX = PAGE.margin + (contentWidth - 2 * columnWidth - columnGap) / 2;
-
-        drawKPIGroup(t('specialties') || 'Especialidades', {
-          notaMedia: kpisGlobales.notaMediaEspecialidades,
-          desviacion: kpisGlobales.desviacionEspecialidades,
-          moda: kpisGlobales.modaEspecialidades,
-          aprobados: kpisGlobales.aprobadosEspecialidades,
-          suspendidos: kpisGlobales.suspendidosEspecialidades
-        }, startX, COLORS.warning);
-
-        drawKPIGroup(t('nonSpecialties') || 'No Especialidades', {
-          notaMedia: kpisGlobales.notaMediaNoEspecialidades,
-          desviacion: kpisGlobales.desviacionNoEspecialidades,
-          moda: kpisGlobales.modaNoEspecialidades,
-          aprobados: kpisGlobales.aprobadosNoEspecialidades,
-          suspendidos: kpisGlobales.suspendidosNoEspecialidades
-        }, startX + columnWidth + columnGap, [139, 92, 246]); // Purple
-      }
-
-      addFooter(currentPage);
-      console.log('[PDF] KPI Detalle completado, creando KPI Comparativa...');
-
-      // ========== KPI COMPARATIVA (Tabla) ==========
-      addNewPage();
-      pdf.setFontSize(18);
-      pdf.setTextColor(...COLORS.primary);
-      pdf.text(t('kpiComparison') || 'KPIs - Comparativa', PAGE.margin, contentStartY);
-      pdf.setTextColor(...COLORS.text);
-
-      // Preparar datos de comparativa
-      const calcDiff = (val, centro) => {
-        if (!centro || centro === 0) return '';
-        const diff = ((val - centro) / centro) * 100;
-        const sign = diff > 0 ? '+' : '';
-        return `(${sign}${diff.toFixed(1)}%)`;
-      };
-
-      const comparativaHead = modoEtapa === 'EPM'
-        ? [['Métrica', 'Centro', 'Teórica Troncal', 'Especialidades', 'No Especialidades']]
-        : [['Métrica', 'Especialidades', 'Centro', 'No Especialidades']];
-
-      const comparativaBody = modoEtapa === 'EPM' ? [
-        [
-          t('avgGrade') || 'Nota Media',
-          (kpisGlobales.notaMediaCentro || 0).toFixed(2),
-          `${(kpisGlobales.notaMediaTeoricaTroncal || 0).toFixed(2)} ${calcDiff(kpisGlobales.notaMediaTeoricaTroncal, kpisGlobales.notaMediaCentro)}`,
-          `${(kpisGlobales.notaMediaEspecialidades || 0).toFixed(2)} ${calcDiff(kpisGlobales.notaMediaEspecialidades, kpisGlobales.notaMediaCentro)}`,
-          `${(kpisGlobales.notaMediaNoEspecialidades || 0).toFixed(2)} ${calcDiff(kpisGlobales.notaMediaNoEspecialidades, kpisGlobales.notaMediaCentro)}`
-        ],
-        [
-          t('kpiStdDev') || 'Desviación',
-          (kpisGlobales.desviacionCentro || 0).toFixed(2),
-          `${(kpisGlobales.desviacionTeoricaTroncal || 0).toFixed(2)} ${calcDiff(kpisGlobales.desviacionTeoricaTroncal, kpisGlobales.desviacionCentro)}`,
-          `${(kpisGlobales.desviacionEspecialidades || 0).toFixed(2)} ${calcDiff(kpisGlobales.desviacionEspecialidades, kpisGlobales.desviacionCentro)}`,
-          `${(kpisGlobales.desviacionNoEspecialidades || 0).toFixed(2)} ${calcDiff(kpisGlobales.desviacionNoEspecialidades, kpisGlobales.desviacionCentro)}`
-        ],
-        [
-          t('kpiMode') || 'Moda',
-          (kpisGlobales.modaCentro || 0).toFixed(0),
-          `${(kpisGlobales.modaTeoricaTroncal || 0).toFixed(0)} ${calcDiff(kpisGlobales.modaTeoricaTroncal, kpisGlobales.modaCentro)}`,
-          `${(kpisGlobales.modaEspecialidades || 0).toFixed(0)} ${calcDiff(kpisGlobales.modaEspecialidades, kpisGlobales.modaCentro)}`,
-          `${(kpisGlobales.modaNoEspecialidades || 0).toFixed(0)} ${calcDiff(kpisGlobales.modaNoEspecialidades, kpisGlobales.modaCentro)}`
-        ],
-        [
-          t('passed') || '% Aprobados',
-          `${(kpisGlobales.aprobadosCentro || 0).toFixed(1)}%`,
-          `${(kpisGlobales.aprobadosTeoricaTroncal || 0).toFixed(1)}% ${calcDiff(kpisGlobales.aprobadosTeoricaTroncal, kpisGlobales.aprobadosCentro)}`,
-          `${(kpisGlobales.aprobadosEspecialidades || 0).toFixed(1)}% ${calcDiff(kpisGlobales.aprobadosEspecialidades, kpisGlobales.aprobadosCentro)}`,
-          `${(kpisGlobales.aprobadosNoEspecialidades || 0).toFixed(1)}% ${calcDiff(kpisGlobales.aprobadosNoEspecialidades, kpisGlobales.aprobadosCentro)}`
-        ],
-        [
-          t('failed') || '% Suspensos',
-          `${(kpisGlobales.suspendidosCentro || 0).toFixed(1)}%`,
-          `${(kpisGlobales.suspendidosTeoricaTroncal || 0).toFixed(1)}% ${calcDiff(kpisGlobales.suspendidosTeoricaTroncal, kpisGlobales.suspendidosCentro)}`,
-          `${(kpisGlobales.suspendidosEspecialidades || 0).toFixed(1)}% ${calcDiff(kpisGlobales.suspendidosEspecialidades, kpisGlobales.suspendidosCentro)}`,
-          `${(kpisGlobales.suspendidosNoEspecialidades || 0).toFixed(1)}% ${calcDiff(kpisGlobales.suspendidosNoEspecialidades, kpisGlobales.suspendidosCentro)}`
-        ]
-      ] : [
-        [
-          t('avgGrade') || 'Nota Media',
-          `${(kpisGlobales.notaMediaEspecialidades || 0).toFixed(2)} ${calcDiff(kpisGlobales.notaMediaEspecialidades, kpisGlobales.notaMediaCentro)}`,
-          (kpisGlobales.notaMediaCentro || 0).toFixed(2),
-          `${(kpisGlobales.notaMediaNoEspecialidades || 0).toFixed(2)} ${calcDiff(kpisGlobales.notaMediaNoEspecialidades, kpisGlobales.notaMediaCentro)}`
-        ],
-        [
-          t('kpiStdDev') || 'Desviación',
-          `${(kpisGlobales.desviacionEspecialidades || 0).toFixed(2)} ${calcDiff(kpisGlobales.desviacionEspecialidades, kpisGlobales.desviacionCentro)}`,
-          (kpisGlobales.desviacionCentro || 0).toFixed(2),
-          `${(kpisGlobales.desviacionNoEspecialidades || 0).toFixed(2)} ${calcDiff(kpisGlobales.desviacionNoEspecialidades, kpisGlobales.desviacionCentro)}`
-        ],
-        [
-          t('kpiMode') || 'Moda',
-          `${(kpisGlobales.modaEspecialidades || 0).toFixed(0)} ${calcDiff(kpisGlobales.modaEspecialidades, kpisGlobales.modaCentro)}`,
-          (kpisGlobales.modaCentro || 0).toFixed(0),
-          `${(kpisGlobales.modaNoEspecialidades || 0).toFixed(0)} ${calcDiff(kpisGlobales.modaNoEspecialidades, kpisGlobales.modaCentro)}`
-        ],
-        [
-          t('passed') || '% Aprobados',
-          `${(kpisGlobales.aprobadosEspecialidades || 0).toFixed(1)}% ${calcDiff(kpisGlobales.aprobadosEspecialidades, kpisGlobales.aprobadosCentro)}`,
-          `${(kpisGlobales.aprobadosCentro || 0).toFixed(1)}%`,
-          `${(kpisGlobales.aprobadosNoEspecialidades || 0).toFixed(1)}% ${calcDiff(kpisGlobales.aprobadosNoEspecialidades, kpisGlobales.aprobadosCentro)}`
-        ],
-        [
-          t('failed') || '% Suspensos',
-          `${(kpisGlobales.suspendidosEspecialidades || 0).toFixed(1)}% ${calcDiff(kpisGlobales.suspendidosEspecialidades, kpisGlobales.suspendidosCentro)}`,
-          `${(kpisGlobales.suspendidosCentro || 0).toFixed(1)}%`,
-          `${(kpisGlobales.suspendidosNoEspecialidades || 0).toFixed(1)}% ${calcDiff(kpisGlobales.suspendidosNoEspecialidades, kpisGlobales.suspendidosCentro)}`
-        ]
-      ];
-
-      autoTable(pdf, {
-        startY: contentStartY + 10,
-        head: comparativaHead,
-        body: comparativaBody,
-        theme: 'grid',
-        headStyles: { fillColor: COLORS.primary, fontSize: 10, fontStyle: 'bold', halign: 'center' },
-        styles: { fontSize: 10, cellPadding: 5 },
-        columnStyles: modoEtapa === 'EPM' ? {
-          0: { cellWidth: 50, fontStyle: 'bold' },
-          1: { cellWidth: 50, halign: 'center', fillColor: [219, 234, 254] }, // Blue bg
-          2: { cellWidth: 55, halign: 'center' },
-          3: { cellWidth: 55, halign: 'center' },
-          4: { cellWidth: 55, halign: 'center' }
-        } : {
-          0: { cellWidth: 60, fontStyle: 'bold' },
-          1: { cellWidth: 70, halign: 'center' },
-          2: { cellWidth: 70, halign: 'center', fillColor: [219, 234, 254] }, // Blue bg
-          3: { cellWidth: 70, halign: 'center' }
-        },
-        margin: { left: PAGE.margin, right: PAGE.margin }
-      });
-
-      // Leyenda
-      const legendY = pdf.lastAutoTable?.finalY + 10 || contentStartY + 80;
-      pdf.setFontSize(9);
-      pdf.setTextColor(...COLORS.textLight);
-      pdf.text(t('comparisonLegend') || 'Los valores entre paréntesis indican la diferencia porcentual respecto al centro.', PAGE.margin, legendY);
-
-      addFooter(currentPage);
-      console.log('[PDF] KPI Comparativa completado');
     }
 
     // ========== COMPARATIVA ASIGNATURAS VS CENTRO (SOLO PARA GRUPOS) ==========
@@ -658,7 +679,7 @@ export const generarInformePDF = async ({
         const datosNivel = datosCompletos[trimestreSeleccionado]?.[nivel];
         if (datosNivel) {
           Object.entries(datosNivel).forEach(([asig, data]) => {
-            if (asig !== 'Total' && asig !== 'Total Especialidad' && asig !== 'Total no Especialidad') {
+            if (!esFilaTotal(asig)) {
               if (perteneceAGruposFiltrados(asig) && data?.stats) {
                 if (!asignaturasTotales[asig]) {
                   asignaturasTotales[asig] = { sumMedia: 0, sumAprobados: 0, count: 0, registros: 0 };
@@ -781,7 +802,7 @@ export const generarInformePDF = async ({
         const aprobadosRefNivel = totalNivel?.stats?.aprobados || 0;
 
         Object.entries(datosNivel).forEach(([asig, data]) => {
-          if (asig !== 'Total' && asig !== 'Total Especialidad' && asig !== 'Total no Especialidad') {
+          if (!esFilaTotal(asig)) {
             if (perteneceAGruposFiltrados(asig) && data?.stats) {
               asignaturasPorCurso.push({
                 asignatura: asig,
