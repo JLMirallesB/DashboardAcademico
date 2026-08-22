@@ -298,7 +298,6 @@ export const PDFChartRenderer = forwardRef(({
                   stroke={COLORES_LINEAS[idx % COLORES_LINEAS.length]}
                   strokeWidth={2}
                   dot={{ fill: COLORES_LINEAS[idx % COLORES_LINEAS.length], r: 4 }}
-                  connectNulls
                 />
               ))}
             </LineChart>
@@ -362,7 +361,6 @@ export const PDFChartRenderer = forwardRef(({
                     stroke={COLORES_LINEAS[idx % COLORES_LINEAS.length]}
                     strokeWidth={2}
                     dot={{ fill: COLORES_LINEAS[idx % COLORES_LINEAS.length], r: 4 }}
-                    connectNulls
                   />
                 ))}
               </LineChart>
@@ -425,7 +423,6 @@ export const PDFChartRenderer = forwardRef(({
                   stroke={COLORES_LINEAS[idx % COLORES_LINEAS.length]}
                   strokeWidth={2}
                   dot={{ fill: COLORES_LINEAS[idx % COLORES_LINEAS.length], r: 5 }}
-                  connectNulls
                 />
               ))}
             </LineChart>
@@ -495,7 +492,6 @@ export const PDFChartRenderer = forwardRef(({
                     stroke={COLORES_LINEAS[idx % COLORES_LINEAS.length]}
                     strokeWidth={2}
                     dot={{ fill: COLORES_LINEAS[idx % COLORES_LINEAS.length], r: 4 }}
-                    connectNulls
                   />
                 ))}
               </LineChart>

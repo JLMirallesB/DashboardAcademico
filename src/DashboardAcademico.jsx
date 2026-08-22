@@ -1193,8 +1193,8 @@ const DashboardAcademico = () => {
   // Datos de evolución de notas medias por trimestre para el PDF
   // Datos de evolución de notas medias por trimestre para el PDF
   const datosEvolucionNotasPDF = useMemo(
-    () => serieEvolucionNiveles({ trimestresDisponibles, datosCompletos }),
-    [trimestresDisponibles, datosCompletos]);
+    () => serieEvolucionNiveles({ trimestresDisponibles, datosCompletos, modoEtapa }),
+    [trimestresDisponibles, datosCompletos, modoEtapa]);
 
   // Datos de distribución de notas por asignatura para el PDF
   // Para cada asignatura, muestra la distribución (1-10) con una línea por cada curso
@@ -3619,7 +3619,6 @@ const DashboardAcademico = () => {
                               stroke={colores[idx % colores.length]}
                               strokeWidth={3}
                               dot={{ fill: colores[idx % colores.length], r: 5 }}
-                              connectNulls
                             />
                           ))}
                         </LineChart>

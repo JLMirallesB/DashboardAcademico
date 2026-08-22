@@ -32,11 +32,14 @@ export const analizarDificultad = (datos, opciones) => {
     if (nivel !== 'GLOBAL' && modoEtapa !== 'TODOS' && detectarEtapa(nivel) !== modoEtapa) return;
 
     Object.entries(asigs).forEach(([asig, data]) => {
-      /* TODO(fallo 5): aquí solo se aparta «Total». «Total Especialidad» y
-         «Total (n|N)o Especialidad» siguen entrando y compiten en el ranking
-         como si fueran asignaturas — dos filas falsas por cada curso. La
-         tarjeta de KPIs sí las aparta, así que hoy las dos cifras no cuadran. */
-      if (asig === 'Total' || !data || !data.stats) return;
+      /* Las tres filas de total se apartan, no solo «Total». Antes se
+         comparaba la cadena exacta, así que «Total Especialidad» y «Total no
+         Especialidad» entraban en el ranking como si fueran asignaturas: dos
+         filas falsas por cada curso, y en la vista por niveles con seis cursos
+         de profesional eran doce entradas fantasma. Peor todavía, la tarjeta
+         de KPIs sí las apartaba, así que la tarjeta y esta lista daban cifras
+         distintas de lo mismo. */
+      if (esFilaTotal(asig) || !data || !data.stats) return;
       if (data.stats.registros < umbrales.alumnosMinimo) return;
 
       const stats = data.stats;
