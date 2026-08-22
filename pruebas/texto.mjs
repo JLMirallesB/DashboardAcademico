@@ -7,7 +7,7 @@
  * Especialidad» en profesional— hacían que once comparaciones de cadena
  * acertaran en una etapa y fallaran en la otra.
  */
-import { normalizar, sinAcentos, esFilaTotal, buscarClave, parseTrimestre,
+import { normalizar, sinAcentos, esFilaTotal, esAgregado, buscarClave, parseTrimestre,
          getTrimestreBase, getTrimestreEtapa, compararTrimestres,
          evaluacionesDe, ordenDeEvaluacion, evaluacionConocida } from '../src/nucleo/texto.js';
 import { comprobar, seccion, terminar } from './ayuda.mjs';
@@ -26,6 +26,16 @@ seccion('1. Qué cuenta como fila de total');
      ningún catálogo, pero el criterio es de igualdad, no de prefijo. */
   comprobar('CANDADO: el criterio es igualdad, no «empieza por»',
     !esFilaTotal('Total de horas de práctica'));
+
+  /* «Teórica Troncal» es la SUMA de lenguaje musical, armonía y análisis, y el
+     analizador la escribe como una fila más para poder pintarla arriba.
+     Contarla en un ranking la pone a competir con sus propias partes y suma
+     una asignatura que no existe al recuento del centro. */
+  comprobar('CANDADO: «Teórica Troncal» es un agregado, no una asignatura',
+    esAgregado('Teórica Troncal') && esAgregado('teórica troncal'));
+  comprobar('pero no es uno de los tres totales', !esFilaTotal('Teórica Troncal'));
+  comprobar('y sus partes sí son asignaturas de verdad',
+    !esAgregado('Armonía') && !esAgregado('Lenguaje Musical') && !esAgregado('Análisis'));
 }
 
 seccion('2. Acentos: se conservan, y por una razón');

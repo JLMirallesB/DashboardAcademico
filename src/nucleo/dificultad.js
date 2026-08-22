@@ -10,7 +10,7 @@
  * esta lista den cifras distintas de lo mismo.
  */
 
-import { esFilaTotal, normalizar } from './texto.js';
+import { esAgregado, normalizar } from './texto.js';
 import { calcularResultado, detectarEtapa } from './estadistica.js';
 
 /** Analiza las asignaturas de un trimestre y las reparte en tres cajas.
@@ -39,7 +39,7 @@ export const analizarDificultad = (datos, opciones) => {
          de profesional eran doce entradas fantasma. Peor todavía, la tarjeta
          de KPIs sí las apartaba, así que la tarjeta y esta lista daban cifras
          distintas de lo mismo. */
-      if (esFilaTotal(asig) || !data || !data.stats) return;
+      if (esAgregado(asig) || !data || !data.stats) return;
       if (data.stats.registros < umbrales.alumnosMinimo) return;
 
       const stats = data.stats;
@@ -105,4 +105,4 @@ export const analizarDificultad = (datos, opciones) => {
   };
 };
 
-export { esFilaTotal, normalizar };
+export { esAgregado, normalizar };

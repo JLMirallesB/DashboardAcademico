@@ -20,7 +20,7 @@
  * enteras de informe a 0,00.
  */
 
-import { normalizar, buscarClave, esFilaTotal, getTrimestreBase } from './texto.js';
+import { normalizar, buscarClave, esAgregado, getTrimestreBase } from './texto.js';
 import { calcularResultado, detectarEtapa } from './estadistica.js';
 
 /** Los stats de una fila agregada, o `null` si no está.
@@ -38,7 +38,7 @@ const statsDe = (contenedor, nombre) => {
 const agregadoPorPeso = (global, filtro) => {
   let notas = 0, aprob = 0, susp = 0, pesos = 0;
   Object.entries(global).forEach(([asig, data]) => {
-    if (esFilaTotal(asig) || !data.stats) return;
+    if (esAgregado(asig) || !data.stats) return;
     if (!filtro(asig)) return;
     const peso = data.stats.registros || 0;
     notas += (data.stats.notaMedia || 0) * peso;
@@ -124,11 +124,11 @@ export const calcularKPIs = (datos, opciones) => {
 
   /* Cuántas asignaturas salen difíciles, fáciles o ni una cosa ni otra.
      Las filas de total se apartan aquí —esa es la razón de ser de
-     `esFilaTotal`— y las de muy pocos alumnos también: con dos registros, un
+     `esAgregado`— y las de muy pocos alumnos también: con dos registros, un
      porcentaje no significa nada. */
   let dificiles = 0, faciles = 0, neutrales = 0;
   Object.entries(global).forEach(([asig, data]) => {
-    if (esFilaTotal(asig) || !data.stats) return;
+    if (esAgregado(asig) || !data.stats) return;
     if ((data.stats.registros || 0) < umbrales.alumnosMinimo) return;
     const r = calcularResultado(data.stats, umbrales);
     if (r === 'DIFÍCIL') dificiles++;

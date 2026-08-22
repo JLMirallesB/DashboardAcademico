@@ -42,8 +42,21 @@ export const TOTALES = [
   'total no especialidad'
 ];
 
-/** ¿Esta fila es un agregado y no una asignatura? */
+/** ¿Esta fila es uno de los tres totales? */
 export const esFilaTotal = (asignatura) => TOTALES.includes(normalizar(asignatura));
+
+/* «Teórica Troncal» NO es una asignatura: es la suma de Lenguaje Musical,
+   Armonía y Análisis, y el analizador la escribe como una fila más de
+   #ESTADISTICAS para poder pintarla arriba. Contarla en un ranking de
+   asignaturas la pone a competir con sus propias partes y suma una asignatura
+   inexistente al recuento. Es el mismo fallo que tenían las filas de total,
+   una fila más abajo. */
+export const AGREGADOS = TOTALES.concat(['teórica troncal']);
+
+/** ¿Esta fila es un agregado y no una asignatura de verdad?
+ *  Es el criterio que hay que usar para RANKINGS y RECUENTOS de asignaturas.
+ *  `esFilaTotal` sigue existiendo para lo que de verdad son los tres totales. */
+export const esAgregado = (asignatura) => AGREGADOS.includes(normalizar(asignatura));
 
 /** Busca una clave dentro de un objeto sin distinguir mayúsculas ni espacios.
  *  Devuelve la clave real (para poder indexar) o `null`. */

@@ -10,7 +10,7 @@ import { exportarJSON as exportarJSONService, procesarImportacionJSON } from './
 import { useStatisticalCalculations } from './hooks/useStatisticalCalculations.js';
 import { analizarDificultad } from './nucleo/dificultad.js';
 import { serieEvolucionSelecciones, serieEvolucionNiveles } from './nucleo/evolucion.js';
-import { compararTrimestres, esFilaTotal } from './nucleo/texto.js';
+import { compararTrimestres, esAgregado } from './nucleo/texto.js';
 import { diferencia, decimalesDe } from './nucleo/comparacion.js';
 import { paresDe, porPares, porNiveles, paresMasFuertes } from './nucleo/correlaciones.js';
 import { useKPICalculation } from './hooks/useKPICalculation.js';
@@ -137,8 +137,8 @@ const DashboardAcademico = () => {
 
   // Función auxiliar para renderizar opciones de asignaturas con separador
   const renderOpcionesAsignaturas = useCallback((asignaturas) => {
-    const tieneTotales = asignaturas.some(a => esFilaTotal(a));
-    const indexPrimerNoTotal = asignaturas.findIndex(a => !esFilaTotal(a));
+    const tieneTotales = asignaturas.some(a => esAgregado(a));
+    const indexPrimerNoTotal = asignaturas.findIndex(a => !esAgregado(a));
 
     return asignaturas.map((asig, idx) => {
       const esSeparador = tieneTotales && idx === indexPrimerNoTotal;
@@ -1120,7 +1120,7 @@ const DashboardAcademico = () => {
       if (!datosNivel) return;
 
       Object.entries(datosNivel).forEach(([asig, data]) => {
-        if (esFilaTotal(asig)) return;
+        if (esAgregado(asig)) return;
         if (!data?.distribucion) return;
 
         // Filtrar por grupo si hay filtro activo
@@ -1302,7 +1302,7 @@ const DashboardAcademico = () => {
     // Obtener datos GLOBAL
     if (datosTrimestre?.['GLOBAL']) {
       Object.entries(datosTrimestre['GLOBAL']).forEach(([asig, data]) => {
-        if (!esFilaTotal(asig) && data?.stats) {
+        if (!esAgregado(asig) && data?.stats) {
           // Filtrar por grupo si hay filtro activo
           if (!perteneceAGruposFiltrados(asig)) return;
 
@@ -1349,7 +1349,7 @@ const DashboardAcademico = () => {
       const datosNivel = datosCompletos[trimestreSeleccionado]?.[nivel];
       if (datosNivel) {
         Object.keys(datosNivel).forEach(asig => {
-          if (!esFilaTotal(asig)) {
+          if (!esAgregado(asig)) {
             asignaturasSet.add(asig);
           }
         });
@@ -2004,7 +2004,7 @@ const DashboardAcademico = () => {
                   const datosNivel = datosCompletos[trim]?.['GLOBAL'];
                   if (datosNivel) {
                     Object.entries(datosNivel).forEach(([asignatura, datos]) => {
-                      if (!esFilaTotal(asignatura) && datos?.stats) {
+                      if (!esAgregado(asignatura) && datos?.stats) {
                         if (!asignaturasCombinadas.has(asignatura)) {
                           asignaturasCombinadas.set(asignatura, {
                             asignatura,
@@ -2059,7 +2059,7 @@ const DashboardAcademico = () => {
                 const datosNivel = datosCompletos[trimestreSeleccionado]?.['GLOBAL'];
                 if (datosNivel) {
                   Object.entries(datosNivel).forEach(([asignatura, datos]) => {
-                    if (!esFilaTotal(asignatura) && datos?.stats) {
+                    if (!esAgregado(asignatura) && datos?.stats) {
                       const notaMedia = datos.stats.notaMedia;
                       const desviacion = datos.stats.desviacion || 0;
                       const alumnos = datos.stats.registros || 0;
@@ -2081,7 +2081,7 @@ const DashboardAcademico = () => {
               const datosNivel = datosCompletos[trimestreSeleccionado]?.[nivelDispersion];
               if (datosNivel) {
                 Object.entries(datosNivel).forEach(([asignatura, datos]) => {
-                  if (!esFilaTotal(asignatura) && datos?.stats) {
+                  if (!esAgregado(asignatura) && datos?.stats) {
                     const notaMedia = datos.stats.notaMedia;
                     const desviacion = datos.stats.desviacion || 0;
                     const alumnos = datos.stats.registros || 0;

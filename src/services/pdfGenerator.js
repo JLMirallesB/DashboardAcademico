@@ -6,7 +6,7 @@
 
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { esFilaTotal, normalizar as normalizarNucleo } from '../nucleo/texto.js';
+import { esAgregado, normalizar as normalizarNucleo } from '../nucleo/texto.js';
 
 // Constantes de diseño
 const COLORS = {
@@ -180,7 +180,7 @@ export const generarInformePDF = async ({
           const datosNivel = datosCompletos[trimestreSeleccionado]?.[nivel];
           if (datosNivel) {
             Object.keys(datosNivel).forEach(asig => {
-              if (!esFilaTotal(asig)) {
+              if (!esAgregado(asig)) {
                 if (perteneceAGruposFiltrados(asig)) {
                   asignaturasDelGrupo++;
                 }
@@ -274,7 +274,7 @@ export const generarInformePDF = async ({
         const nivelData = datosCompletos[trimestreSeleccionado]?.[nivel];
         if (nivelData) {
           Object.keys(nivelData).forEach(asig => {
-            if (!esFilaTotal(asig)) {
+            if (!esAgregado(asig)) {
               asignaturas.add(asig);
             }
           });
@@ -679,7 +679,7 @@ export const generarInformePDF = async ({
         const datosNivel = datosCompletos[trimestreSeleccionado]?.[nivel];
         if (datosNivel) {
           Object.entries(datosNivel).forEach(([asig, data]) => {
-            if (!esFilaTotal(asig)) {
+            if (!esAgregado(asig)) {
               if (perteneceAGruposFiltrados(asig) && data?.stats) {
                 if (!asignaturasTotales[asig]) {
                   asignaturasTotales[asig] = { sumMedia: 0, sumAprobados: 0, count: 0, registros: 0 };
@@ -802,7 +802,7 @@ export const generarInformePDF = async ({
         const aprobadosRefNivel = totalNivel?.stats?.aprobados || 0;
 
         Object.entries(datosNivel).forEach(([asig, data]) => {
-          if (!esFilaTotal(asig)) {
+          if (!esAgregado(asig)) {
             if (perteneceAGruposFiltrados(asig) && data?.stats) {
               asignaturasPorCurso.push({
                 asignatura: asig,
