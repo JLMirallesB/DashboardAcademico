@@ -2,6 +2,7 @@ export const translations = {
   es: {
     comparisonNeedsOneStage: 'Esta comparativa necesita una sola etapa: con las dos cargadas no hay un centro único con el que comparar. Elige elemental o profesional arriba.',
     ctxVariosMomentos: 'varios momentos del curso',
+    ctxSeleccion: 'selección',
     ctxSelecciones: 'selecciones',
     ctxMomentos: 'momentos del curso',
     alrTitulo: 'Alertas a lo largo del curso',
@@ -460,6 +461,7 @@ export const translations = {
   va: {
     comparisonNeedsOneStage: 'Esta comparativa necessita una sola etapa: amb les dues carregades no hi ha un centre únic amb què comparar. Tria elemental o professional a dalt.',
     ctxVariosMomentos: 'diversos moments del curs',
+    ctxSeleccion: 'selecció',
     ctxSelecciones: 'seleccions',
     ctxMomentos: 'moments del curs',
     alrTitulo: 'Alertes al llarg del curs',

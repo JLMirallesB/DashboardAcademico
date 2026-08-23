@@ -1919,10 +1919,15 @@ const DashboardAcademico = () => {
             rotularMomento,
             /* Cuando la vista compara varios momentos, la barra lo dice en vez
                de enseñar un contexto que esa vista no usa. */
+            /* Con UN solo momento cargado, «1 momentos del curso» además de
+               estar mal escrito es una respuesta tonta: se dice cuál es. El
+               plural solo aparece cuando de verdad hay varios. */
             comparando: VISTAS_COMPARATIVAS.includes(vistaActual)
               ? (vistaActual === 'estadisticas'
-                  ? `${selecciones.length} ${t('ctxSelecciones')}`
-                  : `${momentosDisponibles.length} ${t('ctxMomentos')}`)
+                  ? `${selecciones.length} ${selecciones.length === 1 ? t('ctxSeleccion') : t('ctxSelecciones')}`
+                  : (momentosDisponibles.length === 1
+                      ? rotularMomento(momentosDisponibles[0])
+                      : `${momentosDisponibles.length} ${t('ctxMomentos')}`))
               : null
           }
         }}
@@ -1939,7 +1944,9 @@ const DashboardAcademico = () => {
             <span className="text-gray-400 font-normal">
               {' · '}
               {VISTAS_COMPARATIVAS.includes(vistaActual)
-                ? t('ctxVariosMomentos')
+                ? (momentosDisponibles.length === 1
+                    ? rotularMomento(momentosDisponibles[0])
+                    : t('ctxVariosMomentos'))
                 : rotuloTrimestre(trimestreSeleccionado)}
             </span>
           )}
@@ -3665,6 +3672,11 @@ const DashboardAcademico = () => {
                           />
                           <YAxis stroke="#64748b" domain={[0, 10]} />
                           <Tooltip
+                            /* El eje ya se formatea, pero el tooltip tenía su
+                               propia etiqueta y salía con la clave interna
+                               —«2526·2EV»— al pasar el ratón. Se ve solo
+                               mirando, que es para lo que hay que mirar. */
+                            labelFormatter={entre ? undefined : rotuloDeMomento}
                             contentStyle={{
                               backgroundColor: 'white',
                               border: '1px solid #e2e8f0',
