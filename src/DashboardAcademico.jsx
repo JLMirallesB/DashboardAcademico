@@ -143,6 +143,10 @@ const DashboardAcademico = () => {
        existen no las va a ir a buscar. */
     incluirIndice: true,
     incluirFicha: true,
+    incluirSenales: true,
+    incluirNotaMetodologica: true,
+    /* Cuántas señales caben en el papel. En la pantalla salen todas. */
+    limiteSenales: 6,
     incluirAlertas: true,
     incluirEntreCursos: true,
     incluirFamilias: true,
@@ -1474,6 +1478,10 @@ const DashboardAcademico = () => {
            así que la portada decía el curso y la ficha decía «—». */
         metadata: metadata[trimestreSeleccionado] || {},
         serieAlertasPDF: serieDeAlertas,
+        /* Las mismas que enseña la pantalla, y el tope que decide cuántas
+           caben en el papel: la lista completa se queda en la aplicación. */
+        senales: senalesDelMomento,
+        limiteSenales: configInforme.limiteSenales,
         familiasPDF: familiasDelTrimestre,
         selecciones,
         generadoEn: new Date(),
@@ -1510,7 +1518,7 @@ const DashboardAcademico = () => {
       setProgresoInforme('');
       setRenderPDFCharts(false);
     }
-  }, [trimestreSeleccionado, datosCompletos, configInforme, modoEtapa, kpisGlobales, correlacionesTrimestre, analisisDificultad, agrupacionesCompletas, tendenciasParaPDF, trimestresDisponibles, datosDistribucionPDF, umbrales, metadata, serieDeAlertas, familiasDelTrimestre, selecciones, t]);
+  }, [trimestreSeleccionado, datosCompletos, configInforme, modoEtapa, kpisGlobales, correlacionesTrimestre, analisisDificultad, agrupacionesCompletas, tendenciasParaPDF, trimestresDisponibles, datosDistribucionPDF, umbrales, metadata, serieDeAlertas, familiasDelTrimestre, selecciones, senalesDelMomento, t]);
 
   // Datos calculados para las gráficas del PDF
   const datosDispersionPDF = useMemo(() => {

@@ -156,6 +156,16 @@ export const ReportModal = ({
                   label={t('includeIndex') || 'Índice'}
                 />
                 <CheckboxOption
+                  checked={config.incluirSenales !== false}
+                  onChange={(e) => updateConfig('incluirSenales', e.target.checked)}
+                  label={t('infSenalesTitulo') || 'Qué merece mirarse'}
+                />
+                <CheckboxOption
+                  checked={config.incluirNotaMetodologica !== false}
+                  onChange={(e) => updateConfig('incluirNotaMetodologica', e.target.checked)}
+                  label={t('metTitulo') || 'Cómo hay que leer este informe'}
+                />
+                <CheckboxOption
                   checked={config.incluirFicha !== false}
                   onChange={(e) => updateConfig('incluirFicha', e.target.checked)}
                   label={t('fichaTitulo') || 'En qué se basa este informe'}

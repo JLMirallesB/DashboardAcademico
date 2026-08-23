@@ -13,6 +13,7 @@ import { tablaFamilias } from '../nucleo/informe-familias.js';
 import { tablaSelecciones } from '../nucleo/informe-selecciones.js';
 import { tablaEntreCursos } from '../nucleo/informe-cursos.js';
 import { fichaDelInforme } from '../nucleo/informe-contexto.js';
+import { tablaSenales, notaMetodologica } from '../nucleo/informe-senales.js';
 import { nota, porcentaje, entero, texto, diferencia, conSigno, anchosQueCaben,
          porAsignaturaAgregada, filasComparativaKPI } from '../nucleo/informe.js';
 import { formatearNombreTrimestre, rotularMomento } from '../utils/formatters.js';
@@ -62,6 +63,10 @@ export const generarInformePDF = async ({
   umbrales,
   metadata = {},
   serieAlertasPDF = null,
+  /* Las señales que la pantalla enseña. Vienen calculadas de fuera: si el
+     informe las recalculara, un día diría cosas distintas del mismo día. */
+  senales = [],
+  limiteSenales,
   familiasPDF = null,
   selecciones = [],
   /* La fecha entra por parámetro. Un generador que llama a `new Date()` por
@@ -128,10 +133,33 @@ export const generarInformePDF = async ({
       pdf.setTextColor(...COLORS.text);
     };
 
-    const addFooter = (pageNum) => {
+    /* El pie NO recibe el número: lo pregunta.
+       Lo recibía, y quien lo llamaba desde `didDrawPage` le pasaba
+       `data.pageNumber`, que en `autoTable` es la página **de esa tabla** —1
+       para la primera— y no la del documento. Resultado medido en un informe
+       de 26 páginas: los pies decían 2, 1, 3, 1, 4, 5, 6, 7, 8, 9, 1, 10, 1…
+       con seis páginas numeradas «1» y cinco sin numerar. No da error, no lo
+       ve ninguna prueba de contenido, y convierte el índice en papel mojado.
+       jsPDF sí sabe en qué página está; solo había que preguntárselo. */
+    const paginaActual = () => {
+      try { return pdf.internal.getCurrentPageInfo().pageNumber; }
+      catch { return pdf.getNumberOfPages(); }
+    };
+
+    /* Una página, un pie. Se dibujaba dos veces en las secciones con tabla —el
+       gancho de `autoTable` y la llamada de después—, y con el número mal
+       eran dos números distintos superpuestos. Con el número bien no se
+       notaría, pero dos textos encima del mismo sitio engordan el PDF y
+       ensucian el texto que se copia del papel. */
+    const conPie = new Set();
+
+    const addFooter = () => {
+      const pag = paginaActual();
+      if (conPie.has(pag)) return;
+      conPie.add(pag);
       pdf.setFontSize(8);
       pdf.setTextColor(...COLORS.textLight);
-      pdf.text(`Página ${pageNum}`, PAGE.width / 2, PAGE.height - 8, { align: 'center' });
+      pdf.text(`${t('page') || 'Página'} ${paginaActual()}`, PAGE.width / 2, PAGE.height - 8, { align: 'center' });
       pdf.text(new Date().toLocaleDateString(), PAGE.width - PAGE.margin, PAGE.height - 8, { align: 'right' });
       pdf.setTextColor(...COLORS.text);
     };
@@ -256,6 +284,47 @@ export const generarInformePDF = async ({
       referencia: t('reference') || 'ref.'
     };
 
+    /* Casi todos son los mismos que usa el resumen de la pantalla. Que el
+       papel y el cuadro llamen distinto a la misma cosa es la forma más
+       tonta de que dos personas crean estar hablando de cosas distintas. */
+    const rotulosSenales = {
+      colObservado: t('infSenalesCol_observado') || 'Qué se observa',
+      colDonde: t('infSenalesCol_donde') || 'Dónde',
+      colCifras: t('infSenalesCol_cifras') || 'Cifras',
+      colPorQuePesa: t('infSenalesCol_porQue') || 'Por qué pesa',
+      colComprobado: t('infSenalesCol_comprobado') || 'Ya comprobado',
+      colPorMirar: t('infSenalesCol_porMirar') || 'Falta por mirar',
+      abrevMedia: t('infAbrevMedia') || 'media',
+      abrevSuspensos: t('infAbrevSuspensos') || 'susp.',
+      abrevDesviacion: t('infAbrevDesviacion') || 'sd',
+      sinMotivos: t('resSinMotivos') || '',
+      persistenteSi: t('infPersistenteSi') || '',
+      persistenteNo: t('infPersistenteNo') || '',
+      cohorteSi: t('infCohorteSi') || '',
+      cohorteNo: t('infCohorteNo') || '',
+      cohorteSinDatos: t('infCohorteSinDatos') || '',
+      avisoObservacion: t('resAviso') || '',
+      avisoRecorte: t('infAvisoRecorte') || ''
+    };
+    ['mediaBaja', 'suspensosAltos', 'concentracionAlta', 'entraEnRojo', 'correlacionFuerte']
+      .forEach((k) => { rotulosSenales[`tipo_${k}`] = t(`resTipo_${k}`) || k; });
+    ['persistente', 'otraCohorte', 'variosIndicadores', 'magnitud', 'alcance', 'transicion']
+      .forEach((k) => { rotulosSenales[`motivo_${k}`] = t(`resMotivo_${k}`) || k; });
+    ['cambioCriterios', 'cambioProfesorado', 'cohorteDistinta', 'asistencia', 'recuperacion',
+     'puntosDePartida', 'practicaFuera', 'discriminaLaEvaluacion', 'calendario',
+     'competenciasCompartidas', 'criteriosParecidos']
+      .forEach((k) => { rotulosSenales[`mirar_${k}`] = t(`resMirar_${k}`) || k; });
+    ['concentrado', 'compartido']
+      .forEach((k) => { rotulosSenales[`reparto_${k}`] = t(`resReparto_${k}`) || k; });
+
+    const rotulosNota = {};
+    ['metConcepto', 'metValor', 'metAsignaturasMiradas', 'metAsignaturasFuera',
+     'metPorPocoAlumnado', 'metGrupoMasPequeno', 'metCorrelaciones', 'metCorrelacionesConN',
+     'metCorrelacionesSinN', 'metSinCorrelaciones', 'metSenales', 'metSenalesTotal',
+     'metPrincipioSenal', 'metPrincipioVarias', 'metPrincipioPersistencia', 'metPrincipioN',
+     'metPrincipioCorrelacion', 'metPrincipioUmbrales', 'metPrincipioProporcion']
+      .forEach((k) => { rotulosNota[k] = t(k) || k; });
+
     const rotulosFicha = {
       fichaConcepto: t('indicator') || 'Concepto',
       fichaValor: t('value') || 'Valor',
@@ -314,7 +383,7 @@ export const generarInformePDF = async ({
         margin: { left: PAGE.margin, right: PAGE.margin },
         didDrawPage: (data) => {
           if (data.pageNumber > currentPage) { currentPage = data.pageNumber; addHeader(); }
-          addFooter(data.pageNumber);
+          addFooter();
         }
       });
 
@@ -334,7 +403,7 @@ export const generarInformePDF = async ({
         pdf.setTextColor(...COLORS.text);
       }
 
-      addFooter(currentPage);
+      addFooter();
       return true;
     };
 
@@ -383,7 +452,7 @@ export const generarInformePDF = async ({
       pdf.text(`(${etapa})`, PAGE.width / 2, PAGE.height / 2 + 15, { align: 'center' });
 
       pdf.setTextColor(...COLORS.text);
-      addFooter(currentPage);
+      addFooter();
     };
 
     // Función para verificar si una asignatura pertenece a las agrupaciones filtradas
@@ -505,6 +574,21 @@ export const generarInformePDF = async ({
       paginaIndice = pdf.getNumberOfPages();
     }
 
+    // ========== QUÉ MERECE MIRARSE ==========
+    /* Va lo primero después del índice. Es la única página que contesta «¿y
+       qué hago con todo esto?», y ponerla al final sería pedirle a quien lo
+       lee que se recorra veinte páginas antes de saber por dónde empezar.
+       Cada fila es una observación: por qué pasa no está en este informe. */
+    if (configInforme.incluirSenales !== false && senales.length) {
+      pintarSeccion({
+        titulo: t('infSenalesTitulo') || 'Qué merece mirarse',
+        contenido: tablaSenales(senales, { limite: limiteSenales, rotulos: rotulosSenales }),
+        color: [180, 83, 9],
+        anchos: { 0: { cellWidth: 42 }, 1: { cellWidth: 38 }, 2: { cellWidth: 44 },
+                  3: { cellWidth: 46 }, 4: { cellWidth: 46 }, 5: { cellWidth: 51 } }
+      });
+    }
+
     // ========== CÓMO SE HA HECHO ESTE INFORME ==========
     /* Va delante, no al final. Hasta ahora el informe **no mencionaba los
        umbrales ni una sola vez**, y son configurables: dos informes de los
@@ -586,7 +670,7 @@ export const generarInformePDF = async ({
         tableWidth: 'wrap',
       });
 
-      addFooter(currentPage);
+      addFooter();
     }
 
     // ========== KPIs VISUALES ==========
@@ -688,7 +772,7 @@ export const generarInformePDF = async ({
           });
         }
 
-        addFooter(currentPage);
+        addFooter();
 
         // Alumnos por curso (si hay datos) - en página separada
         if (kpisBloque.alumnosPorCurso && kpisBloque.alumnosPorCurso.length > 0) {
@@ -708,7 +792,7 @@ export const generarInformePDF = async ({
             drawKPICard(nivel, alumnos.toString(), COLORS.warning);
           });
 
-          addFooter(currentPage);
+          addFooter();
         }
 
 
@@ -810,7 +894,7 @@ export const generarInformePDF = async ({
           }, startX + columnWidth + columnGap, [139, 92, 246]); // Purple
         }
 
-        addFooter(currentPage);
+        addFooter();
 
         // ========== KPI COMPARATIVA (Tabla) ==========
         addNewPage((t('kpiComparison') || 'KPIs - Comparativa') + sufijoEtapa);
@@ -878,7 +962,7 @@ export const generarInformePDF = async ({
         pdf.setTextColor(...COLORS.textLight);
         pdf.text(t('comparisonLegend') || 'Los valores entre paréntesis indican la diferencia porcentual respecto al centro.', PAGE.margin, legendY);
 
-        addFooter(currentPage);
+        addFooter();
     }
 
     }
@@ -1135,7 +1219,7 @@ export const generarInformePDF = async ({
             currentPage = data.pageNumber;
             addHeader();
           }
-          addFooter(data.pageNumber);
+          addFooter();
         },
         margin: { left: PAGE.margin, right: PAGE.margin }
       });
@@ -1170,7 +1254,7 @@ export const generarInformePDF = async ({
       const imgStartY = filtroAgrupacionesActivo ? contentStartY + 12 : contentStartY + 8;
       ponerImagen(chartImages.scatter, imgStartY, PAGE.height - imgStartY - PAGE.footerHeight - 10);
 
-      addFooter(currentPage);
+      addFooter();
     }
 
     // ========== EVOLUCIÓN DE CORRELACIONES ==========
@@ -1187,7 +1271,7 @@ export const generarInformePDF = async ({
       ponerImagen(chartImages.correlationEvolution, contentStartY + 8,
         PAGE.height - contentStartY - PAGE.footerHeight - 15);
 
-      addFooter(currentPage);
+      addFooter();
     }
 
     // ========== CORRELACIONES DETALLADAS ==========
@@ -1253,7 +1337,7 @@ export const generarInformePDF = async ({
             currentPage = data.pageNumber;
             addHeader();
           }
-          addFooter(data.pageNumber);
+          addFooter();
         }
       });
     }
@@ -1314,7 +1398,7 @@ export const generarInformePDF = async ({
         ponerImagen(imgData, contentStartY + 8,
           PAGE.height - contentStartY - PAGE.footerHeight - 15);
 
-        addFooter(currentPage);
+        addFooter();
       });
     }
 
@@ -1332,7 +1416,7 @@ export const generarInformePDF = async ({
       ponerImagen(chartImages.evolution, contentStartY + 8,
         PAGE.height - contentStartY - PAGE.footerHeight - 15);
 
-      addFooter(currentPage);
+      addFooter();
     } else if (configInforme.incluirEvolucionNotas !== false && trimestresDisponibles.length < 2) {
       // Mostrar mensaje informativo si no hay suficientes trimestres
       onProgress?.(t('pdfGeneratingEvolution'));
@@ -1348,7 +1432,7 @@ export const generarInformePDF = async ({
       pdf.text(t('notEnoughTrimesters') || 'Se requieren al menos 2 trimestres para mostrar la evolución', PAGE.margin, contentStartY + 20);
       pdf.setTextColor(...COLORS.text);
 
-      addFooter(currentPage);
+      addFooter();
     }
 
     // ========== ANÁLISIS DE TENDENCIAS TRANSVERSALES ==========
@@ -1511,7 +1595,7 @@ export const generarInformePDF = async ({
         });
 
       pdf.setTextColor(...COLORS.text);
-      addFooter(currentPage);
+      addFooter();
     }
 
     // ========== DATOS DE ASIGNATURAS ==========
@@ -1615,7 +1699,7 @@ export const generarInformePDF = async ({
               currentPage = data.pageNumber;
               addHeader();
             }
-            addFooter(data.pageNumber);
+            addFooter();
           }
         });
 
@@ -1708,7 +1792,7 @@ export const generarInformePDF = async ({
             });
           }
 
-          addFooter(currentPage);
+          addFooter();
         }
       };
 
@@ -1751,9 +1835,29 @@ export const generarInformePDF = async ({
             (1200×550). Ahora se mide el PNG, como las demás. */
         ponerImagen(image, contentStartY + 12, PAGE.height - contentStartY - 30);
 
-        addFooter(currentPage);
+        addFooter();
       }
 
+    }
+
+    // ========== CÓMO HAY QUE LEER ESTE INFORME ==========
+    /* Y esto va al FINAL, que es donde se pone una nota metodológica: quien
+       la necesita la busca, y quien no, no tropieza con ella para llegar a
+       las cifras. La ficha del principio dice con qué se ha clasificado;
+       esta dice cómo hay que leer lo que salió. */
+    if (configInforme.incluirNotaMetodologica !== false) {
+      pintarSeccion({
+        titulo: t('metTitulo') || 'Cómo hay que leer este informe',
+        contenido: notaMetodologica({
+          senales,
+          datosTrimestre: datosCompletos[trimestreSeleccionado],
+          umbrales,
+          correlaciones: correlacionesTrimestre,
+          rotulos: rotulosNota
+        }),
+        color: [71, 85, 105],
+        anchos: { 0: { cellWidth: 110, fontStyle: 'bold' }, 1: { cellWidth: 157 } }
+      });
     }
 
     /* ---------------------------------------------------------------- */
@@ -1811,7 +1915,7 @@ export const generarInformePDF = async ({
         pdf.setTextColor(...COLORS.text);
       });
 
-      addFooter(paginaIndice);
+      addFooter();
     }
 
     /* Y los marcadores del propio PDF, que es como se navega un documento

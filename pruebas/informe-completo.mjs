@@ -151,9 +151,11 @@ const textoDelPDF = (pdf) => {
     i = fin + 9;
   }
 
-  /* Y los objetos sueltos que no son flujos —los títulos de los marcadores
-     viven ahí—, que se leen del PDF tal cual. */
-  trozos.push(crudo);
+  /* Ojo: NO se añade el PDF en bruto. Se hizo, «por si algo no iba en un
+     flujo», y como sin comprimir el texto está en los dos sitios, todo salía
+     DUPLICADO. Para un `includes()` da igual; para contar pies de página,
+     no — y esa fue la primera prueba que lo necesitó. Los títulos de los
+     marcadores no son operadores de texto, así que tampoco se perdía nada. */
 
   const salida = [];
   trozos.forEach((tr) => {
@@ -396,7 +398,33 @@ seccion('8. El índice y los marcadores');
     sinIndice.paginas === r.paginas - 1, `${sinIndice.paginas} frente a ${r.paginas}`);
 }
 
-seccion('9. El nombre del fichero que se descarga');
+seccion('9. Los pies numeran el documento, no cada tabla');
+{
+  /* Medido en un informe de 26 páginas: los pies decían 2, 1, 3, 1, 4, 5, 6,
+     7, 8, 9, 1, 10, 1… con seis páginas numeradas «1» y cinco sin numerar.
+     La causa: `autoTable` llama a su gancho con el número de página DE LA
+     TABLA, y el pie lo escribía tal cual. No da error y no lo ve ninguna
+     prueba de contenido — solo convierte el índice en papel mojado, que es
+     justo lo que un informe largo necesita para poder usarse. */
+  const r = await generar({});
+  const pies = r.texto.split('\n')
+    .filter((l) => /^page \d+$/.test(l.trim()))
+    .map((l) => Number(l.trim().slice(5)));
+
+  comprobar('hay pies de página', pies.length > 5, pies.length + ' pies');
+  /* Sin repetidos DE VERDAD: una página, un pie. Antes se dibujaba dos veces
+     en las secciones con tabla y, con el número mal, eran dos números
+     distintos superpuestos. */
+  comprobar('CANDADO: ninguna página lleva dos pies',
+    new Set(pies).size === pies.length, pies.join(','));
+  comprobar('CANDADO: los números van en orden y sin saltos hacia atrás',
+    pies.every((v, i) => i === 0 || v >= pies[i - 1]),
+    pies.join(','));
+  comprobar('y el último no pasa del total de páginas del documento',
+    Math.max(...pies) <= r.paginas, `${Math.max(...pies)} de ${r.paginas}`);
+}
+
+seccion('10. El nombre del fichero que se descarga');
 {
   const r = await generar({});
   const n = r.salida.nombreArchivo;
@@ -405,7 +433,7 @@ seccion('9. El nombre del fichero que se descarga');
     /^[\w.\-]+\.pdf$/.test(n), n);
 }
 
-seccion('10. Las cinco secciones que antes no salían del navegador');
+seccion('11. Las cinco secciones que antes no salían del navegador');
 {
   const r = await generar({});
   /* Cada una tiene que dejar su título en el papel. Si una deja de pintarse
@@ -430,7 +458,7 @@ seccion('10. Las cinco secciones que antes no salían del navegador');
     'aparece una sección que no tiene nada que comparar');
 }
 
-seccion('11. Con dos cursos académicos SÍ se compara, y ahí está el sentido');
+seccion('12. Con dos cursos académicos SÍ se compara, y ahí está el sentido');
 {
   /* La comprobación de arriba —«con un curso no se pinta»— pasaría también si
      la sección estuviera rota y no se pintara nunca. Este es el caso que las
@@ -469,7 +497,7 @@ seccion('11. Con dos cursos académicos SÍ se compara, y ahí está el sentido'
     'se ha colado una evaluación que no toca');
 }
 
-seccion('12. Los umbrales con los que se ha clasificado salen en el papel');
+seccion('13. Los umbrales con los que se ha clasificado salen en el papel');
 {
   /* Es lo que faltaba y por lo que la ficha existe: los umbrales son
      configurables, así que dos informes de los mismos datos pueden llamar
@@ -509,7 +537,7 @@ seccion('12. Los umbrales con los que se ha clasificado salen en el papel');
     iCurso < 0 ? 'no está la fila' : 'dice ' + JSON.stringify(lineas[iCurso + 1]));
 }
 
-seccion('13. Sin selecciones y sin alertas, esas secciones no se pintan');
+seccion('14. Sin selecciones y sin alertas, esas secciones no se pintan');
 {
   const pelado = await generar({ selecciones: [], sinAlertas: true });
   comprobar('se genera igual', pelado.error === null, pelado.error && pelado.error.message);
@@ -519,7 +547,7 @@ seccion('13. Sin selecciones y sin alertas, esas secciones no se pintan');
   comprobar('y las demás siguen ahí', pelado.texto.includes('fichaTitulo'));
 }
 
-seccion('14. Las gráficas entran comprimidas, que es de lo que dependía el tamaño');
+seccion('15. Las gráficas entran comprimidas, que es de lo que dependía el tamaño');
 {
   /* Medido, no supuesto: un informe con dos gráficas pesaba 18,05 MB y 17,85
      eran esas dos imágenes —9,6 y 8,2 MB, exactamente ancho × alto × 3—.
