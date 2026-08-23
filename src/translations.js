@@ -225,10 +225,10 @@ export const translations = {
     standardDeviation: 'Desviación Estándar',
     students: 'Alumnos',
     dispersionAnalysis: 'Análisis de Dispersión',
-    highAvgLowDev: 'Nota alta y baja dispersión: Rendimiento excelente y homogéneo',
-    highAvgHighDev: 'Nota alta y alta dispersión: Buenos resultados pero heterogéneos',
-    lowAvgLowDev: 'Nota baja y baja dispersión: Dificultad generalizada',
-    lowAvgHighDev: 'Nota baja y alta dispersión: Resultados muy variables',
+    highAvgLowDev: 'Nota alta y baja dispersión: casi todo el alumnado saca notas parecidas y altas',
+    highAvgHighDev: 'Nota alta y alta dispersión: la media es alta y las notas están repartidas',
+    lowAvgLowDev: 'Nota baja y baja dispersión: casi todo el alumnado saca notas parecidas y bajas',
+    lowAvgHighDev: 'Nota baja y alta dispersión: la media es baja y las notas están repartidas',
 
     // Tipos de tendencia - Lineales
     trendEstable: 'Estable',
@@ -716,10 +716,10 @@ export const translations = {
     standardDeviation: 'Desviació Estàndard',
     students: 'Alumnes',
     dispersionAnalysis: 'Anàlisi de Dispersió',
-    highAvgLowDev: 'Nota alta i baixa dispersió: Rendiment excel·lent i homogeni',
-    highAvgHighDev: 'Nota alta i alta dispersió: Bons resultats però heterogenis',
-    lowAvgLowDev: 'Nota baixa i baixa dispersió: Dificultat generalitzada',
-    lowAvgHighDev: 'Nota baixa i alta dispersió: Resultats molt variables',
+    highAvgLowDev: 'Nota alta i baixa dispersió: quasi tot l\'alumnat trau notes semblants i altes',
+    highAvgHighDev: 'Nota alta i alta dispersió: la mitjana és alta i les notes estan repartides',
+    lowAvgLowDev: 'Nota baixa i baixa dispersió: quasi tot l\'alumnat trau notes semblants i baixes',
+    lowAvgHighDev: 'Nota baixa i alta dispersió: la mitjana és baixa i les notes estan repartides',
 
     // Tipus de tendència - Lineals
     trendEstable: 'Estable',
