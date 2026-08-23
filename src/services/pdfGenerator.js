@@ -8,7 +8,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { esAgregado, normalizar as normalizarNucleo } from '../nucleo/texto.js';
 import { detectarEtapa } from '../nucleo/estadistica.js';
-import { nota, porcentaje, entero, texto, diferencia, conSigno,
+import { nota, porcentaje, entero, texto, diferencia, conSigno, anchosQueCaben,
          porAsignaturaAgregada, filasComparativaKPI } from '../nucleo/informe.js';
 import { formatearNombreTrimestre } from '../utils/formatters.js';
 
@@ -53,7 +53,16 @@ export const generarInformePDF = async ({
   t,
   onProgress,
   onSuccess,
-  onError
+  onError,
+  /* Cómo sale el PDF de aquí. Por defecto se descarga, que es lo que quiere
+     quien pulsa el botón; pero pasando otra función se puede capturar el
+     documento sin tocar el disco. De eso viven dos cosas: la prueba de
+     extremo a extremo, que ejecuta las quince secciones en Node y lee lo que
+     escriben, y la vista previa, que enseña el informe antes de bajarlo.
+     Sin esta costura no había forma de probar el generador entero: `save()`
+     necesita un navegador, así que cualquier error dentro de una sección solo
+     se descubría generando el informe a mano y con los datos justos. */
+  guardar
 }) => {
 
   if (!trimestreSeleccionado || !datosCompletos[trimestreSeleccionado]) {
@@ -332,10 +341,10 @@ export const generarInformePDF = async ({
         theme: 'striped',
         headStyles: { fillColor: COLORS.primary, fontSize: 11, fontStyle: 'bold' },
         styles: { fontSize: 10, cellPadding: 4 },
-        columnStyles: {
+        columnStyles: anchosQueCaben({
           0: { cellWidth: 100, fontStyle: 'bold' },
           1: { cellWidth: 80, halign: 'right' }
-        },
+        }, contentWidth),
         margin: { left: PAGE.margin, right: PAGE.margin },
         tableWidth: 'wrap',
       });
@@ -611,7 +620,7 @@ export const generarInformePDF = async ({
           theme: 'grid',
           headStyles: { fillColor: COLORS.primary, fontSize: 10, fontStyle: 'bold', halign: 'center' },
           styles: { fontSize: 10, cellPadding: 5 },
-          columnStyles: modoEtapa === 'EPM' ? {
+          columnStyles: anchosQueCaben(modoEtapa === 'EPM' ? {
             0: { cellWidth: 50, fontStyle: 'bold' },
             1: { cellWidth: 50, halign: 'center', fillColor: [219, 234, 254] }, // Blue bg
             2: { cellWidth: 55, halign: 'center' },
@@ -622,7 +631,7 @@ export const generarInformePDF = async ({
             1: { cellWidth: 70, halign: 'center' },
             2: { cellWidth: 70, halign: 'center', fillColor: [219, 234, 254] }, // Blue bg
             3: { cellWidth: 70, halign: 'center' }
-          },
+          }, contentWidth),
           margin: { left: PAGE.margin, right: PAGE.margin }
         });
 
@@ -713,14 +722,14 @@ export const generarInformePDF = async ({
           fontStyle: 'bold'
         },
         styles: { fontSize: 8, cellPadding: 2 },
-        columnStyles: {
+        columnStyles: anchosQueCaben({
           0: { cellWidth: 55 },
           1: { cellWidth: 40, halign: 'center' },
           2: { cellWidth: 25, halign: 'center' },
           3: { cellWidth: 25, halign: 'center' },
           4: { cellWidth: 28, halign: 'center' },
           5: { cellWidth: 28, halign: 'center' }
-        },
+        }, contentWidth),
         didParseCell: function(data) {
           if (data.section === 'body' && data.row.index === 0) {
             data.cell.styles.fillColor = [241, 245, 249];
@@ -828,7 +837,7 @@ export const generarInformePDF = async ({
           fontStyle: 'bold'
         },
         styles: { fontSize: 7, cellPadding: 2 },
-        columnStyles: {
+        columnStyles: anchosQueCaben({
           0: { cellWidth: 50 },
           1: { cellWidth: 22, halign: 'center' },
           2: { cellWidth: 22, halign: 'center' },
@@ -836,7 +845,7 @@ export const generarInformePDF = async ({
           4: { cellWidth: 22, halign: 'center' },
           5: { cellWidth: 25, halign: 'center' },
           6: { cellWidth: 22, halign: 'center' }
-        },
+        }, contentWidth),
         didParseCell: function(data) {
           if (data.section === 'body') {
             // Diferencia nota media
@@ -953,13 +962,13 @@ export const generarInformePDF = async ({
         theme: 'grid',
         headStyles: { fillColor: COLORS.primary, fontSize: 10, fontStyle: 'bold' },
         styles: { fontSize: 9, cellPadding: 3 },
-        columnStyles: {
+        columnStyles: anchosQueCaben({
           0: { cellWidth: 12, halign: 'center' },
           1: { cellWidth: 25, halign: 'center' },
           2: { cellWidth: 80 },
           3: { cellWidth: 80 },
           4: { cellWidth: 28, halign: 'right', fontStyle: 'bold' }
-        },
+        }, contentWidth),
         margin: { left: PAGE.margin, right: PAGE.margin },
         didParseCell: (data) => {
           if (data.column.index === 4 && data.section === 'body') {
@@ -1130,13 +1139,13 @@ export const generarInformePDF = async ({
           fontSize: 8,
           cellPadding: 3
         },
-        columnStyles: {
+        columnStyles: anchosQueCaben({
           0: { cellWidth: 60 },
           1: { cellWidth: 55 },
           2: { cellWidth: 55 },
           3: { cellWidth: 25, halign: 'center' },
           4: { cellWidth: 20, halign: 'center' }
-        },
+        }, contentWidth),
         didParseCell: function(data) {
           if (data.section === 'body' && data.column.index === 1) {
             const tipoMedia = tendenciasParaPDF[data.row.index]?.tendenciaMedia.tipo;
@@ -1259,7 +1268,9 @@ export const generarInformePDF = async ({
             t('subject') || 'Asignatura',
             t('records') || 'N',
             t('average') || 'Media',
-            t('standardDeviationShort') || 'σ',
+            /* «Desv.» y no «σ»: las fuentes estándar de jsPDF no tienen la
+               sigma, y en el papel salía «Ã». Lo vigila `pruebas/traducciones.mjs`. */
+            t('standardDeviationShort') || 'Desv.',
             t('mode') || 'Moda',
             t('passed') || '% Apr.',
             t('passedMode') || 'Moda Apr.',
@@ -1270,7 +1281,7 @@ export const generarInformePDF = async ({
           theme: 'striped',
           headStyles: { fillColor: etapaFiltro === 'EEM' ? [6, 78, 59] : (etapaFiltro === 'EPM' ? [88, 28, 135] : COLORS.primary), fontSize: 8, fontStyle: 'bold' },
           styles: { fontSize: 7, cellPadding: 2 },
-          columnStyles: {
+          columnStyles: anchosQueCaben({
             0: { cellWidth: 18, halign: 'center' },
             1: { cellWidth: 55 },
             2: { cellWidth: 14, halign: 'center' },
@@ -1281,7 +1292,7 @@ export const generarInformePDF = async ({
             7: { cellWidth: 22, halign: 'center' },
             8: { cellWidth: 18, halign: 'center' },
             9: { cellWidth: 22, halign: 'center' }
-          },
+          }, contentWidth),
           margin: { left: PAGE.margin, right: PAGE.margin },
           didParseCell: (data) => {
             if ((data.column.index === 6 || data.column.index === 7) && data.section === 'body') {
@@ -1445,9 +1456,11 @@ export const generarInformePDF = async ({
        frontera del programa. */
     const claveEnNombre = String(trimestreSeleccionado || '').replace(/[^\w.-]+/g, '_');
     const nombreArchivo = `Informe_${(configInforme.nombreCentro || 'Centro').replace(/\s+/g, '_')}_${claveEnNombre}_${new Date().toISOString().split('T')[0]}.pdf`;
-    pdf.save(nombreArchivo);
+    if (guardar) guardar(pdf, nombreArchivo);
+    else pdf.save(nombreArchivo);
 
     if (onSuccess) onSuccess();
+    return { pdf, nombreArchivo, paginas: pdf.getNumberOfPages() };
   } catch (error) {
     console.error('[PDF] Error al generar PDF:', error);
     console.error('[PDF] Stack trace:', error.stack);

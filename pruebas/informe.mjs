@@ -13,7 +13,7 @@
  */
 import { nota, porcentaje, entero, texto, diferenciaPct, diferencia, conSigno,
          celdaConDiferencia, porAsignaturaAgregada, filasComparativaKPI,
-         SIN_DATO } from '../src/nucleo/informe.js';
+         anchosQueCaben, SIN_DATO } from '../src/nucleo/informe.js';
 import { parseCSV } from '../src/nucleo/csv.js';
 import { procesarDatos } from '../src/nucleo/datos.js';
 import { calcularKPIs } from '../src/nucleo/kpi.js';
@@ -167,6 +167,33 @@ seccion('6. Un solo criterio de etapa para la pantalla y para el informe');
   comprobar('y lo que no es de ninguna etapa sigue sin serlo',
     detectarEtapa('GLOBAL') === null && detectarEtapa('') === null &&
     detectarEtapa('Otro') === null);
+}
+
+seccion('7. Ninguna tabla se sale de la página');
+{
+  /* Los anchos de columna del informe están escritos a mano en milímetros y
+     nadie sumaba. La comparativa de KPIs medía 270 sobre los 267 útiles de una
+     A4 apaisada: se metía tres milímetros en el margen derecho, lo justo para
+     quedar desalineada con las demás tablas sin que salte a la vista. Y no da
+     error: autoTable dibuja lo que le digan. */
+  const cabe = { 0: { cellWidth: 60, halign: 'left' }, 1: { cellWidth: 70 }, 2: { cellWidth: 70 } };
+  comprobar('una tabla que cabe se deja como está',
+    anchosQueCaben(cabe, 267) === cabe);
+
+  const nocabe = { 0: { cellWidth: 60, fontStyle: 'bold' }, 1: { cellWidth: 70 },
+                   2: { cellWidth: 70 }, 3: { cellWidth: 70 } };
+  const ajustada = anchosQueCaben(nocabe, 267);
+  const suma = Object.values(ajustada).reduce((s, c) => s + c.cellWidth, 0);
+  comprobar('CANDADO: una que no cabe se encoge hasta caber exactamente',
+    Math.abs(suma - 267) < 0.001, 'suma ' + suma);
+  comprobar('y todas se encogen en la misma proporción, que es el reparto que alguien quiso',
+    Math.abs(ajustada[1].cellWidth - ajustada[3].cellWidth) < 0.001 &&
+    ajustada[0].cellWidth < ajustada[1].cellWidth,
+    JSON.stringify(Object.values(ajustada).map((c) => +c.cellWidth.toFixed(2))));
+  comprobar('sin tocar el resto del estilo de la columna',
+    ajustada[0].fontStyle === 'bold' && ajustada[0].halign === undefined);
+  comprobar('y una columna sin ancho fijo se respeta tal cual',
+    anchosQueCaben({ 0: { cellWidth: 300 }, 1: { halign: 'center' } }, 267)[1].halign === 'center');
 }
 
 terminar('lo que dice el informe PDF: ni un cero de relleno, ni una diferencia inventada.');

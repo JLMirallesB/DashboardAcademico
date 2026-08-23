@@ -429,7 +429,7 @@ export const translations = {
     subjectVsCourseDesc: 'Cada asignatura comparada con la media global del mismo curso',
     courseAvg: 'Media Curso',
     scope: 'Ámbito',
-    standardDeviationShort: 'σ',
+    standardDeviationShort: 'Desv.',
 
     // Etiquetas de tendencias
     trendStable: 'Estable',
@@ -901,7 +901,7 @@ export const translations = {
     subjectVsCourseDesc: 'Cada assignatura comparada amb la mitjana global del mateix curs',
     courseAvg: 'Mitjana Curs',
     scope: 'Àmbit',
-    standardDeviationShort: 'σ',
+    standardDeviationShort: 'Desv.',
 
     // Etiquetes de tendències
     trendStable: 'Estable',

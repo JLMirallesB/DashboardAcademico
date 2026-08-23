@@ -154,4 +154,41 @@ export const filasComparativaKPI = (kpis, columnas, rotulos) => {
   });
 };
 
+/* ------------------------------------------------------------------ */
+
+/** Los anchos de columna, ajustados para que la tabla quepa.
+ *
+ * Las tablas del informe llevan el ancho de cada columna escrito a mano en
+ * milímetros, y nadie sumaba. La comparativa de KPIs medía 270 mm sobre los
+ * 267 útiles de una A4 apaisada con sus márgenes: se metía tres milímetros en
+ * el margen derecho, lo justo para que no se note al lado de las otras tablas
+ * pero sí para que no esté alineada con ellas. Y no da error: `autoTable`
+ * dibuja lo que le digan.
+ *
+ * Con esto **no puede volver a pasar**: si la suma se pasa, todas las columnas
+ * se encogen en la misma proporción, que conserva el reparto que quiso quien
+ * la diseñó. Si no llega, se deja como está: hay tablas estrechas a propósito.
+ *
+ * @param columnStyles  el objeto de `autoTable`, { 0: { cellWidth: 50 }, ... }
+ * @param disponible    el ancho útil de la página
+ */
+export const anchosQueCaben = (columnStyles, disponible) => {
+  if (!columnStyles || !(disponible > 0)) return columnStyles;
+  const claves = Object.keys(columnStyles);
+  const suma = claves.reduce((s, k) => {
+    const w = columnStyles[k] && columnStyles[k].cellWidth;
+    return s + (esNumero(w) ? w : 0);
+  }, 0);
+  if (suma <= disponible || suma === 0) return columnStyles;
+
+  const factor = disponible / suma;
+  const salida = {};
+  claves.forEach((k) => {
+    const col = columnStyles[k];
+    const w = col && col.cellWidth;
+    salida[k] = esNumero(w) ? { ...col, cellWidth: w * factor } : col;
+  });
+  return salida;
+};
+
 export { esAgregado };

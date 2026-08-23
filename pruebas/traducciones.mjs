@@ -102,4 +102,56 @@ seccion('3. Toda clave que el código usa, existe');
   console.log('      (' + construidas + ' llamadas con clave construida, fuera del alcance de esto)');
 }
 
+seccion('4. Ningún rótulo del informe con un carácter que la fuente no sabe pintar');
+{
+  /* El PDF usa las fuentes estándar de jsPDF, que van con WinAnsiEncoding: un
+     repertorio de un byte. Un carácter de fuera —la σ de «desviación», una
+     flecha, un ≥— no da error ni al generar ni al abrir: jsPDF mete dos bytes
+     donde cabe uno y en el papel sale «Ã» o un hueco. Es invisible desde el
+     código y desde las pruebas de contenido; solo se ve mirando el PDF.
+     Pasó de verdad: `standardDeviationShort` era 'σ' y era la cabecera de una
+     columna de la tabla de asignaturas.
+
+     La pantalla no tiene este problema —el navegador pinta lo que sea— así
+     que la comprobación se limita a los rótulos que USA EL INFORME. */
+  const pdf = readFileSync(join(RAIZ, 'src/services/pdfGenerator.js'), 'utf8');
+
+  /* WinAnsi es latin-1 más el bloque 0x80-0x9F, donde viven el guion largo,
+     las comillas tipográficas y el resto de lo que de verdad aparece. */
+  const BLOQUE_ALTO = '€‚ƒ„…†‡ˆ‰Š‹Œ Ž  ‘’“”•–—˜™š›œ žŸ';
+  const pintable = (c) => {
+    const p = c.codePointAt(0);
+    return (p >= 32 && p <= 126) || (p >= 160 && p <= 255) || BLOQUE_ALTO.includes(c);
+  };
+  const fueraDe = (texto) => [...new Set([...texto].filter((c) => !pintable(c)))].join('');
+
+  /* Las claves que el generador pide por `t('...')`. */
+  const usadas = new Set([...pdf.matchAll(/\bt\('([A-Za-z0-9_]+)'\)/g)].map((m) => m[1]));
+
+  const rotos = [];
+  Object.entries(translations).forEach(([idioma, tabla]) => {
+    Object.entries(tabla).forEach(([clave, valor]) => {
+      if (!usadas.has(clave) || typeof valor !== 'string') return;
+      const malos = fueraDe(valor);
+      if (malos) rotos.push(`${idioma}.${clave} [${malos}]`);
+    });
+  });
+
+  comprobar('CANDADO: ningún rótulo que el informe imprime se sale de WinAnsi',
+    rotos.length === 0, rotos.join(' · '));
+
+  /* Y los literales de respaldo escritos dentro del propio generador
+     —`t('x') || 'Teórica Troncal'`—, que no pasan por la tabla de idiomas y
+     por eso se escapan de la comprobación de arriba. */
+  const literales = [...pdf.matchAll(/\|\|\s*'((?:[^'\\]|\\.)*)'/g)].map((m) => m[1]);
+  const literalesRotos = literales.map((l) => [l, fueraDe(l)]).filter(([, m]) => m);
+  comprobar('ni los literales de respaldo del generador',
+    literalesRotos.length === 0,
+    literalesRotos.map(([l, m]) => `«${l.slice(0, 30)}» [${m}]`).join(' · '));
+
+  comprobar('y se están mirando rótulos de verdad, no una lista vacía',
+    usadas.size > 25 && literales.length > 20,
+    `${usadas.size} claves y ${literales.length} literales`);
+}
+
 terminar('las dos tablas de idioma y las claves que usa el código.');
