@@ -338,47 +338,66 @@ const DashboardAcademico = () => {
   }, [trimestreSeleccionado, selecciones.length]);
 
   // Cargar CSV
-  const handleCargarCSV = useCallback((event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
+  /** Lee un fichero y devuelve su texto. */
+  const leerTexto = (file) => new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = (e) => {
-      const texto = e.target.result;
-      const parsed = parseCSV(texto);
+    reader.onload = (e) => resolve(e.target.result);
+    reader.onerror = () => reject(new Error(file.name));
+    reader.readAsText(file);
+  });
+
+  /* Se cargan VARIOS de golpe. Un curso completo son ocho ficheros —dos
+     cursos académicos por dos evaluaciones por dos etapas— y hacerlo de uno en
+     uno son ocho vueltas por el diálogo del sistema.
+
+     Los que no estaban se aplican todos; los que ya estaban se juntan en UNA
+     sola pregunta, con la lista delante. Preguntar fichero a fichero convierte
+     una carga de ocho en ocho modales, y a la tercera se pulsa que sí sin
+     leer, que es peor que no preguntar. */
+  const handleCargarCSV = useCallback(async (event) => {
+    const ficheros = Array.from(event.target.files || []);
+    event.target.value = '';
+    if (!ficheros.length) return;
+
+    const nuevos = [];
+    const repetidos = [];
+    const errores = [];
+    const yaVistos = new Set(trimestresDisponibles);
+
+    for (const file of ficheros) {
       let procesado;
       try {
-        procesado = procesarDatos(parsed);
+        procesado = procesarDatos(parseCSV(await leerTexto(file)));
       } catch (error) {
-        if (error.message === 'ERROR_NO_TRIMESTER_METADATA') {
-          alert(t('errorNoTrimesterMetadata'));
-        } else {
-          alert(error.message);
-        }
-        return;
+        errores.push(file.name + ': ' + (error.message === 'ERROR_NO_TRIMESTER_METADATA'
+          ? t('errorNoTrimesterMetadata') : error.message));
+        continue;
       }
+      if (!procesado) continue;
+      /* Ojo con los repetidos DENTRO de la misma tanda: si alguien selecciona
+         dos veces el mismo fichero, el segundo también es un reemplazo. */
+      if (yaVistos.has(procesado.trimestre)) repetidos.push(procesado);
+      else { yaVistos.add(procesado.trimestre); nuevos.push(procesado); }
+    }
 
-      if (!procesado) {
-        return;
-      }
+    nuevos.forEach(aplicarDatos);
 
-      // Verificar si el trimestre ya existe
-      if (trimestresDisponibles.includes(procesado.trimestre)) {
-        setTrimestrePendiente(procesado.trimestre);
-        setDatosPendientes(procesado);
-        setMostrarModalConfirm(true);
-      } else {
-        aplicarDatos(procesado);
-      }
-    };
-    reader.readAsText(file);
-    event.target.value = '';
-  }, [parseCSV, procesarDatos, trimestresDisponibles, aplicarDatos]);
+    if (errores.length) alert(errores.join('\n'));
+
+    if (repetidos.length) {
+      setDatosPendientes(repetidos);
+      setTrimestrePendiente(repetidos.map((p) => p.trimestre));
+      setMostrarModalConfirm(true);
+    }
+  }, [parseCSV, procesarDatos, trimestresDisponibles, aplicarDatos, t]);
 
   // Confirmar reemplazo de trimestre
   const confirmarReemplazo = useCallback(() => {
+    /* Puede ser uno o varios: desde que se cargan tandas de ficheros, lo que
+       espera es una lista. Se acepta también un objeto suelto por si algún
+       camino antiguo lo manda así. */
     if (datosPendientes) {
-      aplicarDatos(datosPendientes);
+      (Array.isArray(datosPendientes) ? datosPendientes : [datosPendientes]).forEach(aplicarDatos);
     }
     setMostrarModalConfirm(false);
     setTrimestrePendiente(null);
@@ -1587,6 +1606,8 @@ const DashboardAcademico = () => {
               ref={fileInputRef}
               type="file"
               accept=".csv"
+              /* Varios de golpe: un curso completo son ocho ficheros. */
+              multiple
               onChange={handleCargarCSV}
               className="hidden"
             />
@@ -1831,7 +1852,10 @@ const DashboardAcademico = () => {
           <div className="bg-white rounded-xl border border-gray-200 p-8 max-w-md w-full mx-4">
             <h3 className="text-2xl text-gray-900 mb-4">{t('trimesterAlreadyLoaded')}</h3>
             <p className="text-gray-600 mb-6">
-              {t('replaceConfirm').replace('{trimester}', trimestrePendiente ? rotuloTrimestre(trimestrePendiente) : '')}
+              {t('replaceConfirm').replace('{trimester}',
+                Array.isArray(trimestrePendiente)
+                  ? trimestrePendiente.map(rotuloTrimestre).join(', ')
+                  : (trimestrePendiente ? rotuloTrimestre(trimestrePendiente) : ''))}
             </p>
             <div className="flex gap-3">
               <button
@@ -1852,7 +1876,7 @@ const DashboardAcademico = () => {
       )}
 
       {/* Inputs ocultos para carga de archivos */}
-      <input ref={fileInputRef} type="file" accept=".csv" onChange={handleCargarCSV} className="hidden" />
+      <input ref={fileInputRef} type="file" accept=".csv" multiple onChange={handleCargarCSV} className="hidden" />
       <input ref={jsonInputRef} type="file" accept=".json" onChange={handleImportarJSON} className="hidden" />
 
       {/* Layout principal con Sidebar */}
@@ -2263,6 +2287,57 @@ const DashboardAcademico = () => {
 
                   {/* Controles de zoom */}
                   <div className="flex flex-col gap-2">
+                    {/* Ajustar a los datos: los ejes por defecto van de 0 a 10
+                        en la media y hasta un máximo redondeado en la
+                        desviación, así que con un centro que se mueve entre
+                        6,5 y 8 la nube se queda apretada en una esquina y las
+                        diferencias que importan no se ven. Esto los recorta a
+                        lo que hay, con un margen para que nada quede pegado al
+                        borde. Se calcula sobre los puntos que se están
+                        pintando —los que pasan el mínimo de alumnado—, no
+                        sobre todos: ajustar a un punto que está filtrado
+                        dejaría espacio vacío. */}
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          const puntos = datosDispersion.filter(d => d.alumnos >= minAlumnosDispersion);
+                          if (!puntos.length) return;
+                          const medias = puntos.map(d => d.notaMedia);
+                          const desv = puntos.map(d => d.desviacion);
+                          const margen = (lo, hi, minimo) => {
+                            const m = Math.max((hi - lo) * 0.08, minimo);
+                            return [lo - m, hi + m];
+                          };
+                          const [mMin, mMax] = margen(Math.min(...medias), Math.max(...medias), 0.2);
+                          const [dMin, dMax] = margen(Math.min(...desv), Math.max(...desv), 0.1);
+                          setZoomDispersion({
+                            /* Redondeado a medio punto y a una décima: un eje
+                               que empieza en 6,3174 se lee peor que uno que
+                               empieza en 6,5, y no se gana nada. */
+                            rangoMedia: {
+                              min: Math.max(0, Math.floor(mMin * 2) / 2),
+                              max: Math.min(10, Math.ceil(mMax * 2) / 2)
+                            },
+                            rangoDesviacion: {
+                              min: Math.max(0, Math.floor(dMin * 10) / 10),
+                              max: Math.ceil(dMax * 10) / 10
+                            }
+                          });
+                        }}
+                        className="px-3 py-1.5 text-xs font-medium bg-gray-900 text-white rounded-lg hover:bg-black transition-colors"
+                      >
+                        {t('dispAjustar')}
+                      </button>
+                      <button
+                        onClick={() => setZoomDispersion({
+                          rangoMedia: { min: 0, max: 10 },
+                          rangoDesviacion: { min: 0, max: null }
+                        })}
+                        className="px-3 py-1.5 text-xs font-medium border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        {t('dispRestablecer')}
+                      </button>
+                    </div>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-gray-600 whitespace-nowrap">{t('average')}:</span>
                       <input
@@ -3196,7 +3271,20 @@ const DashboardAcademico = () => {
       )}
 
       {/* VISTA: CORRELACIONES */}
-      {vistaActual === 'correlaciones' && (
+      {/* Sin correlaciones en el fichero, la vista se quedaba MUDA: gráficas
+          vacías y ninguna explicación. Y no es un caso raro — la sección
+          #CORRELACIONES es opcional en el CSV y hay exportadores que no la
+          escriben—. Decir qué falta y de dónde sale es media respuesta. */}
+      {vistaActual === 'correlaciones' && correlacionesDelTrimestre.length === 0 && (
+        <div className="max-w-3xl mx-auto">
+          <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('corrSinDatos')}</h3>
+            <p className="text-sm text-gray-600">{t('corrSinDatosDetalle')}</p>
+          </div>
+        </div>
+      )}
+
+      {vistaActual === 'correlaciones' && correlacionesDelTrimestre.length > 0 && (
         <div className="max-w-7xl mx-auto">
           <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
