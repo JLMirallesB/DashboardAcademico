@@ -171,6 +171,32 @@ House rules, and they are not decoration:
 - Labels the PDF prints must stay inside WinAnsi — jsPDF's standard fonts are
   single-byte and a `σ` came out as `Ã`. `pruebas/traducciones.mjs` guards it.
 
+### Signals, and the rule that governs them
+
+`src/nucleo/senales.js` decides what is worth looking at, and the whole
+sub-system exists to hold one line: **an indicator is a signal, not a
+diagnosis.** A low mean fits poor learning, but equally a legitimate rise in
+demands, a different cohort, or a change of assessment instruments. Nothing in
+`senales.js`, `informe-senales.js` or `ResumenEjecutivo.jsx` may emit a
+sentence that explains *why* — only the observation with its `n`, how solid the
+signal is and why, and two separate lists: what the app has already checked,
+and what somebody has to go and look at. `pruebas/senales.mjs` fails if a
+forbidden word shows up in the output.
+
+Three things learned by looking at it on screen, not from the tests:
+
+- **Dispersion is a modifier, not a signal.** With a fixed 1.5 threshold the
+  centre's ten top signals were all «notas muy repartidas». Measured: median
+  1.36, third quartile 1.53. It now compares against **the centre's own**
+  quartiles, and rides along with the signal it qualifies — because what
+  changes the decision is whether a low mean is shared by the group or
+  concentrated in a few students.
+- **Talking about the shape of a distribution needs more data than talking
+  about its level.** The app's general minimum is 3 students, which is fine
+  for a mean and meaningless for a standard deviation. `MINIMO_PARA_FORMA`.
+- **`null` is not `false`.** «No other academic year loaded to compare with»
+  must never be written the same as «checked, and it does not repeat».
+
 ### The PDF report
 
 [pdfGenerator.js](src/services/pdfGenerator.js) only *draws*. What the report

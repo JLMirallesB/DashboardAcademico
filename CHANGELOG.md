@@ -38,6 +38,16 @@ mismo**, porque antes estaban mal:
   la portada seguía contándolas.
 - **Las correlaciones** dependían del orden en que se cargaran los ficheros:
   ganaba el último. Ahora son las del trimestre que estás mirando.
+- **Los rótulos del mapa de dispersión eran diagnósticos.** «Nota baja y baja
+  dispersión: Dificultad generalizada» decía la causa, y esa combinación es
+  igual de compatible con una promoción con otro punto de partida o con unos
+  criterios exigentes pero legítimos. Ahora dicen lo que se observa: que casi
+  todo el alumnado saca notas parecidas y bajas.
+- **Los pies de página del informe estaban mal numerados.** En un informe de
+  26 páginas decían 2, 1, 3, 1, 4, 5, 6, 7, 8, 9, 1, 10, 1…: seis páginas
+  numeradas «1» y cinco sin numerar, porque se escribía el número de página
+  *de cada tabla* en vez del del documento. Con un índice delante, eso lo
+  vuelve inservible.
 - **El informe PDF escribía «0,00» donde no había dato**, y la diferencia con
   el centro le salía «(-100,0 %)»: una medición que nadie ha hecho. La pantalla
   ya ponía «—» en esos huecos; el informe no. Pasaba, por ejemplo, cuando el
@@ -49,6 +59,28 @@ mismo**, porque antes estaban mal:
 
 ### Nuevo
 
+- **«Qué merece mirarse».** Una vista nueva, la primera del menú, y la
+  primera página del informe. Reúne todo lo que los indicadores han
+  levantado y lo ordena por lo **sólida** que es cada señal: pesa el doble lo
+  que se repite en varias evaluaciones o en otra promoción que lo que aparece
+  una vez.
+
+  Con una regla que gobierna todo lo que dice: **un indicador es una señal,
+  no un diagnóstico**. Una media baja es compatible con dificultades de
+  aprendizaje, pero también con un aumento legítimo de la exigencia, con una
+  promoción distinta o con un cambio de criterios de evaluación. Así que cada
+  línea es una observación con su alumnado, y debajo dos listas: **lo que la
+  aplicación ya ha comprobado** (¿se repite?, ¿aparece en otro curso?, ¿cómo
+  está la dispersión?) y **lo que hay que ir a mirar fuera de los datos**
+  (¿ha cambiado el profesorado?, ¿los criterios?, ¿hay ausencias?).
+
+  En la aplicación salen todas. En el informe caben seis, y se dice cuántas
+  quedan fuera.
+- **«Cómo hay que leer este informe»**, al final del PDF, con los números de
+  ese informe: cuántas asignaturas se han podido juzgar, cuántas se han
+  quedado fuera por tener poco alumnado —que no es lo mismo que estar bien—,
+  cuál es el grupo más pequeño que entra en una cifra y si las correlaciones
+  traían su «n».
 - **Curso académico contra curso académico.** El curso pasa a formar parte de
   la identidad de cada fichero, así que se pueden cargar varios años a la vez
   —antes se pisaban en silencio y uno desaparecía—. Y en Evolución hay un

@@ -172,6 +172,12 @@ export const generarInformePDF = async ({
     const secciones = [];
 
     const addNewPage = (titulo) => {
+      /* Antes de irse, se le pone el pie a la página que se deja. Sin esto,
+         las páginas que una sección añade por desbordamiento —la lista de
+         asignaturas difíciles, por ejemplo— se quedaban sin numerar: medido,
+         faltaban cuatro de veintiséis. Es idempotente, así que llamarlo aquí
+         no duplica el de las que ya lo tienen. */
+      addFooter();
       pdf.addPage();
       currentPage++;
       addHeader();
@@ -1930,6 +1936,9 @@ export const generarInformePDF = async ({
         }
       });
     }
+
+    /* Y el pie de la última, que por definición no lo pone ningún salto. */
+    addFooter();
 
     // Guardar PDF
     onProgress?.(t('pdfSaving'));

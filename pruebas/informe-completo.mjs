@@ -422,6 +422,16 @@ seccion('9. Los pies numeran el documento, no cada tabla');
     pies.join(','));
   comprobar('y el último no pasa del total de páginas del documento',
     Math.max(...pies) <= r.paginas, `${Math.max(...pies)} de ${r.paginas}`);
+
+  /* CANDADO: TODAS las páginas llevan pie menos la portada, que lleva su
+     propia fecha centrada. Faltaban cuatro de veintiséis —las que una
+     sección añade por desbordamiento— y en un informe largo una página sin
+     número es una página que no se puede citar. */
+  const esperadas = [];
+  for (let n = 2; n <= r.paginas; n++) esperadas.push(n);
+  const faltan = esperadas.filter((n) => !pies.includes(n));
+  comprobar('CANDADO: no queda ninguna página sin numerar (salvo la portada)',
+    faltan.length === 0, 'sin pie: ' + faltan.join(','));
 }
 
 seccion('10. El nombre del fichero que se descarga');
