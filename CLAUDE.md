@@ -26,7 +26,18 @@ npm run preview
 
 ### Single-Page Application Structure
 
-The entire application is a single React component ([DashboardAcademico.jsx](src/DashboardAcademico.jsx)) with ~2000 lines. This monolithic approach was intentional for simplicity, though it makes the file very large.
+The UI still lives largely in one React component
+([DashboardAcademico.jsx](src/DashboardAcademico.jsx)), now ~4500 lines. The
+agreed strategy is **not** a big-bang split: each view gets extracted the next
+time we work on that view (that is how `AlertasCurso.jsx` and
+`FamiliasAsignaturas.jsx` came out).
+
+**The calculations do not live there any more.** Everything that can be
+computed without React is in [src/nucleo/](src/nucleo/) — pure ESM modules with
+no DOM, no React and no jsPDF, each with its own test. When something needs a
+number, it goes in the núcleo; the component only decides what to paint. That
+is what made it possible to test the KPIs, the difficulty analysis, the alerts,
+the correlations and the whole PDF report.
 
 ### Data Flow Pipeline
 
@@ -58,15 +69,19 @@ src/
 │   │   ├── StageModeSwitcher.jsx     # EEM/EPM/TODOS stage selector
 │   │   └── ViewTabNavigation.jsx     # Statistics/Correlations/Evolution/Difficulty tabs
 │   ├── modals/          # Modal dialogs
-│   │   ├── DataManagementModal.jsx   # Manage loaded trimesters
-│   │   ├── ConfirmationModal.jsx     # Generic confirmation dialogs
-│   │   └── ReportModal.jsx           # PDF report generation config
+│   │   ├── HelpModal.jsx             # In-app documentation
+│   │   ├── ReportModal.jsx           # PDF report generation config
+│   │   └── PreviewModal.jsx          # Preview the report before downloading
+│   ├── vistas/          # Views extracted from the monolith
+│   │   ├── AlertasCurso.jsx          # Red-subject counts, and what enters/leaves
+│   │   └── FamiliasAsignaturas.jsx   # Subject families (they overlap: no pies)
 │   └── kpi/             # KPI display components
 │       ├── KPICentro.jsx             # Global center KPIs
 │       ├── KPIDetalle.jsx            # Detailed KPI breakdown
 │       └── KPIComparativa.jsx        # Comparative KPI views
+├── nucleo/              # Pure calculation modules — no React, no DOM, all tested
 ├── services/            # Business logic and I/O
-├── hooks/               # Custom React hooks for calculations
+├── hooks/               # Thin React wrappers over src/nucleo/
 ├── utils/               # Utility functions
 │   ├── validators.js    # CSV structure validation, number parsing
 │   └── formatters.js    # Number and percentage formatting
@@ -79,11 +94,33 @@ src/
 
 ### Trimestre Format
 
-Trimesters use a compound key format: `{evaluation}-{stage}`
-- Examples: `1EV-EEM`, `2EV-EPM`, `FINAL-EEM`
+**Changed on 2026-08-23. The academic year is now part of the key.**
+
+`{evaluation}-{course}-{stage}` — e.g. `1EV-2627-EEM`, `FINAL-2526-EPM`.
+
 - Base evaluations: `1EV`, `2EV`, `3EV`, `FINAL`
-- Stages: `EEM` (Elementary), `EPM` (Professional)
-- Stage is auto-detected from level names during CSV processing
+- Course: 4 digits, normalised by `normalizarCurso` (`2026-2027`, `2025/26`
+  and `25/26` all become `2627`/`2526`). Digits, not a slash: the key ends up
+  inside a PDF filename and inside a Recharts `dataKey`.
+- Stages: `EEM` (Elementary), `EPM` (Professional), auto-detected from level
+  names during CSV processing.
+
+Two-part keys (`1EV-EEM`) are still parsed for backwards compatibility, and
+`parseTrimestre` disambiguates by shape: the course is all digits, the stage is
+letters.
+
+**Why it matters:** before this, two academic years of the same evaluation
+collided on the same key and the second file silently overwrote the first. Any
+new code that builds a key by hand (`${base}-${etapa}`) is a bug — use
+`claveTrimestre`, and compare with `mismoMomento` / `parseTrimestre`, never
+with `startsWith`.
+
+### Momento
+
+A **momento** is an academic year plus an evaluation. It is the X axis of every
+evolution chart. Etapa is a *series* dimension, not a position on that axis:
+elemental and professional are two populations and their combined mean means
+nothing, so `TODOS` mode returns two blocks (`modoComparativo`), never one.
 
 ### Educational Stages
 
@@ -111,6 +148,48 @@ datosCompletos = {
   }
 }
 ```
+
+### The núcleo and the tests
+
+`pruebas/` — no framework, node only:
+
+```bash
+bash pruebas/ejecutar-todo.sh     # ~770 checks; the deployment gate
+```
+
+House rules, and they are not decoration:
+
+- **Cero y «no hay dato» no son lo mismo.** What cannot be computed is `null`,
+  never `0`. A filler zero reads as a measurement — it once printed three full
+  pages of KPIs at `0,00` and a difference of `(-100,0 %)` against subjects
+  nobody had measured. Screens print `—`; so does the report
+  (`src/nucleo/informe.js`).
+- **A test that cannot fail is worse than no test.** Important checks are
+  labelled `CANDADO:`, and the way to know they work is to break the
+  production code on purpose and watch them go red. Several tests in this repo
+  were found to be untestable this way and rewritten.
+- Labels the PDF prints must stay inside WinAnsi — jsPDF's standard fonts are
+  single-byte and a `σ` came out as `Ã`. `pruebas/traducciones.mjs` guards it.
+
+### The PDF report
+
+[pdfGenerator.js](src/services/pdfGenerator.js) only *draws*. What the report
+*says* lives in the núcleo (`informe.js` plus `informe-alertas`,
+`informe-familias`, `informe-selecciones`, `informe-cursos`,
+`informe-contexto`), each returning `{ vacio, cabecera, filas, avisos }` with
+the cells already formatted.
+
+Two things to know before touching it:
+
+- `generarInformePDF` accepts `guardar(pdf, nombre)`. Without it the PDF is
+  downloaded; with it, the document is handed back. That single seam is what
+  lets `pruebas/informe-completo.mjs` generate the whole report in Node and
+  read the resulting PDF, and what lets the UI show a preview before saving.
+- **Charts are captured as JPEG, deliberately.** jsPDF cannot pass an
+  html2canvas PNG through: it decodes it and stores raw pixels, three bytes
+  each. Two charts weighed 17,85 MB of an 18 MB report. A JPEG goes in as
+  `DCTDecode`, untouched. Compressing the whole document instead freezes the
+  tab — jsPDF's deflate is synchronous.
 
 ### Difficulty Analysis System
 

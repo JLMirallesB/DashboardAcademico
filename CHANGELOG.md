@@ -86,6 +86,26 @@ mismo**, porque antes estaban mal:
 
 ### El informe PDF
 
+- **Ya no inventa cifras.** Escribía «0,00» donde no había dato y la
+  diferencia con el centro le salía «(-100,0 %)»: una medición que nadie ha
+  hecho. La pantalla ya ponía «—» en esos huecos.
+- **Cinco secciones nuevas**, que la aplicación enseñaba y el informe no:
+  las alertas a lo largo del curso —con qué entra y qué sale de la lista roja,
+  y separando lo que ha mejorado de lo que ha dejado de medirse—, las familias
+  de asignaturas con su aviso de solape, la comparación que se compone a mano
+  en Estadísticas, la comparación con cursos anteriores y una primera página
+  que dice **en qué se basa el informe**.
+- **Con qué umbrales se ha clasificado.** Antes no aparecían por ningún lado,
+  y son configurables: dos informes de los mismos datos podían llamar
+  «difícil» a asignaturas distintas sin que nada lo delatara. Ahora salen los
+  cinco, marcados cuando se han cambiado respecto de los de fábrica.
+- **Índice y marcadores**, para no recorrer veinte páginas buscando una tabla.
+- **Vista previa antes de descargar**: se ve el informe y se baja si es el que
+  querías, en vez de acabar con seis PDF iguales en la carpeta.
+- **De 18 MB a una fracción.** Las gráficas se guardaban en crudo, tres bytes
+  por píxel: dos de ellas ocupaban 17,85 de esos 18 MB, y Gmail corta en 25.
+- **La columna de desviación se veía como «Ã»** en vez de «σ» — las fuentes
+  del PDF no tienen la sigma. Ahora dice «Desv.».
 - **La cabecera y la portada decían la clave interna del fichero**
   («1EV-2627-EEM»). Ahora dicen «26/27 · 1EV (EPM)», con el curso académico
   siempre escrito: el informe se lee fuera de la aplicación, donde no hay
