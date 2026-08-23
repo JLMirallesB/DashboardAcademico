@@ -28,7 +28,18 @@ export const captureChartAsImage = async (element, options = {}) => {
 
   try {
     const canvas = await html2canvas(element, { ...defaultOptions, ...options });
-    return canvas.toDataURL('image/png');
+    /* JPEG y no PNG, y esto se midió. jsPDF no sabe pasar un PNG de
+       html2canvas tal cual: lo decodifica a píxeles y lo guarda EN CRUDO, tres
+       bytes por píxel. Dos gráficas de una A4 apaisada a escala 2 daban 9,6 y
+       8,2 MB, y un informe de 18 MB que Gmail (25 MB) no siempre deja mandar.
+       Comprimir el documento entero tampoco vale: el deflate de jsPDF es
+       síncrono y congela la pestaña un minuto largo.
+       Un JPEG ya viene comprimido y jsPDF lo mete tal cual, sin coste. La
+       calidad 0,92 sobre gráficas de fondo blanco y líneas finas no se
+       distingue a simple vista del PNG, y el fondo se pinta blanco arriba
+       (`backgroundColor`) justo para que el JPEG, que no tiene transparencia,
+       no saque un borde negro. */
+    return canvas.toDataURL('image/jpeg', 0.92);
   } catch (error) {
     console.error('[ChartCapture] Error al capturar gráfica:', error);
     return null;

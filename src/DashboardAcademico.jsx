@@ -1446,7 +1446,10 @@ const DashboardAcademico = () => {
            del generador sería abrir la puerta a que el informe y el cuadro
            dijeran cosas distintas del mismo día. */
         umbrales,
-        metadata,
+        /* La del fichero que se imprime, no el mapa de todos: la ficha lee
+           `metadata.CursoAcademico` y con el mapa entero eso es `undefined`,
+           así que la portada decía el curso y la ficha decía «—». */
+        metadata: metadata[trimestreSeleccionado] || {},
         serieAlertasPDF: serieDeAlertas,
         familiasPDF: familiasDelTrimestre,
         selecciones,

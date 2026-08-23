@@ -109,7 +109,13 @@ export const generarInformePDF = async ({
       return cursos.size > 1;
     })();
 
-    // Crear PDF en formato horizontal
+    /* Sin comprimir el documento a propósito. `compress: true` parecía la
+       respuesta al tamaño —un informe con dos gráficas pesaba 18 MB, de los
+       que 17,85 eran las dos imágenes— pero el deflate de jsPDF es síncrono y
+       en JavaScript: con 18 MB de píxeles por delante **congela la pestaña**
+       más de un minuto, sin barra de progreso ni forma de cancelar. Probado.
+       El tamaño se ataja donde nace, capturando las gráficas ya comprimidas
+       (ver `chartCapture.js`), no comprimiendo el resultado. */
     const pdf = new jsPDF('l', 'mm', 'a4');
     let currentPage = 0;
 
@@ -155,6 +161,12 @@ export const generarInformePDF = async ({
        sitio la diagonal que uno lee para juzgar si una asignatura se sale de
        la línea. jsPDF sabe el tamaño real del PNG; solo había que
        preguntárselo. */
+    /* El formato se deduce del propio dato en vez de escribirlo a mano. Es
+       defensivo, no imprescindible: comprobado que jsPDF mira la cabecera del
+       data URL y usa DCTDecode aunque se le diga 'PNG'. Se deja porque un
+       rótulo que miente sobre lo que hay dentro se acaba creyendo. */
+    const formatoDe = (dato) => (/^data:image\/jpe?g/i.test(String(dato)) ? 'JPEG' : 'PNG');
+
     const ponerImagen = (imagen, y, altoDisponible) => {
       let ancho = contentWidth;
       let alto = altoDisponible;
@@ -169,7 +181,7 @@ export const generarInformePDF = async ({
         /* Si el PNG no se deja medir se cae al comportamiento de antes: es
            mejor una gráfica estirada que ninguna. */
       }
-      pdf.addImage(imagen, 'PNG', PAGE.margin + (contentWidth - ancho) / 2, y, ancho, alto);
+      pdf.addImage(imagen, formatoDe(imagen), PAGE.margin + (contentWidth - ancho) / 2, y, ancho, alto);
     };
 
     /* Los rótulos de las secciones nuevas. **Casi todos son los de la

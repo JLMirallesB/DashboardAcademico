@@ -23,6 +23,8 @@ import { calcularKPIsGlobales } from '../src/nucleo/kpi.js';
 import { analizarDificultad } from '../src/nucleo/dificultad.js';
 import { serieAlertas } from '../src/nucleo/alertas.js';
 import { agruparPorFamilia } from '../src/nucleo/agrupaciones.js';
+import { inflateSync } from 'node:zlib';
+import { readFileSync } from 'node:fs';
 import { csv, fila } from './fixtures.mjs';
 import { comprobar, seccion, terminar, UMBRALES } from './ayuda.mjs';
 
@@ -119,6 +121,77 @@ const TODAS_LAS_SECCIONES = {
   incluirDistribucionNotas: true, filtroAgrupaciones: null
 };
 
+/* eslint-disable no-use-before-define */
+/** Lo que de verdad está escrito en el PDF.
+ *
+ *  El informe se genera con `compress: true` —sin eso pesaba 18 MB, de los
+ *  que 17,85 eran dos imágenes guardadas en crudo—, así que los flujos van
+ *  comprimidos y hay que inflarlos para leerlos. Merece la pena hacerlo aquí:
+ *  generar la prueba sin comprimir sería probar un documento que no es el que
+ *  se entrega. */
+const textoDelPDF = (pdf) => {
+  if (!pdf) return '';
+  const bytes = Buffer.from(pdf.output('arraybuffer'));
+  const crudo = bytes.toString('latin1');
+  const trozos = [];
+
+  let i = 0;
+  while (true) {
+    const ini = crudo.indexOf('stream', i);
+    if (ini < 0) break;
+    const fin = crudo.indexOf('endstream', ini);
+    if (fin < 0) break;
+    /* Tras «stream» va un salto de línea, que no es parte del flujo. */
+    let desde = ini + 6;
+    if (crudo[desde] === '\r') desde++;
+    if (crudo[desde] === '\n') desde++;
+    const bruto = bytes.subarray(desde, fin);
+    try { trozos.push(inflateSync(bruto).toString('latin1')); }
+    catch { trozos.push(bruto.toString('latin1')); }  // por si alguno no va comprimido
+    i = fin + 9;
+  }
+
+  /* Y los objetos sueltos que no son flujos —los títulos de los marcadores
+     viven ahí—, que se leen del PDF tal cual. */
+  trozos.push(crudo);
+
+  const salida = [];
+  trozos.forEach((tr) => {
+    for (const m of tr.matchAll(/\((?:\\.|[^()\\])*\)\s*Tj/g)) {
+      salida.push(deWinAnsi(m[0].replace(/\)\s*Tj$/, '').slice(1).replace(/\\([()\\])/g, '$1')));
+    }
+  });
+  return salida.join('\n');
+};
+
+/* Dentro del PDF el texto va en WinAnsi, un byte por carácter, y el bloque
+   0x80-0x9F no es latin-1: ahí viven el guion largo, las comillas
+   tipográficas y los puntos suspensivos. Sin deshacer esa traducción, «—»
+   —el carácter con el que este informe dice «no hay dato», y que es media
+   razón de ser de estas pruebas— se lee como un carácter de control y
+   cualquier comprobación que lo busque sale verde sin haber mirado nada.
+   Y si una cadena lleva algo fuera de WinAnsi, jsPDF pasa ESA cadena entera a
+   dos bytes; también se deshace. */
+const ALTO = { 0x80: '€', 0x82: '‚', 0x83: 'ƒ', 0x84: '„', 0x85: '…', 0x86: '†',
+  0x87: '‡', 0x88: 'ˆ', 0x89: '‰', 0x8a: 'Š', 0x8b: '‹', 0x8c: 'Œ', 0x8e: 'Ž',
+  0x91: '\u2018', 0x92: '\u2019', 0x93: '\u201c', 0x94: '\u201d', 0x95: '•',
+  0x96: '–', 0x97: '—', 0x98: '˜', 0x99: '™', 0x9a: 'š', 0x9b: '›', 0x9c: 'œ',
+  0x9e: 'ž', 0x9f: 'Ÿ' };
+
+const deWinAnsi = (cadena) => {
+  /* Dos bytes por carácter: se reconoce porque los pares llevan un cero
+     delante en casi todo. */
+  const ceros = [...cadena].filter((c) => c.charCodeAt(0) === 0).length;
+  if (ceros > cadena.length / 3) {
+    let fuera = '';
+    for (let i = 0; i + 1 < cadena.length; i += 2) {
+      fuera += String.fromCharCode((cadena.charCodeAt(i) << 8) | cadena.charCodeAt(i + 1));
+    }
+    return fuera;
+  }
+  return [...cadena].map((c) => ALTO[c.charCodeAt(0)] || c).join('');
+};
+
 /** Genera y devuelve { salida, error, texto, paginas }. */
 const generar = async (opciones) => {
   const o = opciones || {};
@@ -146,7 +219,7 @@ const generar = async (opciones) => {
     trimestresDisponibles: MUNDO.trimestresDisponibles,
     chartImages: {},
     umbrales: o.umbrales === undefined ? UMBRALES : o.umbrales,
-    metadata: MUNDO.metadata,
+    metadata: MUNDO.metadata[trimestre] || {},
     serieAlertasPDF: o.sinAlertas ? null : serieAlertas({
       trimestresDisponibles: MUNDO.trimestresDisponibles,
       datosCompletos: MUNDO.datosCompletos, umbrales: UMBRALES, modoEtapa, vista: 'niveles'
@@ -162,16 +235,7 @@ const generar = async (opciones) => {
     guardar: (pdf) => { capturado = pdf; }
   });
 
-  let texto = '';
-  if (capturado) {
-    const bytes = new Uint8Array(capturado.output('arraybuffer'));
-    const crudo = new TextDecoder('latin1').decode(bytes);
-    /* El texto de un PDF sin comprimir va como `(...) Tj`. */
-    texto = [...crudo.matchAll(/\((?:\\.|[^()\\])*\)\s*Tj/g)]
-      .map((m) => m[0].replace(/\)\s*Tj$/, '').slice(1).replace(/\\([()\\])/g, '$1'))
-      .join('\n');
-  }
-  return { salida, error, exito, texto, paginas: salida ? salida.paginas : 0 };
+  return { salida, error, exito, texto: textoDelPDF(capturado), paginas: salida ? salida.paginas : 0 };
 };
 
 /* ---------------------------------------------------------------- */
@@ -300,9 +364,7 @@ seccion('7. Un fichero al que le faltan las filas agregadas');
     trimestresDisponibles: cojo.trimestresDisponibles, chartImages: {}, t,
     onError: (e) => { error = e; }, guardar: (p) => { doc = p; }
   });
-  const crudo = new TextDecoder('latin1').decode(new Uint8Array(doc.output('arraybuffer')));
-  const texto = [...crudo.matchAll(/\((?:\\.|[^()\\])*\)\s*Tj/g)]
-    .map((m) => m[0].replace(/\)\s*Tj$/, '').slice(1)).join('\n');
+  const texto = textoDelPDF(doc);
 
   comprobar('se genera aunque falten las filas agregadas', error === null, error && error.message);
   comprobar('CANDADO: escribe «—» donde no hay dato',
@@ -390,13 +452,11 @@ seccion('11. Con dos cursos académicos SÍ se compara, y ahí está el sentido'
       { umbrales: UMBRALES, vista: 'niveles', modoEtapa: 'EEM' }),
     agrupacionesCompletas: {}, tendenciasParaPDF: [],
     trimestresDisponibles: dos.trimestresDisponibles, chartImages: {},
-    umbrales: UMBRALES, metadata: dos.metadata, selecciones: [],
+    umbrales: UMBRALES, metadata: dos.metadata[trim] || {}, selecciones: [],
     generadoEn: new Date('2026-08-23T10:00:00Z'), t,
     onError: (e) => { error = e; }, guardar: (p) => { doc = p; }
   });
-  const crudo = new TextDecoder('latin1').decode(new Uint8Array(doc.output('arraybuffer')));
-  const texto = [...crudo.matchAll(/\((?:\\.|[^()\\])*\)\s*Tj/g)]
-    .map((m) => m[0].replace(/\)\s*Tj$/, '').slice(1)).join('\n');
+  const texto = textoDelPDF(doc);
 
   comprobar('se genera con dos cursos cargados', error === null, error && error.message);
   comprobar('CANDADO: ahora SÍ sale la comparación entre cursos',
@@ -430,6 +490,23 @@ seccion('12. Los umbrales con los que se ha clasificado salen en el papel');
     'marca como cambiado un umbral que no lo está');
   comprobar('y dice de qué fichero sale y cuántos hay cargados',
     deFabrica.texto.includes('fichaEsteFichero') && deFabrica.texto.includes('fichaFicherosCargados'));
+
+  /* CANDADO: y el curso académico de la ficha es el del fichero, no un hueco.
+     Esta comprobación existe porque el fallo se dio: la integración pasaba el
+     MAPA de metadatos de todos los ficheros en vez del del que se imprime, así
+     que `metadata.CursoAcademico` era `undefined` y la ficha escribía «—»
+     mientras la portada, que lo saca de otro sitio, decía «26/27». Las dos
+     cifras en el mismo documento y distintas. No lo vio ninguna prueba: se vio
+     abriendo el PDF. */
+  /* Y se mira EN SU CELDA, no en todo el documento: «26/27» sale también en
+     la portada y en la cabecera de cada página, así que buscarlo suelto daba
+     verde con la ficha escribiendo «—». Comprobado mutando: la primera versión
+     de esta comprobación no se ponía roja. */
+  const lineas = deFabrica.texto.split('\n');
+  const iCurso = lineas.indexOf('academicYear');
+  comprobar('CANDADO: la celda del curso académico de la ficha lleva el curso, no «—»',
+    iCurso >= 0 && lineas[iCurso + 1] === '26/27',
+    iCurso < 0 ? 'no está la fila' : 'dice ' + JSON.stringify(lineas[iCurso + 1]));
 }
 
 seccion('13. Sin selecciones y sin alertas, esas secciones no se pintan');
@@ -440,6 +517,81 @@ seccion('13. Sin selecciones y sin alertas, esas secciones no se pintan');
     !pelado.texto.includes('alrTitulo') && !pelado.texto.includes('statistics'),
     'se ha pintado una sección sin nada dentro');
   comprobar('y las demás siguen ahí', pelado.texto.includes('fichaTitulo'));
+}
+
+seccion('14. Las gráficas entran comprimidas, que es de lo que dependía el tamaño');
+{
+  /* Medido, no supuesto: un informe con dos gráficas pesaba 18,05 MB y 17,85
+     eran esas dos imágenes —9,6 y 8,2 MB, exactamente ancho × alto × 3—.
+     jsPDF no sabe meter un PNG de html2canvas tal cual: lo decodifica y lo
+     guarda EN CRUDO, sin filtro ninguno. Un JPEG lo mete con `DCTDecode`, es
+     decir, los mismos bytes que ya venían comprimidos.
+
+     Comprimir el documento entero (`compress: true`) no vale: el deflate de
+     jsPDF es síncrono y con 18 MB de píxeles congela la pestaña más de un
+     minuto. Se probó y se descartó.
+
+     Así que lo que hay que vigilar es que las gráficas se sigan capturando en
+     JPEG y que el generador lo reconozca. Volver a PNG no daría error, ni se
+     vería en el papel: solo saldrían informes que no se pueden mandar. */
+  const JPEG = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgK'
+    + 'DBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA'
+    + '/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==';
+
+  let doc = null, error = null;
+  await generarInformePDF({
+    trimestreSeleccionado: MUNDO.trimestresDisponibles[0],
+    datosCompletos: MUNDO.datosCompletos,
+    configInforme: { ...TODAS_LAS_SECCIONES, modoEtapa: 'EEM' },
+    kpisGlobales: calcularKPIsGlobales({
+      trimestreSeleccionado: MUNDO.trimestresDisponibles[0],
+      datosCompletos: MUNDO.datosCompletos,
+      trimestresDisponibles: MUNDO.trimestresDisponibles,
+      umbrales: UMBRALES, modoEtapa: 'EEM' }),
+    correlacionesTrimestre: [],
+    analisisDificultad: analizarDificultad(MUNDO.datosCompletos[MUNDO.trimestresDisponibles[0]],
+      { umbrales: UMBRALES, vista: 'niveles', modoEtapa: 'EEM' }),
+    agrupacionesCompletas: {}, tendenciasParaPDF: [],
+    trimestresDisponibles: MUNDO.trimestresDisponibles,
+    chartImages: { scatter: JPEG, evolution: JPEG },
+    umbrales: UMBRALES, metadata: {}, selecciones: [],
+    generadoEn: new Date('2026-08-23T10:00:00Z'), t,
+    onError: (e) => { error = e; }, guardar: (p) => { doc = p; }
+  });
+
+  comprobar('el informe con gráficas se genera', error === null && doc !== null,
+    error && error.message);
+
+  const crudo = Buffer.from(doc.output('arraybuffer')).toString('latin1');
+  const imagenes = [...crudo.matchAll(/\/Subtype\s*\/Image/g)].length;
+  const conDCT = [...crudo.matchAll(/\/Filter\s*\/DCTDecode/g)].length;
+
+  /* Una y no dos: las dos gráficas del caso son el MISMO dato, y jsPDF no
+     guarda dos veces la misma imagen. Es lo que queremos —un informe con la
+     misma gráfica en varias páginas no debe pesar el doble— pero conviene
+     saberlo antes de contar imágenes en una prueba. */
+  comprobar('la gráfica está dentro', imagenes >= 1, imagenes + ' imágenes');
+  comprobar('CANDADO: y las dos entran ya comprimidas, no en crudo',
+    conDCT === imagenes && conDCT > 0,
+    conDCT + ' de ' + imagenes + ' con DCTDecode');
+
+  comprobar('CANDADO: no queda ninguna imagen guardada sin filtro',
+    !/\/Subtype\s*\/Image(?![\s\S]{0,300}\/Filter)/.test(crudo),
+    'hay una imagen sin comprimir dentro del PDF');
+
+  /* Y el candado que de verdad hace falta, que es sobre la CAPTURA.
+     Comprobado que jsPDF mira la cabecera del data URL y hace lo correcto
+     aunque se le pase el formato equivocado; lo único que decide el tamaño,
+     entonces, es en qué formato captura `chartCapture.js`. Esa función solo
+     corre en un navegador, así que se mira su código: volver a PNG es una
+     palabra y no daría error en ningún sitio — solo informes de 18 MB que no
+     se pueden mandar por correo. Es la misma clase de comprobación que la de
+     los rótulos fuera de WinAnsi, y por la misma razón: el daño no tiene
+     síntoma. */
+  const captura = readFileSync(new URL('../src/utils/chartCapture.js', import.meta.url), 'utf8');
+  comprobar('CANDADO: las gráficas se siguen capturando en JPEG',
+    /toDataURL\(\s*'image\/jpeg'/.test(captura),
+    (captura.match(/toDataURL\([^)]*\)/) || ['no encuentro la llamada'])[0]);
 }
 
 terminar('el informe entero, generado de verdad y leído del PDF.');
