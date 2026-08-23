@@ -16,14 +16,39 @@ const cargar = (texto) => procesarDatos(parseCSV(texto));
 seccion('1. La estructura básica');
 {
   const p = cargar(elemental('1EV', 7.5));
-  comprobar('la clave del trimestre lleva la etapa deducida de los niveles',
-    p.trimestre === '1EV-EEM', p.trimestre);
+  /* La clave lleva las tres cosas desde el 23/08/2026: evaluación, curso
+     académico y etapa. El curso sale de la metadata y va normalizado a
+     dígitos; sin él, la clave se queda en dos partes. */
+  comprobar('la clave del trimestre lleva evaluación, curso y etapa',
+    p.trimestre === '1EV-2627-EEM', p.trimestre);
   comprobar('y se guarda también la base y la etapa por separado',
     p.trimestreBase === '1EV' && p.etapa === 'EEM');
   comprobar('la nota media del centro llega entera',
     casi(p.datos.GLOBAL.Total.stats.notaMedia, 7.5));
   comprobar('un fichero de profesional se detecta como EPM',
-    cargar(profesional('1EV', 6.5)).trimestre === '1EV-EPM');
+    cargar(profesional('1EV', 6.5)).trimestre === '1EV-2627-EPM');
+
+  /* CANDADO, y es la razón del cambio: hasta hoy la primera evaluación de dos
+     cursos daba la MISMA clave, así que al cargar la segunda desaparecía la
+     primera sin un aviso. La comparación más útil que puede querer un equipo
+     directivo —¿vamos mejor que el año pasado?— no solo no se podía hacer:
+     intentarla borraba datos. */
+  const pasado = cargar(elemental('1EV', 6.5, '25/26'));
+  const actual = cargar(elemental('1EV', 7.5, '26/27'));
+  comprobar('CANDADO: dos cursos académicos NO comparten clave',
+    pasado.trimestre !== actual.trimestre,
+    pasado.trimestre + ' vs ' + actual.trimestre);
+  const dc = {};
+  [pasado, actual].forEach((x) => { dc[x.trimestre] = x.datos; });
+  comprobar('CANDADO: y por tanto los dos sobreviven cargados a la vez',
+    Object.keys(dc).length === 2 &&
+    dc[pasado.trimestre].GLOBAL.Total.stats.notaMedia === 6.5 &&
+    dc[actual.trimestre].GLOBAL.Total.stats.notaMedia === 7.5,
+    Object.keys(dc).join(' + '));
+  comprobar('un CSV sin curso académico sigue cargándose, con clave de dos partes',
+    cargar(csv({ trimestre: '1EV', curso: '', filas: [
+      fila({ tipo: 'GLOBAL', nivel: 'GLOBAL', asignatura: 'Total' }),
+      fila({ tipo: 'CURSO_TOTAL', nivel: '1EEM', asignatura: 'Total' })] })).trimestre === '1EV-EEM');
 }
 
 seccion('2. Sin trimestre en la metadata no se sigue');

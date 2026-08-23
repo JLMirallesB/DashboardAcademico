@@ -1474,7 +1474,14 @@ export const generarInformePDF = async ({
 
     // Guardar PDF
     onProgress?.(t('pdfSaving'));
-    const nombreArchivo = `Informe_${(configInforme.nombreCentro || 'Centro').replace(/\s+/g, '_')}_${trimestreSeleccionado}_${new Date().toISOString().split('T')[0]}.pdf`;
+    /* La clave del fichero va dentro del NOMBRE del PDF, así que aquí un
+       carácter raro sale de la aplicación: según el navegador, una barra
+       trunca el nombre o el guardado falla sin explicación. El curso académico
+       viaja normalizado a dígitos justamente para que esto no pase, pero el
+       saneado se queda como red — es el único sitio donde la clave cruza la
+       frontera del programa. */
+    const claveEnNombre = String(trimestreSeleccionado || '').replace(/[^\w.-]+/g, '_');
+    const nombreArchivo = `Informe_${(configInforme.nombreCentro || 'Centro').replace(/\s+/g, '_')}_${claveEnNombre}_${new Date().toISOString().split('T')[0]}.pdf`;
     pdf.save(nombreArchivo);
 
     if (onSuccess) onSuccess();

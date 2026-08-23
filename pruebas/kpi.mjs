@@ -12,12 +12,22 @@ import { parseCSV } from '../src/nucleo/csv.js';
 import { procesarDatos } from '../src/nucleo/datos.js';
 import { elemental, profesional } from './fixtures.mjs';
 import { comprobar, seccion, terminar, casi, UMBRALES } from './ayuda.mjs';
+import { parseTrimestre } from '../src/nucleo/texto.js';
+
+/* La clave lleva el curso académico desde el 23/08/2026, así que no se escribe
+   a mano: se busca por sus piezas. Lo que esta prueba vigila son los KPIs. */
+const K = (base, etapa) => mundo().trimestresDisponibles.find((t) => {
+  const p = parseTrimestre(t);
+  return p && p.base === base && p.etapa === etapa;
+});
+let _mundo = null;
+const mundo = () => (_mundo || (_mundo = mundoBase()));
 
 const cargar = (texto) => procesarDatos(parseCSV(texto));
 
 /* Un mundo con las dos etapas cargadas, que es el estado normal del curso y
    justo el que nada probaba. */
-function mundo() {
+function mundoBase() {
   const datosCompletos = {}, trimestresDisponibles = [];
   [[elemental('1EV', 7.25), 0], [profesional('1EV', 6.9), 0],
    [elemental('2EV', 7.30), 0], [profesional('2EV', 7.0), 0]].forEach(([texto]) => {
@@ -71,7 +81,7 @@ seccion('4. Modo TODOS: dos bloques, nunca uno mezclado');
 {
   const { datosCompletos, trimestresDisponibles } = mundo();
   const k = calcularKPIsGlobales({
-    trimestreSeleccionado: '1EV-EEM', datosCompletos, trimestresDisponibles,
+    trimestreSeleccionado: K('1EV', 'EEM'), datosCompletos, trimestresDisponibles,
     umbrales: UMBRALES, modoEtapa: 'TODOS'
   });
   comprobar('se marca como comparativo, para que quien pinte lo sepa', k.modoComparativo === true);
@@ -97,7 +107,7 @@ seccion('4. Modo TODOS: dos bloques, nunca uno mezclado');
 
   /* Coge la MISMA evaluación de cada etapa, no «el siguiente de la lista». */
   const k2 = calcularKPIsGlobales({
-    trimestreSeleccionado: '2EV-EEM', datosCompletos, trimestresDisponibles,
+    trimestreSeleccionado: K('2EV', 'EEM'), datosCompletos, trimestresDisponibles,
     umbrales: UMBRALES, modoEtapa: 'TODOS'
   });
   comprobar('CANDADO: empareja por evaluación, no por orden de carga',
@@ -109,7 +119,7 @@ seccion('5. Modo de una sola etapa');
 {
   const { datosCompletos, trimestresDisponibles } = mundo();
   const k = calcularKPIsGlobales({
-    trimestreSeleccionado: '1EV-EPM', datosCompletos, trimestresDisponibles,
+    trimestreSeleccionado: K('1EV', 'EPM'), datosCompletos, trimestresDisponibles,
     umbrales: UMBRALES, modoEtapa: 'EPM'
   });
   comprobar('devuelve un solo bloque, sin marca de comparativo', !k.modoComparativo);
@@ -118,7 +128,7 @@ seccion('5. Modo de una sola etapa');
     calcularKPIsGlobales({ trimestreSeleccionado: null, datosCompletos,
       umbrales: UMBRALES, modoEtapa: 'EPM' }) === null);
   comprobar('y con un trimestre que no está cargado, tampoco',
-    calcularKPIsGlobales({ trimestreSeleccionado: '3EV-EPM', datosCompletos,
+    calcularKPIsGlobales({ trimestreSeleccionado: '3EV-2627-EPM', datosCompletos,
       umbrales: UMBRALES, modoEtapa: 'EPM' }) === null);
 }
 

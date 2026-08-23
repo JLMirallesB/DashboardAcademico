@@ -7,16 +7,33 @@ import { ABREVIATURAS_ASIGNATURAS } from '../constants.js';
 import { normalizar, parseTrimestre } from '../utils.js';
 
 /**
- * Formatea el nombre de un trimestre para mostrar (ej: "1EV-EEM" → "1EV (EEM)")
- * @param {string} trimestreCompleto - Trimestre en formato completo
- * @returns {string} Trimestre formateado
+ * El rótulo de un fichero cargado: «1EV (EEM)», y con el curso académico
+ * delante cuando hace falta distinguirlo: «25/26 · 1EV (EEM)».
+ *
+ * El curso NO se enseña siempre. Vive dentro de la clave desde el 23/08/2026
+ * porque forma parte de la identidad del fichero, pero pintarlo cuando solo hay
+ * un curso cargado sería ruido en cada rótulo de la aplicación. Se enseña
+ * cuando de verdad hay algo que distinguir, y eso lo decide quien llama
+ * pasando `conCurso`.
+ *
+ * Y se desnormaliza al pintarlo: dentro de la clave el curso son dígitos
+ * —«2526»— porque una barra ahí acabaría en el nombre de un PDF y en una ruta
+ * de Recharts; delante de una persona es «25/26».
  */
-export const formatearNombreTrimestre = (trimestreCompleto) => {
+export const formatearCursoAcademico = (curso) => {
+  if (!curso) return '';
+  const d = String(curso);
+  if (d.length === 4) return d.slice(0, 2) + '/' + d.slice(2);
+  if (d.length === 8) return d.slice(0, 4) + '/' + d.slice(4);
+  return d;
+};
+
+export const formatearNombreTrimestre = (trimestreCompleto, conCurso) => {
   const parsed = parseTrimestre(trimestreCompleto);
-  if (parsed) {
-    return `${parsed.base} (${parsed.etapa})`;
-  }
-  return trimestreCompleto;
+  if (!parsed) return trimestreCompleto;
+  const etapa = parsed.etapa ? ` (${parsed.etapa})` : '';
+  const curso = conCurso && parsed.curso ? `${formatearCursoAcademico(parsed.curso)} · ` : '';
+  return `${curso}${parsed.base}${etapa}`;
 };
 
 /**

@@ -31,10 +31,14 @@ export const getBestTrimestre = (trimestreSeleccionado, nivel, trimestresDisponi
   const etapaNivel = detectarEtapa(nivel);
   const trimestreBase = parsed.base;
 
-  // Buscar el trimestre que coincida con la evaluación base y la etapa del nivel
+  /* El fichero del MISMO MOMENTO —misma evaluación y mismo curso académico— y
+     de la etapa que le toca a ese nivel. El curso entró en la comparación el
+     23/08/2026: sin él, con dos cursos cargados, un nivel de profesional podía
+     resolverse al fichero de otro año y la comparación mezclaba cursos sin
+     decirlo. */
   const trimestreConEtapa = trimestresDisponibles.find(t => {
     const p = parseTrimestre(t);
-    return p && p.base === trimestreBase && p.etapa === etapaNivel;
+    return p && p.base === trimestreBase && p.curso === parsed.curso && p.etapa === etapaNivel;
   });
 
   // Si se encuentra un trimestre específico para esa etapa, usarlo; sino usar el seleccionado

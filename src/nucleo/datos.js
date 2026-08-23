@@ -6,7 +6,7 @@
  * etapa por construcción del analizador.
  */
 
-import { normalizar } from './texto.js';
+import { normalizar, claveTrimestre } from './texto.js';
 
 /**
  * Procesa datos parseados del CSV y los estructura para el dashboard
@@ -96,8 +96,16 @@ export const procesarDatos = (parsed) => {
     }
   }
 
-  // Crear clave compuesta: trimestre + etapa (ej: "1T-EEM", "1T-EPM")
-  const trimestreCompleto = etapaDetectada ? `${trimestreBase}-${etapaDetectada}` : trimestreBase;
+  /* La clave con la que este fichero va a vivir: evaluación + curso académico
+     + etapa. El curso sale de la metadata, y hasta el 23/08/2026 no formaba
+     parte de la identidad: cargar la primera evaluación de dos cursos daba la
+     MISMA clave y la segunda pisaba a la primera sin decir nada. Ver la
+     cabecera de `texto.js`.
+
+     Si el CSV no trae curso —los antiguos no lo traían— la clave sale de dos
+     partes y todo sigue funcionando; lo que no se sabe, no se inventa. */
+  const cursoAcademico = parsed.metadata.CursoAcademico || parsed.metadata.CursoAcadémico || '';
+  const trimestreCompleto = claveTrimestre(trimestreBase, cursoAcademico, etapaDetectada);
 
   // Procesar agrupaciones: convertir array a mapa { asignatura → [grupos] }
   const agrupacionesMapa = {};
@@ -118,6 +126,7 @@ export const procesarDatos = (parsed) => {
     trimestre: trimestreCompleto,
     trimestreBase,
     etapa: etapaDetectada,
+    cursoAcademico: cursoAcademico,
     metadata: parsed.metadata,
     datos: datosEstructurados,
     correlaciones: parsed.correlaciones,

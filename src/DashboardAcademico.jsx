@@ -11,7 +11,7 @@ import { useStatisticalCalculations } from './hooks/useStatisticalCalculations.j
 import { recordarIdioma } from './idioma.js';
 import { analizarDificultad } from './nucleo/dificultad.js';
 import { serieEvolucionSelecciones, serieEvolucionNiveles } from './nucleo/evolucion.js';
-import { compararTrimestres, esAgregado } from './nucleo/texto.js';
+import { compararTrimestres, esAgregado, mismoMomento, cursosDe } from './nucleo/texto.js';
 import { diferencia, decimalesDe } from './nucleo/comparacion.js';
 import { paresDe, porPares, porNiveles, paresMasFuertes } from './nucleo/correlaciones.js';
 import { useKPICalculation } from './hooks/useKPICalculation.js';
@@ -155,6 +155,15 @@ const DashboardAcademico = () => {
     });
   }, []);
 
+  /* ¿Hay más de un curso académico cargado? De eso depende que los rótulos
+     tengan que decirlo. Con uno solo, escribir «25/26» en cada desplegable es
+     ruido; con dos, no decirlo es dejar al usuario sin saber qué mira. */
+  const hayVariosCursos = useMemo(
+    () => cursosDe(trimestresDisponibles).length > 1, [trimestresDisponibles]);
+
+  const rotuloTrimestre = useCallback(
+    (trim) => formatearNombreTrimestre(trim, hayVariosCursos), [hayVariosCursos]);
+
   /* Se apunta fuera del árbol para que la red de seguridad de errores pueda
      dar el mensaje en el idioma correcto. Ver src/idioma.js. */
   useEffect(() => { recordarIdioma(idioma); }, [idioma]);
@@ -295,6 +304,16 @@ const DashboardAcademico = () => {
       return nuevo;
     });
     
+    /* Las agrupaciones también. Se quedaban dentro para siempre: borrar el
+       único trimestre que traía la sección #AGRUPACIONES dejaba su mapa vivo,
+       y el siguiente CSV sin esa sección seguía filtrando por unas familias
+       que ya no venían de ningún fichero cargado. */
+    setAgrupacionesCompletas(prev => {
+      const nuevo = { ...prev };
+      delete nuevo[trimestre];
+      return nuevo;
+    });
+
     setMetadata(prev => {
       const nuevo = { ...prev };
       delete nuevo[trimestre];
@@ -372,10 +391,15 @@ const DashboardAcademico = () => {
       if (resultado.agrupacionesCompletas) setAgrupacionesCompletas(resultado.agrupacionesCompletas);
       if (resultado.umbrales) setUmbrales(resultado.umbrales);
       setMetadata(resultado.metadata);
-      setTrimestresDisponibles(resultado.trimestresDisponibles);
+      /* Ordenado, igual que al importar un JSON: la lista del fichero puede
+         venir en cualquier orden y de ella sale el eje del tiempo. Aquí
+         faltaba, y hoy no se notaba solo porque el ejemplo trae dos claves ya
+         ordenadas. */
+      const ordenados = [...resultado.trimestresDisponibles].sort(compararTrimestres);
+      setTrimestresDisponibles(ordenados);
 
-      if (resultado.trimestresDisponibles.length > 0) {
-        setTrimestreSeleccionado(resultado.trimestresDisponibles[0]);
+      if (ordenados.length > 0) {
+        setTrimestreSeleccionado(ordenados[0]);
         if (resultado.seleccionInicial) {
           setSelecciones([resultado.seleccionInicial]);
         }
@@ -394,11 +418,10 @@ const DashboardAcademico = () => {
     // En modo TODOS, obtener niveles de todos los trimestres de la misma evaluación
     if (modoEtapa === 'TODOS') {
       const nivelesSet = new Set();
-      const trimestreBase = getTrimestreBase(trimestreSeleccionado);
 
       // Buscar todos los trimestres de la misma evaluación
       trimestresDisponibles.forEach(trim => {
-        if (trim.startsWith(trimestreBase) && datosCompletos[trim]) {
+        if (mismoMomento(trim, trimestreSeleccionado) && datosCompletos[trim]) {
           Object.keys(datosCompletos[trim]).forEach(nivel => nivelesSet.add(nivel));
         }
       });
@@ -418,9 +441,8 @@ const DashboardAcademico = () => {
     // En modo TODOS, buscar en todos los trimestres de la misma evaluación
     const trimestresABuscar = [];
     if (modoEtapa === 'TODOS') {
-      const trimestreBase = getTrimestreBase(trimestreSeleccionado);
       trimestresDisponibles.forEach(t => {
-        if (t.startsWith(trimestreBase)) {
+        if (mismoMomento(t, trimestreSeleccionado)) {
           trimestresABuscar.push(t);
         }
       });
@@ -665,7 +687,12 @@ const DashboardAcademico = () => {
             const etapaNivel = detectarEtapa(nivel);
             const trimestreConAsignatura = trimestresDisponibles.find(trim => {
               const parsed = parseTrimestre(trim);
+              /* Del mismo CURSO ACADÉMICO, además de la misma etapa: sin
+                 esa condición, con dos cursos cargados este respaldo podía
+                 traer el fichero del año pasado y la comparación mezclaba
+                 cursos bajo un rótulo que decía uno solo. */
               return parsed && parsed.etapa === etapaNivel &&
+                     parsed.curso === (parseTrimestre(trimestreSeleccionado) || {}).curso &&
                      tieneAsignatura(datosCompletos, trim, nivel, asignaturaComparada);
             });
             if (trimestreConAsignatura) {
@@ -1632,7 +1659,7 @@ const DashboardAcademico = () => {
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">
                             <h3 className="text-lg font-bold text-gray-900 mb-1">
-                              {formatearNombreTrimestre(trim)}
+                              {rotuloTrimestre(trim)}
                             </h3>
                             <div className="flex flex-wrap gap-2">
                               {etapa && (
@@ -1690,7 +1717,7 @@ const DashboardAcademico = () => {
           <div className="bg-white rounded-xl border border-gray-200 p-8 max-w-md w-full mx-4">
             <h3 className="text-2xl text-gray-900 mb-4">{t('trimesterAlreadyLoaded')}</h3>
             <p className="text-gray-600 mb-6">
-              {t('replaceConfirm').replace('{trimester}', trimestrePendiente ? formatearNombreTrimestre(trimestrePendiente) : '')}
+              {t('replaceConfirm').replace('{trimester}', trimestrePendiente ? rotuloTrimestre(trimestrePendiente) : '')}
             </p>
             <div className="flex gap-3">
               <button
@@ -1736,9 +1763,14 @@ const DashboardAcademico = () => {
           t
         }}
         headerProps={{
-          centerName: trimestresDisponibles.length > 0 ? (metadata[trimestresDisponibles[0]]?.Centro || '') : '',
-          academicYear: trimestresDisponibles.length > 0 ? (metadata[trimestresDisponibles[0]]?.CursoAcademico || '') : '',
-          currentTrimester: trimestreSeleccionado ? formatearNombreTrimestre(trimestreSeleccionado) : ''
+          /* Del fichero que se está mirando, no del primero de la lista. Con
+             un solo curso cargado daba igual; en cuanto conviven dos —que es
+             justo lo que este cambio hace posible— la cabecera decía «25/26»
+             mientras la pantalla enseñaba los datos de 24/25. Una cifra
+             plausible y falsa, que es la peor clase. */
+          centerName: trimestreSeleccionado ? (metadata[trimestreSeleccionado]?.Centro || '') : '',
+          academicYear: trimestreSeleccionado ? (metadata[trimestreSeleccionado]?.CursoAcademico || '') : '',
+          currentTrimester: trimestreSeleccionado ? rotuloTrimestre(trimestreSeleccionado) : ''
         }}
       >
       {/* VISTA: INDICADORES (KPIs) */}
@@ -1817,8 +1849,7 @@ const DashboardAcademico = () => {
                 const asignaturasCombinadas = new Map();
 
                 // Buscar en todos los trimestres de la misma evaluación
-                const trimestreBase = getTrimestreBase(trimestreSeleccionado);
-                const trimestresABuscar = trimestresDisponibles.filter(t => t.startsWith(trimestreBase));
+                const trimestresABuscar = trimestresDisponibles.filter(t => mismoMomento(t, trimestreSeleccionado));
 
                 trimestresABuscar.forEach(trim => {
                   const datosNivel = datosCompletos[trim]?.['GLOBAL'];
@@ -1973,10 +2004,9 @@ const DashboardAcademico = () => {
             const obtenerNivelesDispersion = () => {
               if (modoEtapa === 'TODOS') {
                 const nivelesSet = new Set();
-                const trimestreBase = getTrimestreBase(trimestreSeleccionado);
                 // Buscar en todos los trimestres de la misma evaluación
                 trimestresDisponibles.forEach(trim => {
-                  if (trim.startsWith(trimestreBase) && datosCompletos[trim]) {
+                  if (mismoMomento(trim, trimestreSeleccionado) && datosCompletos[trim]) {
                     Object.keys(datosCompletos[trim]).forEach(nivel => {
                       if (nivel !== 'GLOBAL') nivelesSet.add(nivel);
                     });
@@ -2377,7 +2407,7 @@ const DashboardAcademico = () => {
                             return parsed && parsed.etapa === modoEtapa;
                           })
                           .map(t => (
-                            <option key={t} value={t}>{formatearNombreTrimestre(t)}</option>
+                            <option key={t} value={t}>{rotuloTrimestre(t)}</option>
                           ))}
                       </select>
                     </div>
@@ -2993,7 +3023,7 @@ const DashboardAcademico = () => {
           <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
               <h3 className="text-lg font-semibold text-gray-900">
-                {t('correlationsTitle')} · {formatearNombreTrimestre(trimestreSeleccionado)}
+                {t('correlationsTitle')} · {rotuloTrimestre(trimestreSeleccionado)}
               </h3>
               <div className="flex flex-wrap items-center gap-3">
                 <select
@@ -3008,7 +3038,7 @@ const DashboardAcademico = () => {
                       return parsed && parsed.etapa === modoEtapa;
                     })
                     .map(t => (
-                      <option key={t} value={t}>{formatearNombreTrimestre(t)}</option>
+                      <option key={t} value={t}>{rotuloTrimestre(t)}</option>
                     ))}
                 </select>
                 <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
@@ -3854,7 +3884,7 @@ const DashboardAcademico = () => {
                       return parsed && parsed.etapa === modoEtapa;
                     })
                     .map(trim => (
-                      <option key={trim} value={trim}>{formatearNombreTrimestre(trim)}</option>
+                      <option key={trim} value={trim}>{rotuloTrimestre(trim)}</option>
                     ))}
                 </select>
               </div>

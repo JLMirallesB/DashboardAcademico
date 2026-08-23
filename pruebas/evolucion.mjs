@@ -13,6 +13,7 @@
  * dibujaba una bajada en medio.
  */
 import { serieEvolucionSelecciones, serieEvolucionNiveles, trimestreDe } from '../src/nucleo/evolucion.js';
+import { momentosDe } from '../src/nucleo/texto.js';
 import { parseCSV } from '../src/nucleo/csv.js';
 import { procesarDatos } from '../src/nucleo/datos.js';
 import { elemental, profesional } from './fixtures.mjs';
@@ -38,8 +39,14 @@ seccion('1. El eje del tiempo son las evaluaciones, no los ficheros (fallo 1)');
   });
   comprobar('CANDADO: cuatro ficheros son DOS puntos en el eje, no cuatro',
     r.puntos.length === 2, r.puntos.map((p) => p.trimestre).join(' · '));
-  comprobar('y las etiquetas son las evaluaciones',
-    r.puntos.map((p) => p.trimestre).join() === '1EV,2EV');
+  /* Las etiquetas son MOMENTOS —curso + evaluación—, no evaluaciones a secas:
+     con dos cursos cargados, la primera evaluación de cada uno es un punto
+     distinto del eje. Cada punto lleva su momento desmontado para que la
+     pantalla decida si hace falta decir el curso o basta la evaluación. */
+  comprobar('y cada punto sabe de qué momento es',
+    r.puntos.map((p) => p.momento.base).join() === '1EV,2EV' &&
+    r.puntos.every((p) => p.momento.curso === '2627'),
+    r.puntos.map((p) => p.trimestre).join());
 
   /* La comprobación que de verdad importa: cada serie sube, y ninguna baja
      por haberse cruzado con la otra etapa. */
@@ -77,24 +84,36 @@ seccion('3. Un hueco es un hueco, no un punto inventado');
   comprobar('y se sabe que no hay nada que pintar', r.hayDatos === false);
 }
 
-seccion('4. Buscar el fichero de una evaluación y una etapa');
+seccion('4. Buscar el fichero de un momento y una etapa');
 {
+  const m = momentosDe(trimestresDisponibles);
   comprobar('encuentra el de su etapa',
-    trimestreDe(trimestresDisponibles, '1EV', 'EPM') === '1EV-EPM');
-  comprobar('y sin etapa coge el primero que case la evaluación',
-    trimestreDe(trimestresDisponibles, '2EV', null) === '2EV-EEM');
-  comprobar('lo que no está devuelve null',
-    trimestreDe(trimestresDisponibles, '3EV', 'EEM') === null);
-  /* Formato antiguo, sin etapa en la clave: tiene que seguir funcionando. */
-  comprobar('un trimestre sin etapa se casa por la base',
-    trimestreDe(['1EV', '2EV'], '2EV', 'EEM') === '2EV');
+    trimestreDe(trimestresDisponibles, m[0], 'EPM') === '1EV-2627-EPM',
+    String(trimestreDe(trimestresDisponibles, m[0], 'EPM')));
+  comprobar('y sin etapa coge el primero de ese momento',
+    trimestreDe(trimestresDisponibles, m[1], null) === '2EV-2627-EEM');
+  comprobar('un momento que no está cargado devuelve null',
+    trimestreDe(trimestresDisponibles, { base: '3EV', curso: '2627' }, 'EEM') === null);
+
+  /* CANDADO del cambio: dos cursos cargados. El momento lleva el curso, así
+     que pedir la primera evaluación de 25/26 NO puede devolver la de 26/27. */
+  const conDosCursos = ['1EV-2526-EEM', '1EV-2627-EEM'];
+  const mm = momentosDe(conDosCursos);
+  comprobar('CANDADO: el curso forma parte del momento y no se confunden',
+    trimestreDe(conDosCursos, mm[0], 'EEM') === '1EV-2526-EEM' &&
+    trimestreDe(conDosCursos, mm[1], 'EEM') === '1EV-2627-EEM',
+    trimestreDe(conDosCursos, mm[0], 'EEM'));
+
+  /* Formato antiguo, sin curso ni etapa: tiene que seguir funcionando. */
+  comprobar('un trimestre del formato antiguo se casa por su base',
+    trimestreDe(['1EV-EEM', '2EV-EEM'], { base: '2EV', curso: null }, 'EEM') === '2EV-EEM');
 }
 
 seccion('5. La gráfica del informe (fallo 2)');
 {
   const r = serieEvolucionNiveles({ trimestresDisponibles, datosCompletos, modoEtapa: 'TODOS' });
   comprobar('CANDADO: el eje no repite etiquetas',
-    r.datos.map((d) => d.trimestre).join() === '1EV,2EV',
+    r.datos.map((d) => d.momento.base).join() === '1EV,2EV',
     r.datos.map((d) => d.trimestre).join());
   comprobar('CANDADO: los niveles van por etapa y luego por número, no intercalados',
     r.niveles.join() === '1EEM,1EPM', r.niveles.join());
@@ -108,9 +127,9 @@ seccion('5. La gráfica del informe (fallo 2)');
 
   /* Dos FICHEROS no son dos momentos: el 1EV de las dos etapas es el mismo. */
   const unaSola = {};
-  ['1EV-EEM', '1EV-EPM'].forEach((k) => { unaSola[k] = datosCompletos[k]; });
+  ['1EV-2627-EEM', '1EV-2627-EPM'].forEach((k) => { unaSola[k] = datosCompletos[k]; });
   comprobar('CANDADO: con una sola evaluación no hay evolución que dibujar',
-    serieEvolucionNiveles({ trimestresDisponibles: ['1EV-EEM', '1EV-EPM'],
+    serieEvolucionNiveles({ trimestresDisponibles: ['1EV-2627-EEM', '1EV-2627-EPM'],
       datosCompletos: unaSola, modoEtapa: 'TODOS' }) === null);
 }
 

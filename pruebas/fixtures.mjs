@@ -23,14 +23,17 @@ export function fila({ tipo, nivel, asignatura, registros = 10, media = 7,
           n(aprobados), n(suspendidos), n(modaAprob), n(modaSusp), CEROS].join(';');
 }
 
-/** Un CSV completo a partir de sus filas. */
+/** Un CSV completo a partir de sus filas.
+ *  El curso académico forma parte de la CLAVE del fichero desde el 23/08/2026
+ *  —«1EV-2627-EEM»—, así que los constructores lo aceptan: es lo que permite
+ *  montar en una prueba dos cursos distintos y comprobar que no se pisan. */
 export function csv({ trimestre = '1EV', centro = 'Centro de prueba', filas = [],
-                      agrupaciones = [] } = {}) {
+                      agrupaciones = [], curso = '26/27' } = {}) {
   const partes = [
     '#METADATA',
     'Campo;Valor',
     'Centro;' + centro,
-    'CursoAcademico;2026-2027',
+    'CursoAcademico;' + curso,
     'Trimestre;' + trimestre,
     '#ESTADISTICAS',
     CAB,
@@ -46,8 +49,8 @@ export function csv({ trimestre = '1EV', centro = 'Centro de prueba', filas = []
 /* Los trimestres que hacen falta para probar la evolución              */
 
 /** Un trimestre de elemental. `media` manda la nota del centro y del nivel. */
-export const elemental = (trimestre, media) => csv({
-  trimestre,
+export const elemental = (trimestre, media, curso) => csv({
+  trimestre, curso,
   filas: [
     fila({ tipo: 'GLOBAL', nivel: 'GLOBAL', asignatura: 'Total', registros: 100, media }),
     fila({ tipo: 'GLOBAL_ESP', nivel: 'GLOBAL', asignatura: 'Total Especialidad', registros: 50, media }),
@@ -61,8 +64,8 @@ export const elemental = (trimestre, media) => csv({
 });
 
 /** Un trimestre de profesional. Escribe «No» con mayúscula, como su plantilla. */
-export const profesional = (trimestre, media) => csv({
-  trimestre,
+export const profesional = (trimestre, media, curso) => csv({
+  trimestre, curso,
   filas: [
     fila({ tipo: 'GLOBAL', nivel: 'GLOBAL', asignatura: 'Total', registros: 200, media }),
     fila({ tipo: 'GLOBAL_ESP', nivel: 'GLOBAL', asignatura: 'Total Especialidad', registros: 90, media }),

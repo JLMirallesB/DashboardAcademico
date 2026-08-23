@@ -165,33 +165,51 @@ const media = (t, n, a) => celda(t, n, a)?.stats?.notaMedia;
 
 /* ------------------------------------------------------------------ */
 
+/* Las claves NO se escriben a mano en esta prueba: se buscan entre las
+   cargadas. Este archivo es el inventario de las COMPARACIONES, y su trabajo
+   es seguir en verde cuando cambie el formato de la clave y ponerse rojo si se
+   pierde una comparación. Que la clave tenga la forma que tiene se vigila en
+   `pruebas/texto.mjs`, que es su sitio. */
+const K = (base, etapa) => {
+  const clave = trimestresDisponibles.find((t) => {
+    const p = parseTrimestre(t);
+    return p && p.base === base && p.etapa === etapa;
+  });
+  if (!clave) throw new Error('no está cargado el fichero ' + base + '/' + etapa);
+  return clave;
+};
+
 seccion('0. El escenario, y la clave con la que vive cada fichero');
 {
   comprobar('los cuatro ficheros se cargan con cuatro claves distintas',
     trimestresDisponibles.length === 4 &&
     new Set(trimestresDisponibles).size === 4, trimestresDisponibles.join(' · '));
-  /* Este es el aviso del rediseño: si la clave deja de ser «evaluación-etapa»,
-     esta comprobación se pone roja y con ella los seis bloques de abajo. No es
-     que la forma sea sagrada; es que TODO lo que hay debajo —el emparejado por
-     etapas, el eje del tiempo, el respaldo por asignatura— la lee con
-     `parseTrimestre`. Cambiarla es un trabajo, no un renombrado. */
-  comprobar('CANDADO: la clave es evaluación-etapa, y de ahí cuelga todo lo demás',
-    trimestresDisponibles.slice().sort().join() === '1EV-EEM,1EV-EPM,2EV-EEM,2EV-EPM',
-    trimestresDisponibles.join(' · '));
+  /* Esta comprobación nació diciendo que la clave era «evaluación-etapa», y se
+     puso roja el 23/08/2026 al añadirle el CURSO ACADÉMICO — que era justo su
+     trabajo: avisar de que se estaba moviendo el suelo. Lo que vigila ahora no
+     es la forma de la cadena, sino lo que de verdad importa aquí: que de cada
+     clave se saque de qué evaluación y de qué etapa es, porque TODO lo que hay
+     debajo —el emparejado por etapas, el eje del tiempo, el respaldo por
+     asignatura— lo lee con `parseTrimestre`. */
+  comprobar('CANDADO: de cada clave se saca su evaluación y su etapa',
+    trimestresDisponibles.every((t) => {
+      const p = parseTrimestre(t);
+      return p && p.base && p.etapa;
+    }), trimestresDisponibles.join(' · '));
   comprobar('CANDADO: de cada clave se puede sacar su evaluación y su etapa',
     trimestresDisponibles.every((t) => {
       const p = parseTrimestre(t);
       return p && ['1EV', '2EV'].includes(p.base) && ['EEM', 'EPM'].includes(p.etapa);
     }));
   comprobar('y cada celda tiene su número, que dice de dónde salió',
-    casi(media('1EV-EEM', '1EEM', 'Coro'), 6.121) &&
-    casi(media('2EV-EPM', '2EPM', 'Piano'), 7.212),
-    media('1EV-EEM', '1EEM', 'Coro') + ' / ' + media('2EV-EPM', '2EPM', 'Piano'));
+    casi(media(K('1EV', 'EEM'), '1EEM', 'Coro'), 6.121) &&
+    casi(media(K('2EV', 'EPM'), '2EPM', 'Piano'), 7.212),
+    media(K('1EV', 'EEM'), '1EEM', 'Coro') + ' / ' + media(K('2EV', 'EPM'), '2EPM', 'Piano'));
 }
 
 seccion('1. Dentro de un trimestre y una etapa (el caso base)');
 {
-  const k = calcularKPIs(datosCompletos['1EV-EEM'], { umbrales: UMBRALES, modoEtapa: 'EEM' });
+  const k = calcularKPIs(datosCompletos[K('1EV', 'EEM')], { umbrales: UMBRALES, modoEtapa: 'EEM' });
   comprobar('las cifras del centro salen del fichero elegido, y solo de él',
     casi(k.notaMediaCentro, 6.001), String(k.notaMediaCentro));
   comprobar('la referencia de elemental es el lenguaje musical',
@@ -203,7 +221,7 @@ seccion('1. Dentro de un trimestre y una etapa (el caso base)');
     k.totalAlumnos === 25 && k.alumnosPorCurso.length === 2,
     JSON.stringify(k.alumnosPorCurso));
 
-  const d = analizarDificultad(datosCompletos['1EV-EEM'],
+  const d = analizarDificultad(datosCompletos[K('1EV', 'EEM')],
     { umbrales: UMBRALES, vista: 'niveles', modoEtapa: 'EEM' });
   comprobar('el listado por niveles trae los dos cursos de la etapa',
     new Set(d.todas.map((a) => a.nivel)).size === 2 &&
@@ -212,8 +230,8 @@ seccion('1. Dentro de un trimestre y una etapa (el caso base)');
 
   /* La comparación de dos selecciones del MISMO fichero, que es lo que hace
      quien mira un curso contra otro sin salir del trimestre. */
-  const a = celda('1EV-EEM', '1EEM', 'Piano').stats;
-  const b = celda('1EV-EEM', '2EEM', 'Piano').stats;
+  const a = celda(K('1EV', 'EEM'), '1EEM', 'Piano').stats;
+  const b = celda(K('1EV', 'EEM'), '2EEM', 'Piano').stats;
   comprobar('dos cursos del mismo fichero se restan cifra a cifra',
     casi(diferencia(b.notaMedia, a.notaMedia, 'notaMedia').diff, 0.1),
     String(diferencia(b.notaMedia, a.notaMedia, 'notaMedia').diff));
@@ -222,7 +240,7 @@ seccion('1. Dentro de un trimestre y una etapa (el caso base)');
 seccion('2. Etapa contra etapa, mismas cifras');
 {
   const k = calcularKPIsGlobales({
-    trimestreSeleccionado: '2EV-EEM', datosCompletos, trimestresDisponibles,
+    trimestreSeleccionado: K('2EV', 'EEM'), datosCompletos, trimestresDisponibles,
     umbrales: UMBRALES, modoEtapa: 'TODOS'
   });
   comprobar('se marca como comparativo y trae los dos bloques',
@@ -242,7 +260,7 @@ seccion('2. Etapa contra etapa, mismas cifras');
 
   /* Da igual desde qué etapa se mire: la comparación es la misma. */
   const desdeEPM = calcularKPIsGlobales({
-    trimestreSeleccionado: '2EV-EPM', datosCompletos, trimestresDisponibles,
+    trimestreSeleccionado: K('2EV', 'EPM'), datosCompletos, trimestresDisponibles,
     umbrales: UMBRALES, modoEtapa: 'TODOS'
   });
   comprobar('CANDADO: mirando desde profesional sale la misma pareja',
@@ -251,9 +269,9 @@ seccion('2. Etapa contra etapa, mismas cifras');
 
   /* Con una sola etapa cargada, la otra mitad no se inventa. */
   const soloEEM = calcularKPIsGlobales({
-    trimestreSeleccionado: '1EV-EEM',
-    datosCompletos: { '1EV-EEM': datosCompletos['1EV-EEM'] },
-    trimestresDisponibles: ['1EV-EEM'], umbrales: UMBRALES, modoEtapa: 'TODOS'
+    trimestreSeleccionado: K('1EV', 'EEM'),
+    datosCompletos: { [K('1EV', 'EEM')]: datosCompletos[K('1EV', 'EEM')] },
+    trimestresDisponibles: [K('1EV', 'EEM')], umbrales: UMBRALES, modoEtapa: 'TODOS'
   });
   comprobar('CANDADO: sin fichero de profesional, su bloque es null y no un cero',
     soloEEM.kpisEPM === null && !!soloEEM.kpisEEM);
@@ -288,7 +306,7 @@ const seleccionesPorNivel = ({ trimestreSeleccionado, niveles, asignatura, modoE
   }).filter((sel) => tieneAsignatura(datosCompletos, sel.trimestre, sel.nivel, sel.asignatura));
 {
   const piano = seleccionesPorNivel({
-    trimestreSeleccionado: '1EV-EEM', niveles: NIVELES_TODOS,
+    trimestreSeleccionado: K('1EV', 'EEM'), niveles: NIVELES_TODOS,
     asignatura: 'Piano', modoEtapa: 'TODOS'
   });
   comprobar('los cuatro cursos de las dos etapas entran en la comparación',
@@ -297,7 +315,7 @@ const seleccionesPorNivel = ({ trimestreSeleccionado, niveles, asignatura, modoE
   /* Sin esto, los cursos de profesional se buscarían en el fichero de
      elemental —que no los tiene— y la comparación se quedaría en dos filas. */
   comprobar('CANDADO: cada curso lee del fichero de SU etapa',
-    piano.map((s) => s.trimestre).join() === '1EV-EEM,1EV-EEM,1EV-EPM,1EV-EPM',
+    piano.map((s) => s.trimestre).join() === [K('1EV','EEM'),K('1EV','EEM'),K('1EV','EPM'),K('1EV','EPM')].join(),
     piano.map((s) => s.trimestre).join());
   comprobar('CANDADO: y de la MISMA evaluación, no de otra',
     piano.every((s) => parseTrimestre(s.trimestre).base === '1EV'));
@@ -308,11 +326,11 @@ const seleccionesPorNivel = ({ trimestreSeleccionado, niveles, asignatura, modoE
      El resultado sería elemental de la segunda contra profesional de la
      primera, con la pantalla diciendo que es la segunda. */
   const pianoSegunda = seleccionesPorNivel({
-    trimestreSeleccionado: '2EV-EEM', niveles: NIVELES_TODOS,
+    trimestreSeleccionado: K('2EV', 'EEM'), niveles: NIVELES_TODOS,
     asignatura: 'Piano', modoEtapa: 'TODOS'
   });
   comprobar('CANDADO: comparando la segunda evaluación, profesional no se cae a la primera',
-    pianoSegunda.map((s) => s.trimestre).join() === '2EV-EEM,2EV-EEM,2EV-EPM,2EV-EPM',
+    pianoSegunda.map((s) => s.trimestre).join() === [K('2EV','EEM'),K('2EV','EEM'),K('2EV','EPM'),K('2EV','EPM')].join(),
     pianoSegunda.map((s) => s.trimestre).join());
 
   comprobar('cada fila trae el valor de su celda, no el de la de al lado',
@@ -323,12 +341,12 @@ const seleccionesPorNivel = ({ trimestreSeleccionado, niveles, asignatura, modoE
   /* El respaldo: Coro no está en el fichero de profesional de la primera
      evaluación, pero sí en el de la segunda. */
   const coro = seleccionesPorNivel({
-    trimestreSeleccionado: '1EV-EEM', niveles: NIVELES_TODOS,
+    trimestreSeleccionado: K('1EV', 'EEM'), niveles: NIVELES_TODOS,
     asignatura: 'Coro', modoEtapa: 'TODOS'
   });
   comprobar('CANDADO: el respaldo busca la asignatura en otro trimestre de su etapa',
     coro.length === 4 &&
-    coro.map((s) => s.trimestre).join() === '1EV-EEM,1EV-EEM,2EV-EPM,2EV-EPM',
+    coro.map((s) => s.trimestre).join() === [K('1EV','EEM'),K('1EV','EEM'),K('2EV','EPM'),K('2EV','EPM')].join(),
     coro.map((s) => s.trimestre).join());
   /* OJO, y está medido, no es una hipótesis: al caer en el respaldo la
      comparación mezcla evaluaciones —la primera de elemental contra la segunda
@@ -341,7 +359,7 @@ const seleccionesPorNivel = ({ trimestreSeleccionado, niveles, asignatura, modoE
   /* Una asignatura que solo existe en una etapa: los cursos de la otra se
      caen, y no queda una fila vacía ocupando sitio. */
   const armonia = seleccionesPorNivel({
-    trimestreSeleccionado: '1EV-EEM', niveles: NIVELES_TODOS,
+    trimestreSeleccionado: K('1EV', 'EEM'), niveles: NIVELES_TODOS,
     asignatura: 'Armonía', modoEtapa: 'TODOS'
   });
   comprobar('CANDADO: el curso que no tiene la asignatura no entra como fila vacía',
@@ -352,18 +370,18 @@ const seleccionesPorNivel = ({ trimestreSeleccionado, niveles, asignatura, modoE
      elegido. Es el caso que hace ver que el trabajo de arriba es del modo
      comparativo y no de la vista en general. */
   const soloEEM = seleccionesPorNivel({
-    trimestreSeleccionado: '2EV-EEM', niveles: ['1EEM', '2EEM'],
+    trimestreSeleccionado: K('2EV', 'EEM'), niveles: ['1EEM', '2EEM'],
     asignatura: 'Piano', modoEtapa: 'EEM'
   });
   comprobar('en una sola etapa, todas las filas salen del trimestre elegido',
-    soloEEM.length === 2 && soloEEM.every((s) => s.trimestre === '2EV-EEM'));
+    soloEEM.length === 2 && soloEEM.every((s) => s.trimestre === K('2EV', 'EEM')));
 
   /* Las dos plantillas escriben distinto la fila de no-especialidad
      —«Total no Especialidad» y «Total No Especialidad»— y las dos están en el
      desplegable, porque se recogen como cadenas exactas. Elegir una y comparar
      las dos etapas depende de que el criterio no distinga mayúsculas. */
   const noEsp = seleccionesPorNivel({
-    trimestreSeleccionado: '1EV-EEM', niveles: NIVELES_TODOS,
+    trimestreSeleccionado: K('1EV', 'EEM'), niveles: NIVELES_TODOS,
     asignatura: 'Total no Especialidad', modoEtapa: 'TODOS'
   });
   comprobar('CANDADO: las dos grafías de «Total no Especialidad» son la misma fila',
@@ -375,8 +393,8 @@ const seleccionesPorNivel = ({ trimestreSeleccionado, niveles, asignatura, modoE
      comprobación se pone roja: entonces bórrala, que es la señal de que ya no
      pasa. */
   comprobar('OJO: pasa el filtro pero el valor no se encuentra (fallo medido)',
-    media('1EV-EPM', '1EPM', 'Total no Especialidad') === undefined &&
-    media('1EV-EPM', '1EPM', 'Total No Especialidad') !== undefined);
+    media(K('1EV', 'EPM'), '1EPM', 'Total no Especialidad') === undefined &&
+    media(K('1EV', 'EPM'), '1EPM', 'Total No Especialidad') !== undefined);
 }
 
 seccion('4. Cualquier cosa contra cualquier cosa');
@@ -394,37 +412,37 @@ seccion('4. Cualquier cosa contra cualquier cosa');
   comprobar('CANDADO: en modo TODOS se pueden elegir los cuatro ficheros en una misma fila',
     trimestresOfrecidos('TODOS').length === 4);
   comprobar('y en una sola etapa, solo los suyos',
-    trimestresOfrecidos('EEM').join() === '1EV-EEM,2EV-EEM',
+    trimestresOfrecidos('EEM').join() === [K('1EV','EEM'),K('2EV','EEM')].join(),
     trimestresOfrecidos('EEM').join());
   comprobar('CANDADO: el nivel se elige dentro del fichero de la fila (GLOBAL incluido)',
-    nivelesOfrecidos('1EV-EEM').join() === 'GLOBAL,1EEM,2EEM' &&
-    nivelesOfrecidos('1EV-EPM').join() === 'GLOBAL,1EPM,2EPM',
-    nivelesOfrecidos('1EV-EEM').join() + ' | ' + nivelesOfrecidos('1EV-EPM').join());
+    nivelesOfrecidos(K('1EV', 'EEM')).join() === 'GLOBAL,1EEM,2EEM' &&
+    nivelesOfrecidos(K('1EV', 'EPM')).join() === 'GLOBAL,1EPM,2EPM',
+    nivelesOfrecidos(K('1EV', 'EEM')).join() + ' | ' + nivelesOfrecidos(K('1EV', 'EPM')).join());
   /* Por eso la mezcla de etapas se hace CON DOS FILAS y no dentro de una: un
      nivel de profesional sobre un fichero de elemental no se puede ni elegir,
      y si se colara no daría dato. */
   comprobar('un nivel de la otra etapa sobre ese fichero no existe',
-    celda('1EV-EEM', '1EPM', 'Piano') === undefined);
+    celda(K('1EV', 'EEM'), '1EPM', 'Piano') === undefined);
 
   /* Quince filas —el tope de la vista— mezclando trimestres, etapas, cursos y
      asignaturas: es la comparación más potente de la app y la que más fácil
      sería recortar sin querer al reorganizar la pantalla. */
   const libres = [
-    ['1EV-EEM', 'GLOBAL', 'Total'],
-    ['2EV-EEM', 'GLOBAL', 'Total'],
-    ['1EV-EPM', 'GLOBAL', 'Total'],
-    ['2EV-EPM', 'GLOBAL', 'Total'],
-    ['1EV-EEM', '1EEM', 'Piano'],
-    ['2EV-EEM', '1EEM', 'Piano'],
-    ['1EV-EEM', '2EEM', 'Coro'],
-    ['2EV-EEM', '2EEM', 'Total Especialidad'],
-    ['1EV-EPM', '1EPM', 'Armonía'],
-    ['2EV-EPM', '1EPM', 'Armonía'],
-    ['1EV-EPM', '2EPM', 'Piano'],
-    ['2EV-EPM', '2EPM', 'Coro'],
-    ['2EV-EPM', '1EPM', 'Total'],
-    ['1EV-EEM', '1EEM', 'Total no Especialidad'],
-    ['2EV-EPM', '2EPM', 'Total No Especialidad']
+    [K('1EV', 'EEM'), 'GLOBAL', 'Total'],
+    [K('2EV', 'EEM'), 'GLOBAL', 'Total'],
+    [K('1EV', 'EPM'), 'GLOBAL', 'Total'],
+    [K('2EV', 'EPM'), 'GLOBAL', 'Total'],
+    [K('1EV', 'EEM'), '1EEM', 'Piano'],
+    [K('2EV', 'EEM'), '1EEM', 'Piano'],
+    [K('1EV', 'EEM'), '2EEM', 'Coro'],
+    [K('2EV', 'EEM'), '2EEM', 'Total Especialidad'],
+    [K('1EV', 'EPM'), '1EPM', 'Armonía'],
+    [K('2EV', 'EPM'), '1EPM', 'Armonía'],
+    [K('1EV', 'EPM'), '2EPM', 'Piano'],
+    [K('2EV', 'EPM'), '2EPM', 'Coro'],
+    [K('2EV', 'EPM'), '1EPM', 'Total'],
+    [K('1EV', 'EEM'), '1EEM', 'Total no Especialidad'],
+    [K('2EV', 'EPM'), '2EPM', 'Total No Especialidad']
   ];
   comprobar('CANDADO: quince filas libres, y las quince encuentran su dato',
     libres.length === 15 && libres.every(([t, n, a]) => typeof media(t, n, a) === 'number'),
@@ -434,11 +452,11 @@ seccion('4. Cualquier cosa contra cualquier cosa');
     new Set(libres.map(([t, n, a]) => media(t, n, a))).size === 15,
     libres.map(([t, n, a]) => media(t, n, a)).join(' '));
   comprobar('y los valores son los de su etapa, curso, asignatura y evaluación',
-    casi(media('1EV-EEM', '2EEM', 'Coro'), 6.221) &&
-    casi(media('2EV-EPM', '1EPM', 'Armonía'), 7.142) &&
-    casi(media('1EV-EPM', 'GLOBAL', 'Total'), 7.001),
-    [media('1EV-EEM', '2EEM', 'Coro'), media('2EV-EPM', '1EPM', 'Armonía'),
-     media('1EV-EPM', 'GLOBAL', 'Total')].join(' '));
+    casi(media(K('1EV', 'EEM'), '2EEM', 'Coro'), 6.221) &&
+    casi(media(K('2EV', 'EPM'), '1EPM', 'Armonía'), 7.142) &&
+    casi(media(K('1EV', 'EPM'), 'GLOBAL', 'Total'), 7.001),
+    [media(K('1EV', 'EEM'), '2EEM', 'Coro'), media(K('2EV', 'EPM'), '1EPM', 'Armonía'),
+     media(K('1EV', 'EPM'), 'GLOBAL', 'Total')].join(' '));
 
   /* La comparación de verdad: todas las filas se restan de la primera, y
      mezclando etapas y evaluaciones. Subir suspensos es empeorar aunque el
@@ -465,7 +483,7 @@ seccion('5. Evolución temporal de pares (nivel, asignatura), las dos etapas a l
     ]
   });
   comprobar('CANDADO: cuatro ficheros son dos momentos, no cuatro',
-    r.puntos.length === 2 && r.puntos.map((p) => p.trimestre).join() === '1EV,2EV',
+    r.puntos.length === 2 && r.puntos.map((p) => p.momento.base).join() === '1EV,2EV',
     r.puntos.map((p) => p.trimestre).join());
   comprobar('CANDADO: la serie de elemental solo toma valores de elemental',
     casi(r.puntos[0].notaMedia_0, 6.111) && casi(r.puntos[1].notaMedia_0, 6.112),
@@ -486,8 +504,8 @@ seccion('5. Evolución temporal de pares (nivel, asignatura), las dos etapas a l
 seccion('6. Los cursos de las dos etapas en un mismo listado');
 {
   const opc = { umbrales: UMBRALES, vista: 'niveles', modoEtapa: 'TODOS' };
-  const eem = analizarDificultad(datosCompletos['1EV-EEM'], opc);
-  const epm = analizarDificultad(datosCompletos['1EV-EPM'], opc);
+  const eem = analizarDificultad(datosCompletos[K('1EV', 'EEM')], opc);
+  const epm = analizarDificultad(datosCompletos[K('1EV', 'EPM')], opc);
   comprobar('cada fichero aporta sus dos cursos, con GLOBAL fuera',
     new Set(eem.todas.map((a) => a.nivel)).size === 2 &&
     new Set(epm.todas.map((a) => a.nivel)).size === 2 &&
@@ -497,7 +515,7 @@ seccion('6. Los cursos de las dos etapas en un mismo listado');
      fichero, y un fichero es de una etapa— pero que es justo lo que un
      rediseño que fusione ficheros por evaluación va a producir. Lo que se fija
      es el contrato: en modo TODOS esta función NO descarta niveles por etapa. */
-  const fusionado = { ...datosCompletos['1EV-EEM'], ...datosCompletos['1EV-EPM'] };
+  const fusionado = { ...datosCompletos[K('1EV', 'EEM')], ...datosCompletos[K('1EV', 'EPM')] };
   const juntos = analizarDificultad(fusionado, opc);
   const niveles = Array.from(new Set(juntos.todas.map((a) => a.nivel))).sort();
   comprobar('CANDADO: en modo TODOS los cuatro cursos caben en un mismo listado',

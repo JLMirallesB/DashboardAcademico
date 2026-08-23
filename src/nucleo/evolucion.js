@@ -36,29 +36,36 @@
  * como dato.
  */
 
-import { parseTrimestre, getTrimestreBase, evaluacionesDe, compararTrimestres } from './texto.js';
+import { parseTrimestre, getTrimestreBase, momentosDe, esDelMomento,
+         compararTrimestres, ordenDeEvaluacion } from './texto.js';
 import { detectarEtapa } from './estadistica.js';
 
-/** El fichero cargado que corresponde a una evaluación y una etapa.
- *  Si los trimestres vinieran sin etapa —formato antiguo— se casa por la base
- *  a secas, que es todo lo que hay. */
-export const trimestreDe = (trimestres, evaluacion, etapa) => {
+/** El fichero cargado que corresponde a un MOMENTO —curso + evaluación— y una
+ *  etapa. Si los trimestres vinieran sin etapa, se casa por el momento a
+ *  secas, que es todo lo que hay. */
+export const trimestreDe = (trimestres, momento, etapa) => {
   const conEtapa = (trimestres || []).find((t) => {
+    if (!esDelMomento(t, momento)) return false;
     const p = parseTrimestre(t);
-    return p && p.base === evaluacion && (!etapa || p.etapa === etapa);
+    return !etapa || (p && p.etapa === etapa);
   });
   if (conEtapa) return conEtapa;
-  return (trimestres || []).find((t) => getTrimestreBase(t) === evaluacion) || null;
+  return (trimestres || []).find((t) => esDelMomento(t, momento)) || null;
 };
 
-/** Las evaluaciones que hay que pintar, ya filtradas por el modo de etapa. */
+/** Los momentos que hay que pintar, ya filtrados por el modo de etapa. */
 const ejeDe = (trimestresDisponibles, modoEtapa) => {
   const relevantes = (trimestresDisponibles || []).filter((t) => {
     if (modoEtapa === 'TODOS' || !modoEtapa) return true;
     const p = parseTrimestre(t);
-    return !p || p.etapa === modoEtapa;
+    /* Ojo con la tolerancia: `!p` estaba aquí para los trimestres sin etapa
+       del formato antiguo, y con una clave que el parser no entendiera dejaría
+       pasar TODO, incluidos los ficheros de la otra etapa y de otro curso. Por
+       eso ahora se exige que el parseo funcione y que la etapa falte de
+       verdad, en vez de dar por buena la ausencia de respuesta. */
+    return !p ? false : (p.etapa === null || p.etapa === modoEtapa);
   });
-  return evaluacionesDe(relevantes);
+  return momentosDe(relevantes);
 };
 
 /** La evolución de las selecciones que el usuario ha ido añadiendo (cada una
@@ -75,15 +82,15 @@ export const serieEvolucionSelecciones = ({
   selecciones = [],
   modoEtapa
 }) => {
-  const evaluaciones = ejeDe(trimestresDisponibles, modoEtapa);
+  const momentos = ejeDe(trimestresDisponibles, modoEtapa);
   let huecos = 0;
 
-  const puntos = evaluaciones.map((ev) => {
-    const punto = { trimestre: ev };
+  const puntos = momentos.map((m) => {
+    const punto = { trimestre: m.clave, momento: m };
     selecciones.forEach((sel, idx) => {
       /* Cada selección busca el fichero de SU etapa. Es lo que permite que
          una línea de 1EEM y otra de 1EPM compartan el mismo eje sin pisarse. */
-      const trim = trimestreDe(trimestresDisponibles, ev, detectarEtapa(sel.nivel));
+      const trim = trimestreDe(trimestresDisponibles, m, detectarEtapa(sel.nivel));
       const d = trim && datosCompletos[trim] &&
                 datosCompletos[trim][sel.nivel] &&
                 datosCompletos[trim][sel.nivel][sel.asignatura];
@@ -98,7 +105,7 @@ export const serieEvolucionSelecciones = ({
   const hayDatos = puntos.some((p) =>
     selecciones.some((_, idx) => p[`notaMedia_${idx}`] !== null));
 
-  return { puntos, hayDatos, huecos };
+  return { puntos, hayDatos, huecos, momentos };
 };
 
 /** La evolución de la nota media de cada nivel, para la gráfica del informe.
@@ -111,11 +118,12 @@ export const serieEvolucionNiveles = ({
   datosCompletos = {},
   modoEtapa
 }) => {
-  const evaluaciones = ejeDe(trimestresDisponibles, modoEtapa);
+  const momentos = ejeDe(trimestresDisponibles, modoEtapa);
   /* Dos FICHEROS no son dos momentos: el 1EV de elemental y el de profesional
-     son el mismo. Antes se miraba `trimestresDisponibles.length < 2` y con una
-     sola evaluación de las dos etapas ya se dibujaba una «evolución». */
-  if (evaluaciones.length < 2) return null;
+     son el mismo momento visto en dos sitios. Antes se miraba
+     `trimestresDisponibles.length < 2` y con una sola evaluación de las dos
+     etapas ya se dibujaba una «evolución». */
+  if (momentos.length < 2) return null;
 
   const nivelesSet = new Set();
   (trimestresDisponibles || []).forEach((trim) => {
@@ -139,10 +147,10 @@ export const serieEvolucionNiveles = ({
     return na - nb;
   });
 
-  const datos = evaluaciones.map((ev) => {
-    const punto = { trimestre: ev };
+  const datos = momentos.map((m) => {
+    const punto = { trimestre: m.clave, momento: m };
     niveles.forEach((nivel) => {
-      const trim = trimestreDe(trimestresDisponibles, ev, detectarEtapa(nivel));
+      const trim = trimestreDe(trimestresDisponibles, m, detectarEtapa(nivel));
       const total = trim && datosCompletos[trim] &&
                     datosCompletos[trim][nivel] &&
                     datosCompletos[trim][nivel]['Total'];
@@ -153,7 +161,7 @@ export const serieEvolucionNiveles = ({
     return punto;
   });
 
-  return { datos, niveles };
+  return { datos, niveles, momentos };
 };
 
-export { compararTrimestres };
+export { compararTrimestres, momentosDe };

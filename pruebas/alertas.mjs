@@ -19,6 +19,17 @@ import { parseCSV } from '../src/nucleo/csv.js';
 import { procesarDatos } from '../src/nucleo/datos.js';
 import { csv, fila, elemental, profesional } from './fixtures.mjs';
 import { comprobar, seccion, terminar, casi, UMBRALES } from './ayuda.mjs';
+import { parseTrimestre } from '../src/nucleo/texto.js';
+
+/* La clave de un fichero lleva el curso académico desde el 23/08/2026, así que
+   no se escribe a mano: se busca entre las cargadas por sus piezas. Lo que
+   esta prueba vigila es el recuento, no el formato de la clave —eso está en
+   `pruebas/texto.mjs`— y escribirla aquí la ataría a algo que no es lo suyo. */
+const claveDeFichero = (mundo, base, etapa) =>
+  mundo.trimestresDisponibles.find((t) => {
+    const p = parseTrimestre(t);
+    return p && p.base === base && p.etapa === etapa;
+  });
 
 /** Carga una lista de CSV y devuelve lo que la pantalla tiene en la mano. */
 const cargar = (textos) => {
@@ -81,7 +92,8 @@ seccion('1. La media no se mueve y las alertas sí — que es por lo que existe 
 {
   const media = (t) => A.datosCompletos[t].GLOBAL.Total.stats.notaMedia;
   comprobar('el fichero está montado como se pretendía: la media es idéntica',
-    casi(media('1EV-EEM'), media('2EV-EEM')), media('1EV-EEM') + ' vs ' + media('2EV-EEM'));
+    casi(media(claveDeFichero(A, '1EV', 'EEM')), media(claveDeFichero(A, '2EV', 'EEM'))),
+    media(claveDeFichero(A, '1EV', 'EEM')) + ' vs ' + media(claveDeFichero(A, '2EV', 'EEM')));
 
   const r = serieAlertas(opcA);
   comprobar('CANDADO: con la misma media, el recuento de difíciles SÍ cambia',
@@ -209,10 +221,10 @@ seccion('6. Falta el fichero de una etapa: ni se cuenta dos veces ni se felicita
   const r = serieAlertas({ ...C, umbrales: UMBRALES, modoEtapa: 'TODOS', vista: 'niveles' });
 
   comprobar('CANDADO: el punto sin fichero de profesional NO duplica elemental',
-    r.puntos[0].total === 1 && r.puntos[0].trimestres.join() === '1EV-EEM',
+    r.puntos[0].total === 1 && r.puntos[0].trimestres.join() === claveDeFichero(C, '1EV', 'EEM'),
     r.puntos[0].total + ' — ' + r.puntos[0].trimestres.join());
   comprobar('y donde están los dos ficheros, cuenta los dos',
-    r.puntos[1].total === 2 && r.puntos[1].trimestres.join() === '2EV-EEM,2EV-EPM',
+    r.puntos[1].total === 2 && r.puntos[1].trimestres.join() === [claveDeFichero(C, '2EV', 'EEM'), claveDeFichero(C, '2EV', 'EPM')].join(),
     r.puntos[1].total + ' — ' + r.puntos[1].trimestres.join());
 
   /* Al revés: las dos etapas en rojo en la primera evaluación y en la segunda

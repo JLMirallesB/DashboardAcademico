@@ -13,6 +13,8 @@
  * @param {Object} params.correlacionesCompletas - Correlaciones completas
  * @param {Object} params.agrupacionesCompletas - Agrupaciones de asignaturas por trimestre
  */
+import { parseTrimestre, claveTrimestre, normalizarCurso } from '../nucleo/texto.js';
+
 export const exportarJSON = ({
   trimestresDisponibles,
   metadata,
@@ -23,6 +25,12 @@ export const exportarJSON = ({
 }) => {
   const exportData = {
     metadata: {
+      /* La versión del FORMATO, no la de la app. Sin ella, distinguir un
+         fichero viejo de uno nuevo obliga a contar guiones en las claves, que
+         es justo el criterio frágil que el cambio de clave vino a quitar. Los
+         ficheros exportados antes del 23/08/2026 no la llevan, así que su
+         ausencia significa «versión 1» de forma explícita. */
+      version: 2,
       exportadoEl: new Date().toISOString(),
       trimestres: trimestresDisponibles,
       metadataPorTrimestre: metadata
@@ -48,8 +56,53 @@ export const exportarJSON = ({
  * @returns {Object} Objeto con los datos importados
  * @throws {Error} Si el JSON no puede ser parseado
  */
+/* Un JSON exportado antes del 23/08/2026 trae las claves de dos partes
+   —«1EV-EEM»— en SEIS sitios a la vez: la lista de trimestres y los nombres de
+   propiedad de datos, correlaciones, agrupaciones y metadata, más la selección
+   inicial. Cargarlo tal cual mete claves de dos partes en un estado que ya
+   asume tres, y entonces conviven dos formatos sin que nada lo diga.
+
+   La buena noticia es que la clave nueva se puede reconstruir sin preguntar
+   nada: el curso académico está en `metadataPorTrimestre[clave].CursoAcademico`,
+   que es de donde salía la clave nueva al leer el CSV. Lo que no lo tenga se
+   queda con su clave de dos partes, que sigue siendo válida — lo que no se
+   sabe, no se inventa. */
+const migrarClaves = (importado) => {
+  const meta = (importado.metadata && importado.metadata.metadataPorTrimestre) || {};
+  const mapa = {};
+  Object.keys(importado.datos || {}).forEach((vieja) => {
+    const p = parseTrimestre(vieja);
+    /* Solo se toca lo que es del formato antiguo: dos partes y sin curso. */
+    if (!p || p.curso) { mapa[vieja] = vieja; return; }
+    const curso = normalizarCurso((meta[vieja] || {}).CursoAcademico || '');
+    mapa[vieja] = curso ? claveTrimestre(p.base, curso, p.etapa) : vieja;
+  });
+  return mapa;
+};
+
+const reindexar = (obj, mapa) => {
+  if (!obj) return obj;
+  const out = {};
+  Object.keys(obj).forEach((k) => { out[mapa[k] || k] = obj[k]; });
+  return out;
+};
+
 export const procesarImportacionJSON = (jsonContent) => {
   const importado = JSON.parse(jsonContent);
+
+  const version = (importado.metadata && importado.metadata.version) || 1;
+  const mapa = version < 2 ? migrarClaves(importado) : null;
+  if (mapa) {
+    importado.datos = reindexar(importado.datos, mapa);
+    importado.correlaciones = reindexar(importado.correlaciones, mapa);
+    importado.agrupaciones = reindexar(importado.agrupaciones, mapa);
+    if (importado.metadata) {
+      importado.metadata.metadataPorTrimestre = reindexar(importado.metadata.metadataPorTrimestre, mapa);
+      if (Array.isArray(importado.metadata.trimestres)) {
+        importado.metadata.trimestres = importado.metadata.trimestres.map((t) => mapa[t] || t);
+      }
+    }
+  }
 
   const resultado = {
     datosCompletos: importado.datos || null,

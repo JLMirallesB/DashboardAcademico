@@ -20,7 +20,7 @@
  * enteras de informe a 0,00.
  */
 
-import { normalizar, buscarClave, esAgregado, getTrimestreBase } from './texto.js';
+import { normalizar, buscarClave, esAgregado, parseTrimestre } from './texto.js';
 import { calcularResultado, detectarEtapa } from './estadistica.js';
 
 /** Los stats de una fila agregada, o `null` si no está.
@@ -209,9 +209,18 @@ export const calcularKPIsGlobales = ({
   if (!trimestreSeleccionado) return null;
 
   if (modoEtapa === 'TODOS') {
-    const base = getTrimestreBase(trimestreSeleccionado);
+    /* El fichero hermano de la otra etapa: el del MISMO momento —misma
+       evaluación y mismo curso académico— y la otra etapa. Antes se componía
+       la clave a mano con `${base}-${etapa}`, y eso dejó de encontrar nada en
+       cuanto la clave pasó a llevar el curso: los dos bloques salían null y la
+       pantalla se quedaba sin cifras sin dar ningún error. Se busca
+       comparando las piezas, que es lo que no se rompe al cambiar el formato. */
+    const yo = parseTrimestre(trimestreSeleccionado);
     const deEtapa = (etapa) => {
-      const trim = trimestresDisponibles.find((t) => t === `${base}-${etapa}`);
+      const trim = trimestresDisponibles.find((t) => {
+        const p = parseTrimestre(t);
+        return p && yo && p.base === yo.base && p.curso === yo.curso && p.etapa === etapa;
+      });
       return trim && datosCompletos[trim]
         ? calcularKPIs(datosCompletos[trim], { umbrales, modoEtapa: etapa, esAsignaturaEspecialidad })
         : null;

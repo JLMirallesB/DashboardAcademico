@@ -58,7 +58,7 @@
  * identidad es **etapa + nivel + asignatura**.
  */
 
-import { evaluacionesDe, parseTrimestre, buscarClave, normalizar } from './texto.js';
+import { momentosDe, parseTrimestre, buscarClave, normalizar } from './texto.js';
 import { trimestreDe } from './evolucion.js';
 import { analizarDificultad } from './dificultad.js';
 
@@ -160,8 +160,11 @@ export const serieAlertas = ({
     return !p || !soloEtapa || p.etapa === soloEtapa;
   });
 
-  const evaluaciones = evaluacionesDe(relevantes);
-  if (!evaluaciones.length) return vacio;
+  /* El eje son MOMENTOS —curso académico + evaluación—, no evaluaciones a
+     secas: con dos cursos cargados, la primera evaluación de cada uno es un
+     punto distinto. Mismo criterio que `evolucion.js`, y por el mismo motivo. */
+  const momentos = momentosDe(relevantes);
+  if (!momentos.length) return vacio;
 
   const etapas = [];
   relevantes.forEach((t) => {
@@ -174,7 +177,7 @@ export const serieAlertas = ({
      pantalla tenga que pintar. */
   const mapas = [];
 
-  const puntos = evaluaciones.map((ev) => {
+  const puntos = momentos.map((ev) => {
     const mapa = new Map();
     const ficheros = [];
 
@@ -230,7 +233,8 @@ export const serieAlertas = ({
     const neutrales = todas.filter((a) => a.categoria === 'NEUTRAL');
 
     return {
-      evaluacion: ev,
+      evaluacion: ev.base,
+      momento: ev,
       trimestres: ficheros,
       total: todas.length,
       dificiles: dificiles.length,
@@ -245,7 +249,7 @@ export const serieAlertas = ({
   });
 
   const cambios = [];
-  for (let i = 1; i < evaluaciones.length; i++) {
+  for (let i = 1; i < momentos.length; i++) {
     const antes = mapas[i - 1];
     const ahora = mapas[i];
     const entran = [], salen = [], nuevas = [], desaparecidas = [];
@@ -283,8 +287,10 @@ export const serieAlertas = ({
     });
 
     cambios.push({
-      de: evaluaciones[i - 1],
-      a: evaluaciones[i],
+      de: momentos[i - 1].base,
+      a: momentos[i].base,
+      deMomento: momentos[i - 1],
+      aMomento: momentos[i],
       entran: ordenar(entran),
       salen: ordenar(salen),
       nuevas: ordenar(nuevas),
