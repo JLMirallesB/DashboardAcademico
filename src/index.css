@@ -1,3 +1,6 @@
+/* Las fuentes van empaquetadas, no se piden a Google en cada visita. */
+@import './fuentes/fuentes.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

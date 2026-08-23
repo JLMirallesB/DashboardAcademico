@@ -1,13 +1,14 @@
 {
   "name": "dashboard-academico",
   "private": true,
-  "version": "3.4.0",
+  "version": "3.5.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "bash pruebas/ejecutar-todo.sh"
+    "test": "bash pruebas/ejecutar-todo.sh",
+    "lint": "eslint src"
   },
   "dependencies": {
     "html2canvas": "^1.4.1",
@@ -18,10 +19,15 @@
     "recharts": "^2.10.3"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
+    "eslint": "^10.9.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.4",
+    "globals": "^17.11.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
     "vite": "^6.0.3"

@@ -52,7 +52,7 @@ Proyecto de código abierto disponible en GitHub
 2. Hacer clic en **"Cargar CSV de trimestre"** en la pantalla inicial o desde el botón **"Gestionar datos cargados"**
 3. Seleccionar el archivo CSV exportado
 4. El sistema detecta automáticamente:
-   - Separador (\\\`;\\  \` o \`,\`)
+   - Separador (\`;\` o \`,\`)
    - Etapa educativa (EEM/EPM) según los niveles presentes
    - Estructura multi-sección (\`#METADATA\`, \`#ESTADISTICAS\`, \`#CORRELACIONES\`, \`#AGRUPACIONES\`)
 
@@ -534,7 +534,7 @@ Projecte de codi obert disponible en GitHub
 2. Fer clic en **"Carregar CSV de trimestre"** en la pantalla inicial o des del botó **"Gestionar dades carregades"**
 3. Seleccionar l'arxiu CSV exportat
 4. El sistema detecta automàticament:
-   - Separador (\\\`;\\  \` o \`,\`)
+   - Separador (\`;\` o \`,\`)
    - Etapa educativa (EEM/EPM) segons els nivells presents
    - Estructura multi-secció (\`#METADATA\`, \`#ESTADISTICAS\`, \`#CORRELACIONES\`, \`#AGRUPACIONES\`)
 

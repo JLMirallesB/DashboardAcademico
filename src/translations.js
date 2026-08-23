@@ -1,5 +1,9 @@
 export const translations = {
   es: {
+    errorTitulo: 'Algo ha fallado en esta pantalla',
+    errorTexto: 'Los datos que habías cargado siguen en memoria. Vuelve a la vista anterior o recarga la página y prueba con otra selección.',
+    errorReintentar: 'Volver a intentarlo',
+    errorRecargar: 'Recargar la página',
     // General
     appTitle: 'Dashboard Académico',
     appSubtitle: 'Análisis de rendimiento por curso, asignatura y trimestre para Conservatorios Elementales y Profesionales de Música',
@@ -74,7 +78,7 @@ export const translations = {
     averageEvolution: 'Evolución de la Nota Media',
     failedEvolution: 'Evolución del % de Suspensos',
     trend: 'Tendencia',
-    notEnoughData: 'Datos insuficientes',
+    notEnoughData: 'No hay datos suficientes para dibujar la evolución',
     sortByTrend: 'Ordenar por tendencia',
     noSortLabel: 'Sin ordenar',
     filterByTrend: 'Filtrar por tendencia',
@@ -152,7 +156,6 @@ export const translations = {
     all: 'Todos',
     difficultSubjects: 'Asignaturas Difíciles',
     neutralSubjects: 'Asignaturas Neutrales',
-    easySubjects: 'Asignaturas Fáciles',
     difficultyReason: 'Motivo',
 
     // Estadísticas
@@ -167,7 +170,6 @@ export const translations = {
     excellence: 'Excelencia',
 
     // Gráficos
-    gradeDistribution: 'Distribución de Notas',
     distributionTable: 'Tabla de Distribución',
     grade: 'Nota',
     total: 'TOTAL',
@@ -208,7 +210,6 @@ export const translations = {
     needTwoTrimesters: 'Necesitas cargar al menos 2 trimestres para ver la evolución.',
     trimestersLoaded: 'Trimestres cargados',
     showingEvolution: 'Mostrando evolución de',
-    notEnoughData: 'No hay datos suficientes para {level} - {subject} en múltiples trimestres.',
 
     // Datos de Asignaturas
     filterByLevel: 'Filtrar por nivel',
@@ -216,7 +217,6 @@ export const translations = {
     filterByGroup: 'Filtrar por grupo',
     allLevels: 'Todos los niveles',
     allTrimesters: 'Todas las evaluaciones',
-    allGroups: 'Todos los grupos',
     showingSubjects: 'Mostrando {count} asignaturas',
     viewByLevels: 'Por Niveles',
     viewGlobal: 'Global',
@@ -251,7 +251,7 @@ export const translations = {
     centerNamePlaceholder: 'Nombre del conservatorio',
     academicYear: 'Curso Académico',
     reportFor: 'Informe para',
-    difficultyReason: 'Análisis Detallado',
+    difficultyDetail: 'Análisis Detallado',
     easySubjects: 'Asignaturas Fáciles',
     // Nuevas secciones del informe
     reportSections: 'Secciones del informe',
@@ -324,7 +324,6 @@ export const translations = {
     trendValley: 'Valle',
     trendPeak: 'Pico',
     trendOscillating: 'Oscilante',
-    trendIrregular: 'Irregular',
     trendInsufficient: 'Datos insuficientes',
 
     // Distribución de notas
@@ -356,6 +355,10 @@ export const translations = {
     supportLink: 'Ko-fi',
   },
   va: {
+    errorTitulo: 'Alguna cosa ha fallat en esta pantalla',
+    errorTexto: 'Les dades que havies carregat continuen en memòria. Torna a la vista anterior o recarrega la pàgina i prova amb una altra selecció.',
+    errorReintentar: 'Tornar a intentar-ho',
+    errorRecargar: 'Recarregar la pàgina',
     // General
     appTitle: 'Tauler Acadèmic',
     appSubtitle: 'Anàlisi de rendiment per curs, assignatura i trimestre per a Conservatoris Elementals i Professionals de Música',
@@ -430,7 +433,7 @@ export const translations = {
     averageEvolution: 'Evolució de la Nota Mitjana',
     failedEvolution: 'Evolució del % de Suspesos',
     trend: 'Tendència',
-    notEnoughData: 'Dades insuficients',
+    notEnoughData: 'No hi ha dades suficients per a dibuixar l\'evolució',
     sortByTrend: 'Ordenar per tendència',
     noSortLabel: 'Sense ordenar',
     filterByTrend: 'Filtrar per tendència',
@@ -463,7 +466,6 @@ export const translations = {
 
     // Tipus de tendència - Complexos
     trendOscilante: 'Oscil·lant',
-    trendIrregular: 'Irregular',
     trendInsuficiente: 'Insuficient',
 
     // Descripcions detallades
@@ -508,7 +510,6 @@ export const translations = {
     all: 'Tots',
     difficultSubjects: 'Assignatures Difícils',
     neutralSubjects: 'Assignatures Neutrals',
-    easySubjects: 'Assignatures Fàcils',
     difficultyReason: 'Motiu',
 
     // Estadístiques
@@ -523,7 +524,6 @@ export const translations = {
     excellence: 'Excel·lència',
 
     // Gràfics
-    gradeDistribution: 'Distribució de Notes',
     distributionTable: 'Taula de Distribució',
     grade: 'Nota',
     total: 'TOTAL',
@@ -564,7 +564,6 @@ export const translations = {
     needTwoTrimesters: 'Necessites carregar almenys 2 trimestres per a veure l\'evolució.',
     trimestersLoaded: 'Trimestres carregats',
     showingEvolution: 'Mostrant evolució de',
-    notEnoughData: 'No hi ha dades suficients per a {level} - {subject} en múltiples trimestres.',
 
     // Dades d'Assignatures
     filterByLevel: 'Filtrar per nivell',
@@ -572,7 +571,6 @@ export const translations = {
     filterByGroup: 'Filtrar per grup',
     allLevels: 'Tots els nivells',
     allTrimesters: 'Totes les avaluacions',
-    allGroups: 'Tots els grups',
     showingSubjects: 'Mostrant {count} assignatures',
     viewByLevels: 'Per Nivells',
     viewGlobal: 'Global',
@@ -607,7 +605,7 @@ export const translations = {
     centerNamePlaceholder: 'Nom del conservatori',
     academicYear: 'Curs Acadèmic',
     reportFor: 'Informe per a',
-    difficultyReason: 'Anàlisi Detallada',
+    difficultyDetail: 'Anàlisi Detallada',
     easySubjects: 'Assignatures Fàcils',
     // Noves seccions de l'informe
     reportSections: 'Seccions de l\'informe',

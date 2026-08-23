@@ -8,6 +8,7 @@ import { parseCSV as parseCSVService } from './services/csvParser.js';
 import { procesarDatos as procesarDatosService } from './services/dataProcessor.js';
 import { exportarJSON as exportarJSONService, procesarImportacionJSON } from './services/dataIO.js';
 import { useStatisticalCalculations } from './hooks/useStatisticalCalculations.js';
+import { recordarIdioma } from './idioma.js';
 import { analizarDificultad } from './nucleo/dificultad.js';
 import { serieEvolucionSelecciones, serieEvolucionNiveles } from './nucleo/evolucion.js';
 import { compararTrimestres, esAgregado } from './nucleo/texto.js';
@@ -153,6 +154,10 @@ const DashboardAcademico = () => {
       return <option key={asig} value={asig}>{asig}</option>;
     });
   }, []);
+
+  /* Se apunta fuera del árbol para que la red de seguridad de errores pueda
+     dar el mensaje en el idioma correcto. Ver src/idioma.js. */
+  useEffect(() => { recordarIdioma(idioma); }, [idioma]);
 
   // Custom hooks para cálculos estadísticos
   const { calcularResultado, calcularTendencia, getTrendInfo, detectarEtapa } =
@@ -527,12 +532,6 @@ const DashboardAcademico = () => {
     clasificadas.optativas.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
 
     // DEBUG: Ver clasificación
-    console.log('[DEBUG asignaturasGlobal] Clasificación:', {
-      trimestre: trimestreSeleccionado,
-      totalAsignaturas: listaAsignaturas.length,
-      agrupacionesKeys: Object.keys(agrupaciones).length,
-      optativas: clasificadas.optativas
-    });
 
     return [
       ...totalesOrdenados,
@@ -1166,7 +1165,6 @@ const DashboardAcademico = () => {
 
   // Función para generar informe PDF (versión mejorada con gráficas)
   const handleGenerarInformePDF = useCallback(async () => {
-    console.log('[PDF] Iniciando generación de informe...');
 
     if (!trimestreSeleccionado || !datosCompletos[trimestreSeleccionado]) {
       alert(t('noDataForReport'));
@@ -1197,11 +1195,6 @@ const DashboardAcademico = () => {
       }
 
       // Capturar múltiples gráficas transversales
-      console.log('[PDF] Transversal capture check:', {
-        incluir: configInforme.incluirComparativaTransversal,
-        hasRefs: !!pdfChartRefs.current?.transversalRefs,
-        numRefs: pdfChartRefs.current?.transversalRefs?.length
-      });
       if (configInforme.incluirComparativaTransversal && pdfChartRefs.current?.transversalRefs?.length > 0) {
         chartImages.transversalArray = [];
         const totalTransversal = pdfChartRefs.current.transversalRefs.length;
@@ -1215,14 +1208,12 @@ const DashboardAcademico = () => {
             }
           }
         }
-        console.log('[PDF] Transversal captured:', chartImages.transversalArray.length, 'gráficas');
       }
 
       // Capturar gráfica de evolución de notas (si hay suficientes trimestres y está habilitado)
       if (configInforme.incluirEvolucionNotas && trimestresDisponibles.length >= 2 && pdfChartRefs.current?.evolutionRef?.current) {
         setProgresoInforme(t('pdfCapturingCharts') + ' (evolución)');
         chartImages.evolution = await captureChartAsImage(pdfChartRefs.current.evolutionRef.current);
-        console.log('[PDF] Evolution captured:', !!chartImages.evolution);
       }
 
       // Capturar gráficas de distribución por asignatura
@@ -1242,7 +1233,6 @@ const DashboardAcademico = () => {
             }
           }
         }
-        console.log('[PDF] Distribution captured:', chartImages.distributionArray.length, 'gráficas');
       }
 
       // Desactivar renderizado de gráficas ocultas
@@ -1397,7 +1387,6 @@ const DashboardAcademico = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-8">
         <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display&display=swap');
           * { font-family: 'DM Sans', sans-serif; }
           h1, h2, h3 { font-family: 'DM Serif Display', serif; }
         `}</style>
@@ -1533,7 +1522,6 @@ const DashboardAcademico = () => {
   return (
     <div className="min-h-screen">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display&display=swap');
         * { font-family: 'DM Sans', sans-serif; }
         h1, h2, h3 { font-family: 'DM Serif Display', serif; }
         select {
@@ -1805,180 +1793,12 @@ const DashboardAcademico = () => {
             </div>
           )}
 
-          {/* SECCIÓN ORIGINAL DE KPIs (OCULTA - MANTENER POR COMPATIBILIDAD CON PDF) */}
-          {false && kpisGlobales && (
-            <div className="mb-6 hidden">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('kpis')}</h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-                {/* Nota Media del Centro */}
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span className="text-xs font-medium text-gray-900">{t('kpiCenterAvg')}</span>
-                  </div>
-                  <div className="text-3xl font-bold text-blue-900">{(kpisGlobales.notaMediaCentro || 0).toFixed(2)}</div>
-                </div>
-
-                {/* Desviación Típica del Centro */}
-                <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                    <span className="text-xs font-medium text-indigo-700">{t('kpiStdDev')}</span>
-                  </div>
-                  <div className="text-3xl font-bold text-indigo-900">{(kpisGlobales.desviacionCentro || 0).toFixed(2)}</div>
-                </div>
-
-                {/* Moda del Centro */}
-                <div className="bg-gradient-to-br from-violet-50 to-violet-100 border border-violet-200 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <svg className="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
-                    </svg>
-                    <span className="text-xs font-medium text-violet-700">{t('kpiMode')}</span>
-                  </div>
-                  <div className="text-3xl font-bold text-violet-900">{(kpisGlobales.modaCentro || 0).toFixed(0)}</div>
-                </div>
-
-                {/* Notas Medias de Referencia (LM y/o TT) */}
-                {kpisGlobales.notasMediasRef.map((ref) => (
-                  <div key={ref.asignatura} className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                      </svg>
-                      <span className="text-xs font-medium text-purple-700">
-                        {ref.asignatura === 'Teórica Troncal' ? t('kpiTTAvg') : t('kpiLMAvg')}
-                      </span>
-                    </div>
-                    <div className="text-3xl font-bold text-purple-900">
-                      {(ref.notaMedia || 0).toFixed(2)}
-                    </div>
-                  </div>
-                ))}
-
-                {/* Nota Media Especialidades */}
-                <div className="bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-200 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                    </svg>
-                    <span className="text-xs font-medium text-amber-700">{t('kpiInstrAvg')}</span>
-                  </div>
-                  <div className="text-3xl font-bold text-amber-900">
-                    {(kpisGlobales.notaMediaEsp || 0).toFixed(2)}
-                  </div>
-                </div>
-
-                {/* Asignaturas Difíciles */}
-                <div className="bg-gradient-to-br from-red-50 to-red-100 border border-red-200 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                    <span className="text-xs font-medium text-red-700">{t('kpiDifficult')}</span>
-                  </div>
-                  <div className="text-3xl font-bold text-red-900">{kpisGlobales.countDificiles}</div>
-                </div>
-
-                {/* Asignaturas Fáciles */}
-                <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
-                    </svg>
-                    <span className="text-xs font-medium text-green-700">{t('kpiEasy')}</span>
-                  </div>
-                  <div className="text-3xl font-bold text-green-900">{kpisGlobales.countFaciles}</div>
-                </div>
-
-                {/* % Aprobados Total */}
-                <div className="bg-gradient-to-br from-teal-50 to-teal-100 border border-teal-200 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span className="text-xs font-medium text-teal-700">{t('kpiPassedAvg')}</span>
-                  </div>
-                  <div className="text-3xl font-bold text-teal-900">{(kpisGlobales.aprobadosCentro || 0).toFixed(1)}%</div>
-                </div>
-
-                {/* % Aprobados Referencia (LM y/o TT) */}
-                {kpisGlobales.notasMediasRef.map((ref) => (
-                  <div key={ref.asignatura} className="bg-gradient-to-br from-cyan-50 to-cyan-100 border border-cyan-200 rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <svg className="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                      </svg>
-                      <span className="text-xs font-medium text-cyan-700">
-                        {ref.asignatura === 'Teórica Troncal' ? t('kpiPassedTT') : t('kpiPassedLM')}
-                      </span>
-                    </div>
-                    <div className="text-3xl font-bold text-cyan-900">
-                      {(ref.aprobados || 0).toFixed(1)}%
-                    </div>
-                  </div>
-                ))}
-
-                {/* % Aprobados Especialidades */}
-                <div className="bg-gradient-to-br from-lime-50 to-lime-100 border border-lime-200 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <svg className="w-5 h-5 text-lime-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                    </svg>
-                    <span className="text-xs font-medium text-lime-700">{t('kpiPassedInstr')}</span>
-                  </div>
-                  <div className="text-3xl font-bold text-lime-900">
-                    {(kpisGlobales.aprobadosEsp || 0).toFixed(1)}%
-                  </div>
-                </div>
-
-                {/* % Suspendidos Total */}
-                <div className="bg-gradient-to-br from-rose-50 to-rose-100 border border-rose-200 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <svg className="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                    <span className="text-xs font-medium text-rose-700">{t('kpiFailedAvg')}</span>
-                  </div>
-                  <div className="text-3xl font-bold text-rose-900">{(kpisGlobales.suspendidosCentro || 0).toFixed(1)}%</div>
-                </div>
-
-                {/* % Suspendidos Referencia (LM y/o TT) */}
-                {kpisGlobales.notasMediasRef.map((ref) => (
-                  <div key={ref.asignatura} className="bg-gradient-to-br from-pink-50 to-pink-100 border border-pink-200 rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <svg className="w-5 h-5 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                      </svg>
-                      <span className="text-xs font-medium text-pink-700">
-                        {ref.asignatura === 'Teórica Troncal' ? t('kpiFailedTT') : t('kpiFailedLM')}
-                      </span>
-                    </div>
-                    <div className="text-3xl font-bold text-pink-900">
-                      {(ref.suspendidos || 0).toFixed(1)}%
-                    </div>
-                  </div>
-                ))}
-
-                {/* % Suspendidos Especialidades */}
-                <div className="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                    </svg>
-                    <span className="text-xs font-medium text-orange-700">{t('kpiFailedInstr')}</span>
-                  </div>
-                  <div className="text-3xl font-bold text-orange-900">
-                    {(kpisGlobales.suspendidosEsp || 0).toFixed(1)}%
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Aquí vivían 173 líneas de una sección de KPIs anterior, envuelta en
+              `{false && …}` con el comentario «mantener por compatibilidad con
+              el PDF». Nunca se renderizaba, así que el PDF no podía estar
+              leyéndola: el informe se genera con jsPDF desde los datos, y lo
+              único que captura del DOM son las gráficas, que están en sus
+              propias vistas. Código muerto, retirado el 23/08/2026. */}
         </div>
       )}
 

@@ -46,7 +46,7 @@ export const analizarDificultad = (datos, opciones) => {
       const resultado = calcularResultado(stats, umbrales);
 
       let categoria = 'NEUTRAL';
-      let razon = '';
+      let razon;
 
       if (resultado === 'DIFÍCIL') {
         categoria = 'DIFÍCIL';

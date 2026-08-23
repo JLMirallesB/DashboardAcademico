@@ -102,7 +102,6 @@ export const procesarDatos = (parsed) => {
   // Procesar agrupaciones: convertir array a mapa { asignatura → [grupos] }
   const agrupacionesMapa = {};
   if (parsed.agrupaciones && parsed.agrupaciones.length > 0) {
-    console.log('[DEBUG] Agrupaciones parseadas:', parsed.agrupaciones.length);
     parsed.agrupaciones.forEach(({ Asignatura, Grupos }) => {
       if (Asignatura && Grupos) {
         const asigNorm = normalizar(Asignatura);
@@ -111,15 +110,8 @@ export const procesarDatos = (parsed) => {
           .map(g => normalizar(g))
           .filter(g => g); // Eliminar vacíos
         agrupacionesMapa[asigNorm] = gruposArray;
-        // Log optativas
-        if (gruposArray.includes('optativas')) {
-          console.log('[DEBUG] Optativa encontrada:', Asignatura, '→', gruposArray);
-        }
       }
     });
-    console.log('[DEBUG] Total agrupaciones mapeadas:', Object.keys(agrupacionesMapa).length);
-  } else {
-    console.log('[DEBUG] No hay agrupaciones o están vacías');
   }
 
   return {

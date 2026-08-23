@@ -51,7 +51,6 @@ export const generarInformePDF = async ({
   onSuccess,
   onError
 }) => {
-  console.log('[PDF] Iniciando generación de informe...');
 
   if (!trimestreSeleccionado || !datosCompletos[trimestreSeleccionado]) {
     const error = new Error(t('noDataForReport'));
@@ -427,7 +426,6 @@ export const generarInformePDF = async ({
           addFooter(currentPage);
         }
 
-        console.log('[PDF] KPI Centro completado, creando KPI Detalle...');
 
         // ========== KPI DETALLE (Especialidades vs No Especialidades) ==========
         addNewPage();
@@ -528,7 +526,6 @@ export const generarInformePDF = async ({
         }
 
         addFooter(currentPage);
-        console.log('[PDF] KPI Detalle completado, creando KPI Comparativa...');
 
         // ========== KPI COMPARATIVA (Tabla) ==========
         addNewPage();
@@ -647,7 +644,6 @@ export const generarInformePDF = async ({
         pdf.text(t('comparisonLegend') || 'Los valores entre paréntesis indican la diferencia porcentual respecto al centro.', PAGE.margin, legendY);
 
         addFooter(currentPage);
-        console.log('[PDF] KPI Comparativa completado');
     }
 
     }
@@ -898,7 +894,6 @@ export const generarInformePDF = async ({
         margin: { left: PAGE.margin, right: PAGE.margin }
       });
 
-      console.log('[PDF] Comparativa grupo vs centro completada');
     }
 
     // ========== MAPA DE DISPERSIÓN ==========
@@ -1015,11 +1010,6 @@ export const generarInformePDF = async ({
     }
 
     // ========== COMPARATIVA TRANSVERSAL (múltiples páginas) ==========
-    console.log('[PDF] Transversal check:', {
-      incluir: configInforme.incluirComparativaTransversal,
-      hasArray: !!chartImages.transversalArray,
-      numImages: chartImages.transversalArray?.length
-    });
     if (configInforme.incluirComparativaTransversal !== false && chartImages.transversalArray?.length > 0) {
       onProgress?.(t('pdfAddingCharts'));
 
@@ -1355,7 +1345,7 @@ export const generarInformePDF = async ({
           pdf.setTextColor(...COLORS.primary);
           const tituloDificultad = etapaFiltro
             ? `${t('difficulty')} - ${etapaFiltro}`
-            : `${t('difficulty')} - ${t('difficultyReason')}`;
+            : `${t('difficulty')} - ${t('difficultyDetail')}`;
           pdf.text(tituloDificultad, PAGE.margin, yPos);
           pdf.setTextColor(...COLORS.text);
           yPos += 10;
@@ -1480,15 +1470,12 @@ export const generarInformePDF = async ({
         addFooter(currentPage);
       }
 
-      console.log('[PDF] Distribución de notas completada');
     }
 
     // Guardar PDF
     onProgress?.(t('pdfSaving'));
-    console.log('[PDF] Guardando archivo PDF...');
     const nombreArchivo = `Informe_${(configInforme.nombreCentro || 'Centro').replace(/\s+/g, '_')}_${trimestreSeleccionado}_${new Date().toISOString().split('T')[0]}.pdf`;
     pdf.save(nombreArchivo);
-    console.log('[PDF] PDF generado exitosamente:', nombreArchivo);
 
     if (onSuccess) onSuccess();
   } catch (error) {
