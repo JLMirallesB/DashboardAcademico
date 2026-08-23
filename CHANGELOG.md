@@ -38,6 +38,14 @@ mismo**, porque antes estaban mal:
   la portada seguía contándolas.
 - **Las correlaciones** dependían del orden en que se cargaran los ficheros:
   ganaba el último. Ahora son las del trimestre que estás mirando.
+- **El informe PDF escribía «0,00» donde no había dato**, y la diferencia con
+  el centro le salía «(-100,0 %)»: una medición que nadie ha hecho. La pantalla
+  ya ponía «—» en esos huecos; el informe no. Pasaba, por ejemplo, cuando el
+  CSV no traía la fila «Total no Especialidad».
+- **Y una asignatura sin nota en un curso hundía su media en el informe**: se
+  sumaba como un cero y se dividía entre todo el alumnado, así que la
+  asignatura salía peor de lo que era. Una fila de cero registros contaba como
+  una de un alumno.
 
 ### Nuevo
 
@@ -75,6 +83,27 @@ mismo**, porque antes estaban mal:
 - Borrar un trimestre no borraba sus agrupaciones, que seguían filtrando.
 - La cabecera enseñaba el centro y el curso del **primer** fichero cargado, no
   del que estabas mirando.
+
+### El informe PDF
+
+- **La cabecera y la portada decían la clave interna del fichero**
+  («1EV-2627-EEM»). Ahora dicen «26/27 · 1EV (EPM)», con el curso académico
+  siempre escrito: el informe se lee fuera de la aplicación, donde no hay
+  ningún selector al lado que diga de qué año es.
+- **La portada se rellena del fichero.** El centro y el curso venían escritos
+  a mano en la configuración —«2024-2025»— y había que acordarse de
+  cambiarlos; con datos de 26/27 cargados, la portada se contradecía con las
+  cifras que llevaba dentro. Siguen siendo editables en el diálogo.
+- **Las gráficas ya no se estiran.** Cada imagen se ajustaba al hueco que
+  sobrara en la página, así que la misma gráfica salía achatada o alargada
+  según cuánto texto llevara encima — y una nube de puntos deformada mueve la
+  diagonal que uno lee.
+- **El mapa de dispersión del informe respeta el zoom de la pantalla.** Se
+  pintaba siempre de 0 a 10, así que quien ajustaba los ejes para ver las
+  diferencias se encontraba dentro del PDF la versión apelotonada, con los
+  rótulos montados unos encima de otros.
+- **Doce rótulos estaban en castellano dentro del código**, así que el informe
+  «en valencià» salía con los títulos traducidos y las tablas no.
 
 ### La interfaz
 

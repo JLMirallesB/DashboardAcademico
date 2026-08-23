@@ -248,6 +248,26 @@ const DashboardAcademico = () => {
   const hayVariosCursos = useMemo(
     () => cursosDe(trimestresDisponibles).length > 1, [trimestresDisponibles]);
 
+  /* La portada del informe llevaba el centro y el curso escritos a mano en el
+     estado inicial —«Conservatorio Profesional de Música», «2024-2025»— y el
+     usuario tenía que acordarse de cambiarlos en el diálogo. Con un fichero
+     de 26/27 cargado, la portada decía 2024-2025: el propio documento se
+     contradecía con las cifras que llevaba dentro, y eso no se ve hasta que
+     alguien lo lee en una reunión. El fichero sabe de qué curso es —viene en
+     su #METADATA— así que se rellena de ahí cada vez que se abre el diálogo,
+     donde sigue siendo editable. */
+  const prepararInforme = useCallback(() => {
+    const meta = (trimestreSeleccionado && metadata[trimestreSeleccionado]) || {};
+    const curso = meta.CursoAcademico || meta['CursoAcadémico'] || '';
+    const centro = meta.Centro || '';
+    if (!curso && !centro) return;
+    setConfigInforme((c) => ({
+      ...c,
+      ...(centro ? { nombreCentro: centro } : {}),
+      ...(curso ? { cursoAcademico: curso } : {})
+    }));
+  }, [trimestreSeleccionado, metadata]);
+
   const rotuloTrimestre = useCallback(
     (trim) => formatearNombreTrimestre(trim, hayVariosCursos), [hayVariosCursos]);
 
@@ -1895,7 +1915,7 @@ const DashboardAcademico = () => {
           actions: {
             onManageData: () => setMostrarModalGestionDatos(true),
             onExport: exportarJSON,
-            onReport: () => setMostrarModalInforme(true),
+            onReport: () => { prepararInforme(); setMostrarModalInforme(true); },
             onHelp: () => setMostrarModalAyuda(true)
           },
           supportUrl: SUPPORT_URL,
@@ -4430,6 +4450,7 @@ const DashboardAcademico = () => {
         ref={pdfChartRefs}
         isGenerating={renderPDFCharts}
         datosDispersion={datosDispersionPDF}
+        zoomDispersion={zoomDispersion}
         datosEvolucionCorrelaciones={datosEvolucionCorrelaciones}
         nivelesCorrelaciones={nivelesSinGlobalEtapa}
         datosTransversal={datosTransversalPDF}

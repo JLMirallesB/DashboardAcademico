@@ -61,6 +61,13 @@ export const PDFChartRenderer = forwardRef(({
      —«2526·1EV»—, no un rótulo. Sin este formateador salía tal cual dentro del
      informe que se reparte. */
   rotuloDeMomento,
+  /* El recorte de ejes de la dispersión, tal como lo tenga la pantalla. El
+     informe lo ignoraba y pintaba siempre de 0 a 10: quien ajustaba la nube
+     para ver las diferencias y luego generaba el informe se encontraba dentro
+     OTRA gráfica —la de antes, con todos los puntos apelotonados en una
+     esquina y los rótulos montados unos encima de otros—. Un informe tiene que
+     enseñar lo que se estaba mirando. */
+  zoomDispersion,
   t = (key) => key
 }, ref) => {
   const scatterRef = useRef(null);
@@ -100,9 +107,19 @@ export const PDFChartRenderer = forwardRef(({
   if (!isGenerating) return null;
 
   // Calcular dominio máximo de desviación
-  const maxDesviacion = datosDispersion?.length > 0
+  const maxDesviacionAuto = datosDispersion?.length > 0
     ? Math.max(3, Math.ceil(Math.max(...datosDispersion.map(d => d.desviacion || 0)) + 0.5))
     : 3;
+  const rangoMedia = zoomDispersion?.rangoMedia;
+  const rangoDesv = zoomDispersion?.rangoDesviacion;
+  const dominioMedia = [
+    typeof rangoMedia?.min === 'number' ? rangoMedia.min : 0,
+    typeof rangoMedia?.max === 'number' ? rangoMedia.max : 10
+  ];
+  const dominioDesviacion = [
+    typeof rangoDesv?.min === 'number' ? rangoDesv.min : 0,
+    typeof rangoDesv?.max === 'number' ? rangoDesv.max : maxDesviacionAuto
+  ];
 
   return (
     <div
@@ -132,7 +149,7 @@ export const PDFChartRenderer = forwardRef(({
                 type="number"
                 dataKey="notaMedia"
                 name={t('average')}
-                domain={[0, 10]}
+                domain={dominioMedia}
                 stroke="#64748b"
                 label={{
                   value: idioma === 'es' ? 'Nota Media' : 'Nota Mitjana',
@@ -145,7 +162,7 @@ export const PDFChartRenderer = forwardRef(({
                 type="number"
                 dataKey="desviacion"
                 name={t('standardDeviation')}
-                domain={[0, maxDesviacion]}
+                domain={dominioDesviacion}
                 stroke="#64748b"
                 label={{
                   value: idioma === 'es' ? 'Desviación Estándar' : 'Desviació Estàndard',
