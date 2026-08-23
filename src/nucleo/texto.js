@@ -99,10 +99,30 @@ export const buscarClave = (obj, nombre) => {
  *    ambigüedad: **el curso es todo dígitos y la etapa son letras.**
  */
 
-/** «25/26» → «2526». `null` si no hay nada que normalizar. */
+/** El curso académico, reducido a CUATRO dígitos: «2526».
+ *
+ * No basta con quitar lo que no sea dígito. El campo del CSV no tiene formato
+ * garantizado y se han visto por lo menos tres formas —«25/26», «2025/26» y
+ * «2026-2027»—, que darían «2526», «202526» y «20262027»: tres identidades
+ * distintas para el mismo curso.
+ *
+ * Y eso no es cosmético. La clave del fichero lleva el curso dentro, así que
+ * si el CSV de elemental lo escribe de una forma y el de profesional de otra,
+ * **dejan de ser el mismo momento**: el modo TODOS no los empareja, el eje del
+ * tiempo los pone en puntos distintos y la comparación entre etapas se queda
+ * sin la mitad, sin que nada dé error.
+ *
+ * Por eso se reduce a los dos últimos dígitos de cada año. Colisionan dos
+ * siglos —«1925/26» y «2025/26» dan lo mismo— y es un precio que se paga a
+ * gusto: para leerlo está `formatearCursoAcademico`, y la metadata conserva lo
+ * que puso el centro.
+ */
 export const normalizarCurso = (curso) => {
-  const digitos = String(curso == null ? '' : curso).replace(/\D/g, '');
-  return digitos || null;
+  const d = String(curso == null ? '' : curso).replace(/\D/g, '');
+  if (!d) return null;
+  if (d.length === 8) return d.slice(2, 4) + d.slice(6, 8);   // 2026-2027 → 2627
+  if (d.length === 6) return d.slice(2, 4) + d.slice(4, 6);   // 2025/26  → 2526
+  return d;                                                    // 25/26    → 2526
 };
 
 /** Construye la clave de un fichero. El curso y la etapa son opcionales:

@@ -23,7 +23,11 @@ import { normalizar, parseTrimestre } from '../utils.js';
 export const formatearCursoAcademico = (curso) => {
   if (!curso) return '';
   const d = String(curso);
+  /* `normalizarCurso` reduce cualquier forma a cuatro dígitos, así que este es
+     el caso normal. Los otros dos se conservan por si llega una clave escrita
+     a mano o de un fichero anterior a esa normalización. */
   if (d.length === 4) return d.slice(0, 2) + '/' + d.slice(2);
+  if (d.length === 6) return d.slice(0, 4) + '/' + d.slice(4);
   if (d.length === 8) return d.slice(0, 4) + '/' + d.slice(4);
   return d;
 };

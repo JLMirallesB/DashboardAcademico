@@ -57,6 +57,10 @@ export const PDFChartRenderer = forwardRef(({
   datosEvolucionNotas, // Datos para evolución de notas por trimestre: {datos: [...], niveles: [...]}
   datosDistribucion, // Datos para distribución de notas por asignatura: [{asignatura, datos, niveles}, ...]
   idioma = 'es',
+  /* El valor del eje de la evolución es la CLAVE interna del momento
+     —«2526·1EV»—, no un rótulo. Sin este formateador salía tal cual dentro del
+     informe que se reparte. */
+  rotuloDeMomento,
   t = (key) => key
 }, ref) => {
   const scatterRef = useRef(null);
@@ -387,6 +391,7 @@ export const PDFChartRenderer = forwardRef(({
               <XAxis
                 dataKey="trimestre"
                 stroke="#64748b"
+                tickFormatter={rotuloDeMomento || ((v) => v)}
                 tick={{ fontSize: 12 }}
                 label={{
                   value: idioma === 'es' ? 'Trimestre' : 'Trimestre',

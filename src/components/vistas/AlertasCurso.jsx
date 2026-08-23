@@ -222,15 +222,29 @@ const AlertasCurso = ({ serie, t, rotularMomento }) => {
         ) : (
           <div className="mt-4 space-y-8">
             {cambios.map((c) => {
-              /* La variación llega hecha del núcleo. El color no sigue al
-                 signo, sigue a lo que significa: aquí SUBIR es la mala
-                 noticia, porque lo que sube es el número de asignaturas en
-                 rojo. */
-              const empeora = c.variacion > 0;
-              const igual = c.variacion === 0;
+              /* El color NO sale de `c.variacion`, y esa es la corrección
+                 importante. `variacion` es la resta bruta de recuentos, así
+                 que incluye las asignaturas que aparecen y las que dejan de
+                 medirse — justo lo que el núcleo separa en `nuevas` y
+                 `desaparecidas` para no apuntárselo al centro.
+
+                 Escenario medido: con Piano en rojo en las dos etapas y
+                 cargando después solo el fichero de elemental, la variación
+                 era −1 y el badge salía VERDE. Nadie había mejorado: la lista
+                 de debajo decía «Piano/EPM · no se ha cargado el fichero de su
+                 etapa». Un −1 en verde ahí es una mejora inventada.
+
+                 Lo que sí es movimiento del centro: las que entran menos las
+                 que salen, ambas medidas en los dos momentos. */
+              const neto = (c.entran || []).length - (c.salen || []).length;
+              const empeora = neto > 0;
+              const igual = neto === 0;
               const colorVariacion = igual
                 ? 'text-gray-500 border-gray-300'
                 : (empeora ? 'text-red-600 border-red-300' : 'text-emerald-600 border-emerald-300');
+              /* Y cuando el recuento total se ha movido por otra razón, se
+                 dice aparte y sin color: es un hecho, no una valoración. */
+              const movimientoNoAtribuible = c.variacion - neto;
 
               return (
                 <section key={`${c.deMomento.clave}→${c.aMomento.clave}`}>
@@ -238,11 +252,19 @@ const AlertasCurso = ({ serie, t, rotularMomento }) => {
                     <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
                       {rotularMomento(c.deMomento)} → {rotularMomento(c.aMomento)}
                     </h4>
-                    <span className={`text-xs font-bold px-2 py-1 rounded border ${colorVariacion}`}>
-                      {igual
-                        ? (t('alrVariacionIgual') || 'Mismo número de difíciles')
-                        : `${empeora ? '+' : ''}${c.variacion} ${t('alrVariacionSufijo') || 'difíciles'}`}
-                    </span>
+                    <div className="flex items-baseline gap-2">
+                      <span className={`text-xs font-bold px-2 py-1 rounded border ${colorVariacion}`}>
+                        {igual
+                          ? (t('alrVariacionIgual') || 'Mismo número de difíciles')
+                          : `${empeora ? '+' : ''}${neto} ${t('alrVariacionSufijo') || 'difíciles'}`}
+                      </span>
+                      {movimientoNoAtribuible !== 0 && (
+                        <span className="text-xs text-gray-500">
+                          {(t('alrTotalTambien') || 'el recuento total varía {n} por asignaturas que aparecen o dejan de medirse')
+                            .replace('{n}', (movimientoNoAtribuible > 0 ? '+' : '') + movimientoNoAtribuible)}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">

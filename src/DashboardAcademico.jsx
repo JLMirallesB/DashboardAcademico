@@ -212,9 +212,14 @@ const DashboardAcademico = () => {
   }, [trimestreSeleccionado, momentosDisponibles]);
 
   /* Cambiar de momento no cambia de etapa: se busca el fichero de ESE momento
-     que siga siendo de la etapa que se está mirando. Si no lo hay —hay cursos
-     donde solo se cargó una etapa— se coge el que haya, que es mejor que
-     dejar la pantalla en blanco, y el selector de etapa lo refleja. */
+     que siga siendo de la etapa que se está mirando.
+     
+     Si no lo hay —hay momentos donde solo se cargó una etapa— se cae al que
+     haya, que es mejor que dejar la pantalla en blanco. Pero entonces **se
+     cambia también el modo de etapa**, para que el rótulo no diga «EEM»
+     mientras la pantalla enseña profesional. Sin eso, elegir un momento te
+     dejaba en otro estado sin ningún aviso, que es justo lo que este rediseño
+     venía a quitar. */
   const cambiarMomento = useCallback((clave) => {
     const m = momentosDisponibles.find((x) => x.clave === clave);
     if (!m) return;
@@ -222,8 +227,15 @@ const DashboardAcademico = () => {
       const p = parseClave(t);
       return esDelMomento(t, m) && p && p.etapa === modoEtapa;
     });
+    if (deLaEtapa || modoEtapa === 'TODOS') {
+      setTrimestreSeleccionado(deLaEtapa || trimestresDisponibles.find((t) => esDelMomento(t, m)) || null);
+      return;
+    }
     const cualquiera = trimestresDisponibles.find((t) => esDelMomento(t, m));
-    setTrimestreSeleccionado(deLaEtapa || cualquiera || null);
+    if (!cualquiera) return;
+    setTrimestreSeleccionado(cualquiera);
+    const suEtapa = (parseClave(cualquiera) || {}).etapa;
+    if (suEtapa && suEtapa !== modoEtapa) setModoEtapa(suEtapa);
   }, [momentosDisponibles, trimestresDisponibles, modoEtapa]);
 
   /* ¿Hay más de un curso académico cargado? De eso depende que los rótulos
@@ -243,6 +255,16 @@ const DashboardAcademico = () => {
       ? `${formatearCursoAcademico(m.curso)} · ${m.base}`
       : m.base
   ), [hayVariosCursos]);
+
+  /* El eje de una gráfica recibe la CLAVE interna del momento —«2526·1EV»—,
+     que es un identificador, no un rótulo. Sin esto salía tal cual delante del
+     usuario, con el curso en dígitos y un punto volado, incluso con un solo
+     curso cargado. El propio núcleo lo avisa: «la clave sirve de valor del
+     eje; el rótulo lo pone quien pinta». */
+  const rotuloDeMomento = useCallback((clave) => {
+    const m = momentosDisponibles.find((x) => x.clave === clave);
+    return m ? rotularMomento(m) : clave;
+  }, [momentosDisponibles, rotularMomento]);
 
   /* Se apunta fuera del árbol para que la red de seguridad de errores pueda
      dar el mensaje en el idioma correcto. Ver src/idioma.js. */
@@ -736,8 +758,19 @@ const DashboardAcademico = () => {
     const etapaTrimActual = trimestreSeleccionado ? getTrimestreEtapa(trimestreSeleccionado) : null;
 
     if (modoEtapa !== 'TODOS' && etapaTrimActual && etapaTrimActual !== modoEtapa) {
-      // Buscar un trimestre del modo actual
-      const trimestreDelModo = trimestresDisponibles.find(t => {
+      /* El fichero de la otra etapa PERO DEL MISMO MOMENTO. Buscar solo por
+         etapa aterrizaba en el primero de la lista ordenada, o sea el más
+         antiguo: estando en la segunda evaluación y pulsando «EPM» te ibas a
+         la primera, y con dos cursos cargados, al año pasado. Cambiar de etapa
+         es cambiar de etapa, no de momento. */
+      const mismo = trimestresDisponibles.find(t => {
+        const parsed = parseTrimestre(t);
+        return parsed && parsed.etapa === modoEtapa && mismoMomento(t, trimestreSeleccionado);
+      });
+      /* Si ese momento no existe en la otra etapa, entonces sí hace falta
+         moverse: se coge el más cercano de esa etapa, que con la lista
+         ordenada es el primero. */
+      const trimestreDelModo = mismo || trimestresDisponibles.find(t => {
         const parsed = parseTrimestre(t);
         return parsed && parsed.etapa === modoEtapa;
       });
@@ -3499,7 +3532,7 @@ const DashboardAcademico = () => {
                       <ResponsiveContainer width="100%" height={400}>
                         <LineChart data={datosEvolucion}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                          <XAxis dataKey="trimestre" stroke="#64748b" />
+                          <XAxis dataKey="trimestre" stroke="#64748b" tickFormatter={rotuloDeMomento} />
                           <YAxis stroke="#64748b" domain={[0, 10]} />
                           <Tooltip
                             contentStyle={{
@@ -4227,6 +4260,7 @@ const DashboardAcademico = () => {
 
       {/* Renderizador de gráficas para PDF (oculto) */}
       <PDFChartRenderer
+        rotuloDeMomento={rotuloDeMomento}
         ref={pdfChartRefs}
         isGenerating={renderPDFCharts}
         datosDispersion={datosDispersionPDF}

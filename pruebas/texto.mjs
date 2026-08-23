@@ -11,7 +11,7 @@ import { normalizar, sinAcentos, esFilaTotal, esAgregado, buscarClave, parseTrim
          getTrimestreBase, getTrimestreEtapa, getTrimestreCurso, compararTrimestres,
          evaluacionesDe, ordenDeEvaluacion, evaluacionConocida,
          claveTrimestre, normalizarCurso, momentosDe, esDelMomento, cursosDe,
-         mismoCurso } from '../src/nucleo/texto.js';
+         mismoCurso, mismoMomento } from '../src/nucleo/texto.js';
 import { comprobar, seccion, terminar } from './ayuda.mjs';
 
 seccion('1. Qué cuenta como fila de total');
@@ -66,11 +66,23 @@ seccion('4. La clave de un fichero: evaluación, curso y etapa');
 {
   comprobar('se construye con las tres partes',
     claveTrimestre('1EV', '25/26', 'EEM') === '1EV-2526-EEM');
-  /* El curso va normalizado a dígitos: el campo del CSV no tiene formato
-     garantizado —se han visto «25/26» y «2026-2027»— y una barra dentro de la
-     clave acabaría en el nombre del PDF y en un dataKey de Recharts. */
-  comprobar('el curso se normaliza a dígitos',
-    normalizarCurso('25/26') === '2526' && normalizarCurso('2026-2027') === '20262027');
+  /* El curso se reduce a CUATRO dígitos, y no basta con quitar lo que no sea
+     dígito. El campo del CSV no tiene formato garantizado y se han visto tres
+     formas del mismo curso. */
+  comprobar('el curso se reduce a cuatro dígitos',
+    normalizarCurso('25/26') === '2526' && normalizarCurso('2026-2027') === '2627');
+
+  /* CANDADO, y es un fallo que ya existía: si el CSV de elemental escribe
+     «25/26» y el de profesional «2025/26», con la normalización ingenua daban
+     claves distintas y **dejaban de ser el mismo momento**. El modo TODOS no
+     los emparejaba, el eje del tiempo los ponía en puntos distintos y la
+     comparación entre etapas se quedaba sin la mitad, sin dar ningún error. */
+  comprobar('CANDADO: el mismo curso escrito de tres formas es el MISMO curso',
+    normalizarCurso('25/26') === normalizarCurso('2025/26') &&
+    normalizarCurso('25/26') === normalizarCurso('2025-2026'),
+    [normalizarCurso('25/26'), normalizarCurso('2025/26'), normalizarCurso('2025-2026')].join(' · '));
+  comprobar('y dos cursos distintos siguen siendo distintos',
+    normalizarCurso('25/26') !== normalizarCurso('26/27'));
   comprobar('y sin curso no se inventa ninguno',
     normalizarCurso('') === null && claveTrimestre('1EV', '', 'EEM') === '1EV-EEM');
 
@@ -155,6 +167,25 @@ seccion('6. El eje del tiempo son los MOMENTOS, no las evaluaciones');
   comprobar('cada fichero sabe a qué momento pertenece',
     esDelMomento('1EV-2627-EPM', momentosDe(dosCursos)[1]) &&
     !esDelMomento('1EV-2526-EEM', momentosDe(dosCursos)[1]));
+
+  /* `mismoMomento` sustituyó a cuatro `t.startsWith(trimestreBase)` de la
+     pantalla, y hasta ahora no lo probaba nadie: es el criterio que decide, en
+     modo TODOS, qué ficheros se juntan para reunir niveles, asignaturas y
+     —en uno de los cuatro sitios— para SUMAR registros. Si vuelve a casar por
+     prefijo, dos cursos académicos se funden en la misma suma. */
+  comprobar('CANDADO: mismoMomento junta las dos etapas de un mismo momento',
+    mismoMomento('1EV-2627-EEM', '1EV-2627-EPM'));
+  comprobar('CANDADO: y NO junta la misma evaluación de dos cursos distintos',
+    !mismoMomento('1EV-2526-EEM', '1EV-2627-EEM'));
+  comprobar('ni dos evaluaciones del mismo curso',
+    !mismoMomento('1EV-2627-EEM', '2EV-2627-EEM'));
+  comprobar('con el formato antiguo, dos ficheros sin curso son del mismo momento',
+    mismoMomento('1EV-EEM', '1EV-EPM') && !mismoMomento('1EV-EEM', '2EV-EPM'));
+  /* El caso que un `startsWith` daba por bueno: un fichero sin curso y otro
+     con curso NO son el mismo momento, porque no se sabe si el primero es de
+     ese año o de otro. */
+  comprobar('CANDADO: uno con curso y otro sin él no se dan por iguales',
+    !mismoMomento('1EV-EEM', '1EV-2627-EEM'));
 
   comprobar('se puede saber cuántos cursos hay cargados, para decidir si la interfaz lo dice',
     cursosDe(unCurso).length === 1 && cursosDe(dosCursos).length === 2);

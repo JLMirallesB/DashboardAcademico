@@ -45,6 +45,31 @@ export const BarraContexto = ({
 
   const clase = 'py-1.5 px-3 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-900';
 
+  /* La etapa se elige SIEMPRE, también en las vistas que comparan varios
+     momentos: ahí no manda el momento, pero la etapa sí filtra —Estadísticas
+     limita los trimestres ofrecidos, Evolución filtra las series y Alertas el
+     recuento—. Esconderla ahí fue una regresión: antes vivía en la barra
+     lateral y estaba siempre a mano.
+
+     `etapas` YA trae «TODOS» cuando hay más de una (lo añade
+     `etapasDisponibles`), así que aquí no se vuelve a añadir: con dos etapas
+     salían dos botones «Todas», y React se quejaba de la clave repetida. */
+  const selectorEtapa = etapas.length > 1 ? (
+    <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
+      {etapas.map((e) => (
+        <button
+          key={e}
+          onClick={() => onEtapaChange(e)}
+          className={`px-3 py-1 rounded-md text-sm font-medium transition-all ${
+            etapaActual === e ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          {e === 'TODOS' ? t('allStages') : e}
+        </button>
+      ))}
+    </div>
+  ) : null;
+
   if (comparando) {
     return (
       <div className="flex items-center gap-2 flex-wrap text-sm">
@@ -52,7 +77,8 @@ export const BarraContexto = ({
         <span className="px-3 py-1.5 bg-gray-100 border border-gray-300 rounded-lg font-medium text-gray-900">
           {comparando}
         </span>
-        <span className="text-gray-500">{t('ctxComparandoNota')}</span>
+        {selectorEtapa && <span className="text-gray-400">·</span>}
+        {selectorEtapa}
       </div>
     );
   }
@@ -76,22 +102,10 @@ export const BarraContexto = ({
         ))}
       </select>
 
-      {etapas.length > 1 && (
+      {selectorEtapa && (
         <>
           <span className="text-gray-400">·</span>
-          <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
-            {[...etapas, 'TODOS'].map((e) => (
-              <button
-                key={e}
-                onClick={() => onEtapaChange(e)}
-                className={`px-3 py-1 rounded-md text-sm font-medium transition-all ${
-                  etapaActual === e ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                {e === 'TODOS' ? t('allStages') : e}
-              </button>
-            ))}
-          </div>
+          {selectorEtapa}
         </>
       )}
     </div>

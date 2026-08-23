@@ -72,7 +72,7 @@ import { procesarDatos } from '../src/nucleo/datos.js';
 import { parseTrimestre } from '../src/nucleo/texto.js';
 import { detectarEtapa } from '../src/nucleo/estadistica.js';
 import { getBestTrimestre, tieneAsignatura } from '../src/utils.js';
-import { csv, fila } from './fixtures.mjs';
+import { csv, fila, elemental, profesional } from './fixtures.mjs';
 import { comprobar, seccion, terminar, casi, UMBRALES } from './ayuda.mjs';
 
 /* ------------------------------------------------------------------ */
@@ -535,6 +535,45 @@ seccion('6. Los cursos de las dos etapas en un mismo listado');
   comprobar('y las filas de total no se cuelan como asignaturas en el listado junto',
     !juntos.todas.some((a) => /^total/i.test(a.asignatura)),
     juntos.todas.map((a) => a.asignatura).join(' · '));
+}
+
+seccion('7. Con DOS cursos académicos cargados');
+{
+  /* Todo lo de arriba vive en un solo curso, así que el candado que la fase 1
+     puso en `getBestTrimestre` —que el fichero elegido sea también del mismo
+     CURSO— no podía ponerse rojo: con un curso, exigirlo o no da lo mismo.
+     Este bloque monta el escenario que sí lo distingue. */
+  const dosCursos = {}, listaDos = [];
+  [elemental('1EV', 7.0, '25/26'), profesional('1EV', 6.0, '25/26'),
+   elemental('1EV', 8.0, '26/27'), profesional('1EV', 7.0, '26/27')].forEach((texto) => {
+    const p = procesarDatos(parseCSV(texto));
+    dosCursos[p.trimestre] = p.datos;
+    listaDos.push(p.trimestre);
+  });
+  const K2 = (base, curso, etapa) => listaDos.find((t) => {
+    const p = parseTrimestre(t);
+    return p && p.base === base && p.curso === curso && p.etapa === etapa;
+  });
+
+  comprobar('los cuatro ficheros conviven, dos por curso',
+    listaDos.length === 4 && new Set(listaDos).size === 4, listaDos.join(' · '));
+
+  /* CANDADO: estando en la primera evaluación de 26/27 y en modo TODOS, un
+     nivel de profesional tiene que resolverse al fichero de profesional DE ESE
+     CURSO. Sin la condición de curso, `getBestTrimestre` devolvía el primero
+     que casara la evaluación y la etapa: el del año pasado, y la comparación
+     mezclaba cursos bajo un rótulo que decía uno solo. */
+  const elegido = getBestTrimestre(K2('1EV', '2627', 'EEM'), '1EPM', listaDos, detectarEtapa);
+  comprobar('CANDADO: para un nivel de profesional se elige el fichero de SU curso',
+    elegido === K2('1EV', '2627', 'EPM'), elegido);
+  comprobar('y desde el curso viejo, el viejo',
+    getBestTrimestre(K2('1EV', '2526', 'EEM'), '1EPM', listaDos, detectarEtapa) === K2('1EV', '2526', 'EPM'));
+
+  /* Y la cifra, que es lo que se vería en pantalla: los dos cursos tienen
+     medias distintas a propósito. */
+  const media = (t) => dosCursos[t].GLOBAL.Total.stats.notaMedia;
+  comprobar('CANDADO: y por tanto la cifra es la del curso que se está mirando',
+    Math.abs(media(elegido) - 7.0) < 0.01, String(media(elegido)));
 }
 
 terminar('las seis comparaciones que la app sabe hacer hoy, antes del rediseño.');
