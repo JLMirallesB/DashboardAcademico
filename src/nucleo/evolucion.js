@@ -164,4 +164,74 @@ export const serieEvolucionNiveles = ({
   return { datos, niveles, momentos };
 };
 
+/* ------------------------------------------------------------------ */
+/* CURSO CONTRA CURSO                                                   */
+
+/* La pregunta de un equipo directivo no es «cómo va el curso», es **«vamos
+ * mejor que el año pasado»**. Con los momentos en fila —25/26·1EV, 25/26·2EV,
+ * 26/27·1EV…— eso se ve, pero mal: los dos años van uno detrás de otro y hay
+ * que comparar a ojo puntos separados por media gráfica.
+ *
+ * Aquí el eje pasa a ser la EVALUACIÓN —1EV, 2EV, 3EV— y cada curso académico
+ * es una línea. Es la gráfica interanual de toda la vida: dos líneas
+ * paralelas, y la distancia entre ellas es la respuesta.
+ *
+ * Una advertencia que conviene tener escrita: **dos cursos no son la misma
+ * gente**. El 1EEM de este año no son los de el año pasado un año mayores; son
+ * otros. Esto compara el estado del centro en el mismo punto del calendario,
+ * que es una pregunta legítima y NO es seguir a una cohorte.
+ */
+
+/** Una línea por curso académico, con la evaluación en el eje.
+ *
+ * @param opciones { trimestresDisponibles, datosCompletos, selecciones, modoEtapa }
+ * @returns { puntos, series, hayDatos }
+ *          · `series` [{ clave, curso, seleccion, idx }] — una por pareja
+ *            (selección, curso académico), que es lo que hay que pintar.
+ */
+export const serieEntreCursos = ({
+  trimestresDisponibles = [],
+  datosCompletos = {},
+  selecciones = [],
+  modoEtapa
+}) => {
+  const relevantes = (trimestresDisponibles || []).filter((t) => {
+    if (modoEtapa === 'TODOS' || !modoEtapa) return true;
+    const p = parseTrimestre(t);
+    return !p ? false : (p.etapa === null || p.etapa === modoEtapa);
+  });
+
+  const momentos = momentosDe(relevantes);
+  /* Los cursos, en orden, y las evaluaciones distintas: el eje. */
+  const cursos = [];
+  momentos.forEach((m) => { if (cursos.indexOf(m.curso) < 0) cursos.push(m.curso); });
+  const evaluaciones = [];
+  momentos.forEach((m) => { if (evaluaciones.indexOf(m.base) < 0) evaluaciones.push(m.base); });
+  evaluaciones.sort((a, b) => ordenDeEvaluacion(a) - ordenDeEvaluacion(b));
+
+  const series = [];
+  selecciones.forEach((sel, idx) => {
+    cursos.forEach((curso) => {
+      series.push({ clave: `s${idx}_${curso || 'sin'}`, curso, seleccion: sel, idx });
+    });
+  });
+
+  const puntos = evaluaciones.map((ev) => {
+    const punto = { evaluacion: ev };
+    series.forEach((s) => {
+      const trim = trimestreDe(relevantes, { base: ev, curso: s.curso },
+                               detectarEtapa(s.seleccion.nivel));
+      const d = trim && datosCompletos[trim] &&
+                datosCompletos[trim][s.seleccion.nivel] &&
+                datosCompletos[trim][s.seleccion.nivel][s.seleccion.asignatura];
+      punto[s.clave] = (d && d.stats && typeof d.stats.notaMedia === 'number')
+        ? d.stats.notaMedia : null;
+    });
+    return punto;
+  });
+
+  const hayDatos = puntos.some((p) => series.some((s) => p[s.clave] !== null));
+  return { puntos, series, evaluaciones, cursos, hayDatos };
+};
+
 export { compararTrimestres, momentosDe };

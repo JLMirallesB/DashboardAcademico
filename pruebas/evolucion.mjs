@@ -12,7 +12,8 @@
  * etapas SUBEN de la primera a la segunda evaluación, y la gráfica antigua
  * dibujaba una bajada en medio.
  */
-import { serieEvolucionSelecciones, serieEvolucionNiveles, trimestreDe } from '../src/nucleo/evolucion.js';
+import { serieEvolucionSelecciones, serieEvolucionNiveles, trimestreDe,
+         serieEntreCursos } from '../src/nucleo/evolucion.js';
 import { momentosDe } from '../src/nucleo/texto.js';
 import { parseCSV } from '../src/nucleo/csv.js';
 import { procesarDatos } from '../src/nucleo/datos.js';
@@ -165,6 +166,58 @@ seccion('5. La gráfica del informe (fallo 2)');
   comprobar('CANDADO: con una sola evaluación no hay evolución que dibujar',
     serieEvolucionNiveles({ trimestresDisponibles: ['1EV-2627-EEM', '1EV-2627-EPM'],
       datosCompletos: unaSola, modoEtapa: 'TODOS' }) === null);
+}
+
+seccion('6. Curso contra curso: la pregunta del equipo directivo');
+{
+  /* «¿Vamos mejor que el año pasado?». Con los momentos en fila
+     —25/26·1EV, 25/26·2EV, 26/27·1EV…— eso se ve, pero hay que comparar a ojo
+     puntos separados por media gráfica. Aquí el eje es la EVALUACIÓN y cada
+     curso académico es una línea. */
+  const dc = {}, lista = [];
+  [elemental('1EV', 6.5, '25/26'), elemental('2EV', 6.8, '25/26'),
+   elemental('1EV', 7.2, '26/27'), elemental('2EV', 7.6, '26/27')].forEach((texto) => {
+    const p = procesarDatos(parseCSV(texto));
+    dc[p.trimestre] = p.datos; lista.push(p.trimestre);
+  });
+  const sel = [{ nivel: '1EEM', asignatura: 'Total' }];
+  const r = serieEntreCursos({ trimestresDisponibles: lista, datosCompletos: dc,
+                               selecciones: sel, modoEtapa: 'EEM' });
+
+  /* CANDADO: el eje son DOS puntos —las dos evaluaciones—, no cuatro. Es lo
+     que distingue esta vista de la evolución normal. */
+  comprobar('CANDADO: el eje son las evaluaciones, y los cursos son líneas',
+    r.puntos.length === 2 && r.series.length === 2,
+    r.puntos.length + ' puntos · ' + r.series.length + ' series');
+  comprobar('una línea por curso académico, en orden',
+    r.cursos.join() === '2526,2627', r.cursos.join());
+
+  const linea = (curso) => r.puntos.map((p) => p[r.series.find((s) => s.curso === curso).clave]);
+  comprobar('CANDADO: cada línea trae las cifras de SU curso, no mezcladas',
+    casi(linea('2526')[0], 6.5) && casi(linea('2526')[1], 6.8) &&
+    casi(linea('2627')[0], 7.2) && casi(linea('2627')[1], 7.6),
+    JSON.stringify({ pasado: linea('2526'), actual: linea('2627') }));
+  /* Y esta es la respuesta que se busca: este curso va por encima en los dos
+     momentos. */
+  comprobar('la comparación se lee de un vistazo: este curso va por encima',
+    linea('2627').every((v, i) => v > linea('2526')[i]));
+
+  /* Un curso al que le falta una evaluación deja hueco, no se estira. */
+  const cojo = {}, listaCoja = [];
+  [elemental('1EV', 6.5, '25/26'), elemental('1EV', 7.2, '26/27'),
+   elemental('2EV', 7.6, '26/27')].forEach((texto) => {
+    const p = procesarDatos(parseCSV(texto));
+    cojo[p.trimestre] = p.datos; listaCoja.push(p.trimestre);
+  });
+  const r2 = serieEntreCursos({ trimestresDisponibles: listaCoja, datosCompletos: cojo,
+                                selecciones: sel, modoEtapa: 'EEM' });
+  const viejo = r2.series.find((s) => s.curso === '2526');
+  comprobar('CANDADO: al curso sin segunda evaluación se le deja el hueco',
+    r2.puntos[1][viejo.clave] === null, JSON.stringify(r2.puntos[1][viejo.clave]));
+
+  comprobar('sin selecciones no hay nada que dibujar',
+    serieEntreCursos({ trimestresDisponibles: lista, datosCompletos: dc,
+                       selecciones: [], modoEtapa: 'EEM' }).hayDatos === false);
 }
 
 terminar('el eje del tiempo, con las dos etapas a la vez.');

@@ -14,7 +14,7 @@ import { agruparPorFamilia, compararFamilias } from './nucleo/agrupaciones.js';
 import AlertasCurso from './components/vistas/AlertasCurso.jsx';
 import FamiliasAsignaturas from './components/vistas/FamiliasAsignaturas.jsx';
 import { analizarDificultad } from './nucleo/dificultad.js';
-import { serieEvolucionSelecciones, serieEvolucionNiveles } from './nucleo/evolucion.js';
+import { serieEvolucionSelecciones, serieEvolucionNiveles, serieEntreCursos } from './nucleo/evolucion.js';
 import { compararTrimestres, esAgregado, mismoMomento, cursosDe,
          momentosDe, esDelMomento, parseTrimestre as parseClave } from './nucleo/texto.js';
 import { diferencia, decimalesDe } from './nucleo/comparacion.js';
@@ -70,6 +70,10 @@ const DashboardAcademico = () => {
   const [mostrarModalGestionDatos, setMostrarModalGestionDatos] = useState(false);
   const [mostrarModalAyuda, setMostrarModalAyuda] = useState(false);
   const [compararNiveles, setCompararNiveles] = useState(false);
+  /* «¿Vamos mejor que el año pasado?» — el eje pasa a ser la evaluación y cada
+     curso académico una línea. Solo tiene sentido con dos cursos cargados, así
+     que el interruptor no aparece antes. */
+  const [entreCursos, setEntreCursos] = useState(false);
   const [asignaturaComparada, setAsignaturaComparada] = useState('Lenguaje Musical');
   const [ordenCorrelaciones, setOrdenCorrelaciones] = useState('desc'); // 'desc', 'asc', 'none'
   const [ejeCorrelaciones, setEjeCorrelaciones] = useState('niveles'); // 'pares' o 'niveles'
@@ -3605,12 +3609,18 @@ const DashboardAcademico = () => {
                   const colores = ['#1a1a2e', '#3b82f6', '#ef4444', '#22c55e', '#f59e0b', '#ec4899', '#06b6d4', '#8b5cf6', '#14b8a6', '#f97316', '#a855f7', '#f43f5e', '#84cc16', '#0ea5e9', '#f472b6'];
 
                   // El cálculo vive en `src/nucleo/evolucion.js`
-                  const { puntos: datosEvolucion, hayDatos } = serieEvolucionSelecciones({
+                  const entre = entreCursos && hayVariosCursos
+                    ? serieEntreCursos({ trimestresDisponibles, datosCompletos,
+                                         selecciones: seleccionesEvolucion, modoEtapa })
+                    : null;
+                  const normal = serieEvolucionSelecciones({
                     trimestresDisponibles,
                     datosCompletos,
                     selecciones: seleccionesEvolucion,
                     modoEtapa
                   });
+                  const datosEvolucion = entre ? entre.puntos : normal.puntos;
+                  const hayDatos = entre ? entre.hayDatos : normal.hayDatos;
 
                   if (!hayDatos) {
                     return (
@@ -3622,14 +3632,37 @@ const DashboardAcademico = () => {
 
                   return (
                     <div>
-                      <div className="mb-4">
-                        <h4 className="text-md font-semibold text-gray-700 mb-2">{t('averageEvolution')}</h4>
+                      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                        <h4 className="text-md font-semibold text-gray-700">
+                          {entre ? t('evoEntreCursos') : t('averageEvolution')}
+                        </h4>
+                        {/* El interruptor solo aparece con dos cursos cargados:
+                            con uno no hay nada que comparar y sería un control
+                            que no hace nada. */}
+                        {hayVariosCursos && (
+                          <label className="flex items-center gap-2 text-sm text-gray-700">
+                            <input
+                              type="checkbox"
+                              checked={entreCursos}
+                              onChange={(e) => setEntreCursos(e.target.checked)}
+                              className="rounded border-gray-300"
+                            />
+                            {t('evoCompararCursos')}
+                          </label>
+                        )}
                       </div>
+                      {entre && (
+                        <p className="mb-3 text-xs text-gray-500 max-w-3xl">{t('evoEntreCursosNota')}</p>
+                      )}
 
                       <ResponsiveContainer width="100%" height={400}>
                         <LineChart data={datosEvolucion}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                          <XAxis dataKey="trimestre" stroke="#64748b" tickFormatter={rotuloDeMomento} />
+                          <XAxis
+                            dataKey={entre ? 'evaluacion' : 'trimestre'}
+                            stroke="#64748b"
+                            tickFormatter={entre ? undefined : rotuloDeMomento}
+                          />
                           <YAxis stroke="#64748b" domain={[0, 10]} />
                           <Tooltip
                             contentStyle={{
@@ -3639,17 +3672,29 @@ const DashboardAcademico = () => {
                             }}
                           />
                           <Legend />
-                          {seleccionesEvolucion.map((sel, idx) => (
-                            <Line
-                              key={idx}
-                              type="monotone"
-                              dataKey={`notaMedia_${idx}`}
-                              name={`${sel.nivel} - ${sel.asignatura}`}
-                              stroke={colores[idx % colores.length]}
-                              strokeWidth={3}
-                              dot={{ fill: colores[idx % colores.length], r: 5 }}
-                            />
-                          ))}
+                          {entre
+                            ? entre.series.map((s2, i) => (
+                                <Line
+                                  key={s2.clave}
+                                  type="monotone"
+                                  dataKey={s2.clave}
+                                  name={`${formatearCursoAcademico(s2.curso)} · ${s2.seleccion.nivel} - ${s2.seleccion.asignatura}`}
+                                  stroke={colores[i % colores.length]}
+                                  strokeWidth={3}
+                                  dot={{ fill: colores[i % colores.length], r: 5 }}
+                                />
+                              ))
+                            : seleccionesEvolucion.map((sel, idx) => (
+                                <Line
+                                  key={idx}
+                                  type="monotone"
+                                  dataKey={`notaMedia_${idx}`}
+                                  name={`${sel.nivel} - ${sel.asignatura}`}
+                                  stroke={colores[idx % colores.length]}
+                                  strokeWidth={3}
+                                  dot={{ fill: colores[idx % colores.length], r: 5 }}
+                                />
+                              ))}
                         </LineChart>
                       </ResponsiveContainer>
                     </div>
