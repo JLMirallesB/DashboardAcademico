@@ -1,5 +1,13 @@
 export const translations = {
   es: {
+    comparisonNeedsOneStage: 'Esta comparativa necesita una sola etapa: con las dos cargadas no hay un centro único con el que comparar. Elige elemental o profesional arriba.',
+    ctxVariosMomentos: 'varios momentos del curso',
+    ctxSelecciones: 'selecciones',
+    ctxMomentos: 'momentos del curso',
+    ctxViendo: 'Viendo:',
+    ctxComparando: 'Comparando:',
+    ctxComparandoNota: '— esta vista mira varios momentos a la vez',
+    ctxEvaluacion: 'Evaluación',
     errorTitulo: 'Algo ha fallado en esta pantalla',
     errorTexto: 'Los datos que habías cargado siguen en memoria. Vuelve a la vista anterior o recarga la página y prueba con otra selección.',
     errorReintentar: 'Volver a intentarlo',
@@ -355,6 +363,14 @@ export const translations = {
     supportLink: 'Ko-fi',
   },
   va: {
+    comparisonNeedsOneStage: 'Esta comparativa necessita una sola etapa: amb les dues carregades no hi ha un centre únic amb què comparar. Tria elemental o professional a dalt.',
+    ctxVariosMomentos: 'diversos moments del curs',
+    ctxSelecciones: 'seleccions',
+    ctxMomentos: 'moments del curs',
+    ctxViendo: 'Veient:',
+    ctxComparando: 'Comparant:',
+    ctxComparandoNota: '— esta vista mira diversos moments alhora',
+    ctxEvaluacion: 'Avaluació',
     errorTitulo: 'Alguna cosa ha fallat en esta pantalla',
     errorTexto: 'Les dades que havies carregat continuen en memòria. Torna a la vista anterior o recarrega la pàgina i prova amb una altra selecció.',
     errorReintentar: 'Tornar a intentar-ho',

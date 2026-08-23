@@ -3,7 +3,7 @@ import { LineChart, Line, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tool
 import { translations } from './translations.js';
 import { normalizar, getBestTrimestre, parseTrimestre, getTrimestreBase, getTrimestreEtapa, tieneAsignatura, perteneceAGrupo } from './utils.js';
 import { UMBRALES_DEFAULT, COLORES_COMPARACION, INSTRUMENTALES_EPM, ASIGNATURAS_EXCLUIR_EEM, ASIGNATURAS_EXCLUIR_TODOS } from './constants.js';
-import { formatearNombreTrimestre, abreviarAsignatura } from './utils/formatters.js';
+import { formatearNombreTrimestre, formatearCursoAcademico, abreviarAsignatura } from './utils/formatters.js';
 import { parseCSV as parseCSVService } from './services/csvParser.js';
 import { procesarDatos as procesarDatosService } from './services/dataProcessor.js';
 import { exportarJSON as exportarJSONService, procesarImportacionJSON } from './services/dataIO.js';
@@ -11,7 +11,8 @@ import { useStatisticalCalculations } from './hooks/useStatisticalCalculations.j
 import { recordarIdioma } from './idioma.js';
 import { analizarDificultad } from './nucleo/dificultad.js';
 import { serieEvolucionSelecciones, serieEvolucionNiveles } from './nucleo/evolucion.js';
-import { compararTrimestres, esAgregado, mismoMomento, cursosDe } from './nucleo/texto.js';
+import { compararTrimestres, esAgregado, mismoMomento, cursosDe,
+         momentosDe, esDelMomento, parseTrimestre as parseClave } from './nucleo/texto.js';
 import { diferencia, decimalesDe } from './nucleo/comparacion.js';
 import { paresDe, porPares, porNiveles, paresMasFuertes } from './nucleo/correlaciones.js';
 import { useKPICalculation } from './hooks/useKPICalculation.js';
@@ -155,6 +156,50 @@ const DashboardAcademico = () => {
     });
   }, []);
 
+  /* ---------- QUÉ SE ESTÁ MIRANDO ----------
+     Un solo contexto, arriba, y el único sitio donde se cambia. Ver
+     components/layout/BarraContexto.jsx para el porqué. */
+
+  /* Las vistas que miran VARIOS momentos a la vez no obedecen al contexto
+     global, y por eso la barra no puede enseñarles uno: en Estadísticas cada
+     fila elige su trimestre, y la Evolución los recorre todos. Enseñar «1EV»
+     mientras comparas el segundo no es un despiste de la cabecera, es que
+     estaba enseñando una variable que esa vista no usa. */
+  const VISTAS_COMPARATIVAS = ['estadisticas', 'evolucion'];
+
+  /* El rótulo de cada vista, el mismo que usa la navegación lateral: si se
+     escribieran dos veces, acabarían diciendo cosas distintas. */
+  const ETIQUETA_VISTA = {
+    kpis: 'kpisNav', dispersion: 'dispersionNav', estadisticas: 'statistics',
+    correlaciones: 'correlations', evolucion: 'evolution',
+    dificultad: 'difficulty', asignaturas: 'subjectsData'
+  };
+
+  const momentosDisponibles = useMemo(
+    () => momentosDe(trimestresDisponibles), [trimestresDisponibles]);
+
+  const momentoActual = useMemo(() => {
+    const p = parseClave(trimestreSeleccionado);
+    if (!p) return momentosDisponibles[0] ? momentosDisponibles[0].clave : '';
+    const m = momentosDisponibles.find((x) => esDelMomento(trimestreSeleccionado, x));
+    return m ? m.clave : '';
+  }, [trimestreSeleccionado, momentosDisponibles]);
+
+  /* Cambiar de momento no cambia de etapa: se busca el fichero de ESE momento
+     que siga siendo de la etapa que se está mirando. Si no lo hay —hay cursos
+     donde solo se cargó una etapa— se coge el que haya, que es mejor que
+     dejar la pantalla en blanco, y el selector de etapa lo refleja. */
+  const cambiarMomento = useCallback((clave) => {
+    const m = momentosDisponibles.find((x) => x.clave === clave);
+    if (!m) return;
+    const deLaEtapa = trimestresDisponibles.find((t) => {
+      const p = parseClave(t);
+      return esDelMomento(t, m) && p && p.etapa === modoEtapa;
+    });
+    const cualquiera = trimestresDisponibles.find((t) => esDelMomento(t, m));
+    setTrimestreSeleccionado(deLaEtapa || cualquiera || null);
+  }, [momentosDisponibles, trimestresDisponibles, modoEtapa]);
+
   /* ¿Hay más de un curso académico cargado? De eso depende que los rótulos
      tengan que decirlo. Con uno solo, escribir «25/26» en cada desplegable es
      ruido; con dos, no decirlo es dejar al usuario sin saber qué mira. */
@@ -163,6 +208,15 @@ const DashboardAcademico = () => {
 
   const rotuloTrimestre = useCallback(
     (trim) => formatearNombreTrimestre(trim, hayVariosCursos), [hayVariosCursos]);
+
+  /* El rótulo de un momento en la barra de contexto. El curso solo cuando hay
+     más de uno cargado: escribirlo siempre es ruido en cada desplegable, y no
+     escribirlo nunca deja al usuario sin saber de qué año habla. */
+  const rotularMomento = useCallback((m) => (
+    hayVariosCursos && m.curso
+      ? `${formatearCursoAcademico(m.curso)} · ${m.base}`
+      : m.base
+  ), [hayVariosCursos]);
 
   /* Se apunta fuera del árbol para que la red de seguridad de errores pueda
      dar el mensaje en el idioma correcto. Ver src/idioma.js. */
@@ -715,12 +769,13 @@ const DashboardAcademico = () => {
     }
   }, [modoEtapa, compararNiveles, trimestreSeleccionado, nivelesSinGlobalEtapa, asignaturaComparada, datosCompletos, trimestresDisponibles, detectarEtapa]);
 
-  // Cambiar vista de KPI si está en comparativa y cambia a modo TODOS
-  useEffect(() => {
-    if (modoEtapa === 'TODOS' && vistaKPI === 'comparativa') {
-      setVistaKPI('centro');
-    }
-  }, [modoEtapa, vistaKPI]);
+  /* Aquí había un efecto que, al entrar en modo TODOS, cambiaba SOLO la
+     pestaña de KPIs de «Comparativa» a «Centro». La razón de fondo es buena
+     —esa tabla compara el centro con sus partes DENTRO de una etapa, y en modo
+     TODOS no hay un centro único—, pero la forma no: al usuario le desaparecía
+     la vista que estaba mirando sin que nada se lo dijera, y al volver a una
+     sola etapa no volvía. Ahora la pestaña se deshabilita y dice por qué.
+     Ver el botón de «Comparativa» más abajo. */
 
   // Activar comparación de niveles
   const activarCompararNiveles = useCallback(() => {
@@ -1746,9 +1801,6 @@ const DashboardAcademico = () => {
         sidebarProps={{
           currentView: vistaActual,
           onViewChange: setVistaActual,
-          currentStage: modoEtapa,
-          availableStages: etapasDisponibles,
-          onStageChange: setModoEtapa,
           thresholds: umbrales,
           onThresholdsChange: setUmbrales,
           language: idioma,
@@ -1770,9 +1822,43 @@ const DashboardAcademico = () => {
              plausible y falsa, que es la peor clase. */
           centerName: trimestreSeleccionado ? (metadata[trimestreSeleccionado]?.Centro || '') : '',
           academicYear: trimestreSeleccionado ? (metadata[trimestreSeleccionado]?.CursoAcademico || '') : '',
-          currentTrimester: trimestreSeleccionado ? rotuloTrimestre(trimestreSeleccionado) : ''
+          contexto: {
+            momentos: momentosDisponibles,
+            momentoActual,
+            onMomentoChange: cambiarMomento,
+            etapas: etapasDisponibles,
+            etapaActual: modoEtapa,
+            onEtapaChange: setModoEtapa,
+            rotularMomento,
+            /* Cuando la vista compara varios momentos, la barra lo dice en vez
+               de enseñar un contexto que esa vista no usa. */
+            comparando: VISTAS_COMPARATIVAS.includes(vistaActual)
+              ? (vistaActual === 'estadisticas'
+                  ? `${selecciones.length} ${t('ctxSelecciones')}`
+                  : `${momentosDisponibles.length} ${t('ctxMomentos')}`)
+              : null
+          }
         }}
       >
+      {/* El título de la vista, con el contexto repetido. Es redundante a
+          propósito: la barra de arriba dice lo mismo, pero cuando alguien
+          exporta una captura o mira una gráfica a media pantalla, el título es
+          lo único que viaja con ella. Y en las vistas que comparan varios
+          momentos dice eso, en vez de un momento que esa vista no usa. */}
+      <div className="max-w-7xl mx-auto mb-5">
+        <h2 className="text-xl font-semibold text-gray-900">
+          {t(ETIQUETA_VISTA[vistaActual] || 'kpisNav')}
+          {trimestreSeleccionado && (
+            <span className="text-gray-400 font-normal">
+              {' · '}
+              {VISTAS_COMPARATIVAS.includes(vistaActual)
+                ? t('ctxVariosMomentos')
+                : rotuloTrimestre(trimestreSeleccionado)}
+            </span>
+          )}
+        </h2>
+      </div>
+
       {/* VISTA: INDICADORES (KPIs) */}
       {vistaActual === 'kpis' && (
         <div className="max-w-7xl mx-auto">
@@ -1803,25 +1889,40 @@ const DashboardAcademico = () => {
                   >
                     {t('detail') || 'Detalle'}
                   </button>
-                  {modoEtapa !== 'TODOS' && (
-                    <button
-                      onClick={() => setVistaKPI('comparativa')}
-                      className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                        vistaKPI === 'comparativa'
+                  {/* La pestaña NO desaparece en modo TODOS: se deshabilita y
+                      dice por qué. Antes se esfumaba —y además el modo la
+                      apagaba sola si estabas dentro—, así que quien la buscaba
+                      creía que se la había inventado. */}
+                  <button
+                    onClick={() => setVistaKPI('comparativa')}
+                    disabled={modoEtapa === 'TODOS'}
+                    title={modoEtapa === 'TODOS' ? t('comparisonNeedsOneStage') : undefined}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                      modoEtapa === 'TODOS'
+                        ? 'text-gray-400 cursor-not-allowed'
+                        : vistaKPI === 'comparativa'
                           ? 'bg-white text-gray-900 '
                           : 'text-gray-600 hover:text-gray-900'
-                      }`}
-                    >
-                      {t('comparison') || 'Comparativa'}
-                    </button>
-                  )}
+                    }`}
+                  >
+                    {t('comparison') || 'Comparativa'}
+                  </button>
                 </div>
               </div>
 
               {/* Renderizar componente según vista seleccionada */}
               {vistaKPI === 'centro' && <KPICentro kpis={kpisGlobales} t={t} modoEtapa={modoEtapa} />}
               {vistaKPI === 'detalle' && <KPIDetalle kpis={kpisGlobales} t={t} modoEtapa={modoEtapa} />}
-              {vistaKPI === 'comparativa' && <KPIComparativa kpis={kpisGlobales} t={t} modoEtapa={modoEtapa} />}
+              {vistaKPI === 'comparativa' && (
+                modoEtapa === 'TODOS'
+                  /* Con las dos etapas cargadas no hay UN centro con el que
+                     comparar: son dos poblaciones. Se dice, en vez de enseñar
+                     una tabla de ceros o cambiar de pestaña por su cuenta. */
+                  ? <p className="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-lg p-4">
+                      {t('comparisonNeedsOneStage')}
+                    </p>
+                  : <KPIComparativa kpis={kpisGlobales} t={t} modoEtapa={modoEtapa} />
+              )}
             </div>
           )}
 
@@ -3026,21 +3127,12 @@ const DashboardAcademico = () => {
                 {t('correlationsTitle')} · {rotuloTrimestre(trimestreSeleccionado)}
               </h3>
               <div className="flex flex-wrap items-center gap-3">
-                <select
-                  value={trimestreSeleccionado}
-                  onChange={(e) => setTrimestreSeleccionado(e.target.value)}
-                  className="py-2 px-4 border border-gray-300 rounded-lg text-sm"
-                >
-                  {trimestresDisponibles
-                    .filter(t => {
-                      if (modoEtapa === 'TODOS') return true;
-                      const parsed = parseTrimestre(t);
-                      return parsed && parsed.etapa === modoEtapa;
-                    })
-                    .map(t => (
-                      <option key={t} value={t}>{rotuloTrimestre(t)}</option>
-                    ))}
-                </select>
+{/* Aquí había un selector de trimestre que cambiaba el trimestre GLOBAL:
+                    tocarlo desde correlaciones cambiaba lo que veías después en
+                    indicadores y en dificultad, sin ningún aviso. Un control
+                    dentro de una vista no puede mutar el estado de todas las
+                    demás. El trimestre se elige arriba, en la barra de
+                    contexto, y desde ahí se ve. */}
                 <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
                   <button
                     onClick={() => setOrdenCorrelaciones('desc')}

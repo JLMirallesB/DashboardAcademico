@@ -7,7 +7,6 @@ import React from 'react';
 import { SidebarNav } from './SidebarNav';
 import { SidebarThresholds } from './SidebarThresholds';
 import { SidebarActions } from './SidebarActions';
-import { StageModeSwitcher } from '../common/StageModeSwitcher';
 import { LanguageSwitcher } from '../common/LanguageSwitcher';
 
 /**
@@ -16,9 +15,6 @@ import { LanguageSwitcher } from '../common/LanguageSwitcher';
  * @param {Function} onToggleCollapse - Callback para toggle
  * @param {string} currentView - Vista activa
  * @param {Function} onViewChange - Callback al cambiar vista
- * @param {string} currentStage - Etapa activa (EEM/EPM/TODOS)
- * @param {Array} availableStages - Etapas disponibles
- * @param {Function} onStageChange - Callback al cambiar etapa
  * @param {Object} thresholds - Umbrales actuales
  * @param {Function} onThresholdsChange - Callback al cambiar umbrales
  * @param {string} language - Idioma actual
@@ -32,9 +28,6 @@ export const Sidebar = ({
   onToggleCollapse,
   currentView,
   onViewChange,
-  currentStage,
-  availableStages,
-  onStageChange,
   thresholds,
   onThresholdsChange,
   language,
@@ -97,26 +90,10 @@ export const Sidebar = ({
           />
         </div>
 
-        {/* Selector de Etapa */}
-        {availableStages.length > 1 && (
-          <div className={`px-2 mb-4 ${collapsed ? 'flex justify-center' : ''}`}>
-            {!collapsed && (
-              <span className="px-2 text-[10px] font-bold text-gray-500 uppercase tracking-wider">
-                {t('stage')}
-              </span>
-            )}
-            <div className="mt-1">
-              <StageModeSwitcher
-                availableStages={availableStages}
-                currentStage={currentStage}
-                onStageChange={onStageChange}
-                t={t}
-                vertical={!collapsed}
-                compact={collapsed}
-              />
-            </div>
-          </div>
-        )}
+        {/* Aquí estaba el selector de etapa. Se movió a la barra de contexto
+            de la cabecera el 23/08/2026: no es una herramienta —que es lo que
+            va en esta columna— sino parte de QUÉ estás mirando, y estaba tan
+            abajo que se cambiaba sin querer y no se encontraba al buscarlo. */}
 
         {/* Umbrales */}
         <div className="px-2 mb-4">
