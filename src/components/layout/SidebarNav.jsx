@@ -7,6 +7,13 @@ import React from 'react';
 
 // Iconos SVG inline para cada vista
 const icons = {
+  /* El resumen abre el menú: es lo primero que hay que mirar y lo que dice
+     adónde ir después. Una lista con marcas, que es lo que es. */
+  resumen: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+    </svg>
+  ),
   /* Una campana para las alertas y unas capas para las familias: los dos
      iconos de Heroicons, como los demás. */
   alertas: (
@@ -59,6 +66,10 @@ const icons = {
 
 // Configuración de vistas
 const views = [
+  /* El resumen ejecutivo va EL PRIMERO. Es lo que contesta «¿qué miro?» sin
+     tener que recorrer las otras nueve pantallas y acordarse de lo que decía
+     cada una, y desde él se salta a la que toque. */
+  { id: 'resumen', labelKey: 'resTitulo' },
   { id: 'kpis', labelKey: 'kpisNav' },
   { id: 'dispersion', labelKey: 'dispersionNav' },
   { id: 'estadisticas', labelKey: 'statistics' },

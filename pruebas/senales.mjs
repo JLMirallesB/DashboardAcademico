@@ -12,8 +12,8 @@
  * repite», que convierte la falta de datos del año pasado en una prueba de
  * que el problema es de este año.
  */
-import { senalesDelTrimestre, PESOS, A_MIRAR,
-         DISPERSION_ALTA, DISPERSION_MUY_BAJA } from '../src/nucleo/senales.js';
+import { senalesDelTrimestre, PESOS, A_MIRAR, REPARTO,
+         DISPERSION_MUY_BAJA, MINIMO_PARA_FORMA } from '../src/nucleo/senales.js';
 import { serieAlertas } from '../src/nucleo/alertas.js';
 import { parseCSV } from '../src/nucleo/csv.js';
 import { procesarDatos } from '../src/nucleo/datos.js';
@@ -199,10 +199,17 @@ seccion('6. Varios indicadores a la vez pesan más que uno');
   comprobar('CANDADO: y la que solo tiene uno, no',
     !analisis.solidez.motivos.includes('variosIndicadores'), JSON.stringify(analisis.solidez));
   comprobar('así que la primera pesa más', armonia.solidez.puntos > analisis.solidez.puntos);
-  comprobar('y de la misma asignatura salen las tres señales por separado',
+  comprobar('y de la misma asignatura salen las dos señales por separado',
     s.filter((x) => x.asignatura === 'Armonía').map((x) => x.tipo).sort().join(',')
-      === 'dispersionAlta,mediaBaja,suspensosAltos',
+      === 'mediaBaja,suspensosAltos',
     s.filter((x) => x.asignatura === 'Armonía').map((x) => x.tipo).join(','));
+  /* CANDADO: y la dispersión NO es una señal por sí sola. Lo fue, con umbral
+     fijo en 1,5, y al mirarlo en pantalla con datos reales las diez primeras
+     señales del centro eran esa misma. Por sí sola no dice nada; lo que
+     cambia la decisión es si lo observado lo comparte el grupo. */
+  comprobar('CANDADO: «notas repartidas» no aparece como señal suelta',
+    !s.some((x) => x.tipo === 'dispersionAlta'),
+    'ha vuelto la señal de dispersión: ' + s.map((x) => x.tipo).join(','));
 }
 
 seccion('7. Notas altas y muy juntas: una pregunta, no un problema');
@@ -218,6 +225,60 @@ seccion('7. Notas altas y muy juntas: una pregunta, no un problema');
     JSON.stringify(conc.aMirar));
   comprobar('no se le añade magnitud ni se le infla la solidez',
     conc.solidez.puntos <= PESOS.alcance, JSON.stringify(conc.solidez));
+}
+
+seccion('7 bis. El reparto se mide contra el propio centro, no contra un 1,5');
+{
+  /* Doce asignaturas con dispersiones de 0,8 a 1,9: la mediana del centro cae
+     en 1,35 y el tercer cuartil en 1,6. Una asignatura con 1,55 estaría «por
+     encima de 1,5» con el umbral viejo y aquí sale como normal para este
+     centro, que es lo que era. */
+  const asigs = [];
+  [0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.55, 1.7, 1.8, 1.9].forEach((d, i) => {
+    asigs.push({ asignatura: 'A' + i, registros: 20, media: 4.8,
+                 aprobados: 0.55, suspendidos: 0.45, desviacion: d });
+  });
+  const m = cargar([curso('1EV', '26/27', asigs)]);
+  const s = senalesDelTrimestre(opciones(m)).filter((x) => x.tipo === 'mediaBaja');
+
+  const de = (nombre) => s.find((x) => x.asignatura === nombre).reparto;
+  comprobar('la más repartida del centro sale como concentrada en algunos',
+    de('A11').como === REPARTO.concentrado, JSON.stringify(de('A11')));
+  comprobar('la más junta sale como compartida por el grupo',
+    de('A0').como === REPARTO.compartido, JSON.stringify(de('A0')));
+  /* Y este es el caso que da sentido a todo el cambio: una asignatura con
+     σ = 1,50 —exactamente el umbral fijo de antes, que la habría marcado como
+     «notas muy repartidas»— sale aquí como normal, porque en ESTE centro la
+     mitad de las asignaturas andan por ahí. */
+  comprobar('CANDADO: la que estaba justo en el umbral viejo sale como normal aquí',
+    de('A7').como === REPARTO.medio,
+    'σ 1.50 clasificada como ' + de('A7').como);
+  comprobar('cada una lleva la referencia del centro, para poder decirlo en el papel',
+    de('A11').tipicaDelCentro === 1.3 && de('A11').q1 === 1 && de('A11').q3 === 1.55,
+    JSON.stringify({ q1: de('A11').q1, mediana: de('A11').tipicaDelCentro, q3: de('A11').q3 }));
+
+  /* Con pocas asignaturas un cuartil no significa nada, y decir que algo está
+     «por encima de lo habitual» sobre cuatro datos es inventarse lo habitual. */
+  const pocas = cargar([curso('1EV', '26/27', [
+    { asignatura: 'Armonía', registros: 20, media: 4.8, aprobados: 0.55, suspendidos: 0.45, desviacion: 1.9 },
+    { asignatura: 'Coro', registros: 20, media: 4.8, aprobados: 0.55, suspendidos: 0.45, desviacion: 0.8 }
+  ])]);
+  const conPocas = senalesDelTrimestre(opciones(pocas)).find((x) => x.tipo === 'mediaBaja');
+  comprobar('CANDADO: con dos asignaturas no se inventa qué es lo habitual',
+    conPocas.reparto === null, JSON.stringify(conPocas.reparto));
+
+  /* Y con poco ALUMNADO tampoco, aunque haya asignaturas de sobra: una
+     desviación típica sobre cuatro notas no describe ningún reparto. Se vio
+     en pantalla —«notas altas y muy parecidas entre sí» sobre un grupo de
+     tres— y es una frase sin contenido. */
+  const conPocaGente = cargar([curso('1EV', '26/27',
+    asigs.map((a, i) => (i === 0 ? { ...a, registros: 4 } : a)))]);
+  const chica = senalesDelTrimestre(opciones(conPocaGente)).find((x) => x.asignatura === 'A0');
+  comprobar('CANDADO: con cuatro alumnos no se habla del reparto de sus notas',
+    chica && chica.reparto === null,
+    JSON.stringify(chica && chica.reparto));
+  comprobar('y el mínimo para hablar de forma es mayor que el general',
+    MINIMO_PARA_FORMA > 3);
 }
 
 seccion('8. Las correlaciones, con su n o no salen');
@@ -277,7 +338,7 @@ seccion('10. No se filtra nada: la pantalla las quiere todas');
   ])]);
   const s = senalesDelTrimestre(opciones(m));
   comprobar('CANDADO: salen todas, no un top recortado por dentro',
-    s.length >= 5, s.length + ' señales: ' + s.map((x) => x.tipo).join(','));
+    s.length >= 4, s.length + ' señales: ' + s.map((x) => x.tipo).join(','));
   comprobar('y vienen ordenadas de más a menos sólida',
     s.every((x, i) => i === 0 || s[i - 1].solidez.puntos >= x.solidez.puntos),
     JSON.stringify(s.map((x) => x.solidez.puntos)));
@@ -290,8 +351,8 @@ seccion('11. Sin datos o sin umbrales no se inventa nada');
   comprobar('sin umbrales tampoco: clasificar sin criterio daría todo en rojo',
     senalesDelTrimestre({ trimestreSeleccionado: '1EV-2627-EEM',
       datosCompletos: { '1EV-2627-EEM': {} } }).length === 0);
-  comprobar('y las referencias de dispersión están declaradas, no escritas por ahí',
-    DISPERSION_ALTA === 1.5 && DISPERSION_MUY_BAJA === 0.6);
+  comprobar('y la referencia de «notas casi idénticas» está declarada, no escrita por ahí',
+    DISPERSION_MUY_BAJA === 0.6);
   comprobar('cada tipo de señal sabe qué hay que ir a mirar',
     Object.keys(A_MIRAR).every((k) => A_MIRAR[k].length > 0));
 }

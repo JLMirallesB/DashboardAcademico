@@ -14,6 +14,8 @@ import { serieAlertas } from './nucleo/alertas.js';
 import { agruparPorFamilia, compararFamilias } from './nucleo/agrupaciones.js';
 import AlertasCurso from './components/vistas/AlertasCurso.jsx';
 import FamiliasAsignaturas from './components/vistas/FamiliasAsignaturas.jsx';
+import { ResumenEjecutivo } from './components/vistas/ResumenEjecutivo.jsx';
+import { senalesDelTrimestre } from './nucleo/senales.js';
 import { analizarDificultad } from './nucleo/dificultad.js';
 import { serieEvolucionSelecciones, serieEvolucionNiveles, serieEntreCursos } from './nucleo/evolucion.js';
 import { compararTrimestres, esAgregado, mismoMomento, cursosDe,
@@ -214,6 +216,7 @@ const DashboardAcademico = () => {
   /* El rótulo de cada vista, el mismo que usa la navegación lateral: si se
      escribieran dos veces, acabarían diciendo cosas distintas. */
   const ETIQUETA_VISTA = {
+    resumen: 'resTitulo',
     kpis: 'kpisNav', dispersion: 'dispersionNav', estadisticas: 'statistics',
     correlaciones: 'correlations', evolucion: 'evolution',
     dificultad: 'difficulty', asignaturas: 'subjectsData',
@@ -1292,6 +1295,21 @@ const DashboardAcademico = () => {
     return tendencias;
   }, [trimestreSeleccionado, datosCompletos, todasLasAsignaturas, nivelesSinGlobalEtapa, modoEtapa, trimestresDisponibles, detectarEtapa, calcularTendencia]);
 
+  /* Las señales del momento que se mira, ordenadas por solidez. Se calculan
+     aquí una vez y las usan las dos salidas —la pantalla y el informe—: si
+     cada una las recalculara, un día dirían cosas distintas del mismo día. */
+  const senalesDelMomento = useMemo(
+    () => senalesDelTrimestre({
+      trimestreSeleccionado, datosCompletos, trimestresDisponibles,
+      umbrales, modoEtapa,
+      serieAlertas: serieDeAlertas,
+      correlaciones: correlacionesCompletas[trimestreSeleccionado] || [],
+      tendencias: tendenciasParaPDF
+    }),
+    [trimestreSeleccionado, datosCompletos, trimestresDisponibles, umbrales,
+     modoEtapa, serieDeAlertas, correlacionesCompletas, tendenciasParaPDF]);
+
+
   // Datos de evolución de notas medias por trimestre para el PDF
   // Datos de evolución de notas medias por trimestre para el PDF
   const datosEvolucionNotasPDF = useMemo(
@@ -2018,6 +2036,17 @@ const DashboardAcademico = () => {
       )}
 
       {/* VISTA: FAMILIAS DE ASIGNATURAS */}
+      {vistaActual === 'resumen' && (
+        <div className="max-w-5xl mx-auto">
+          <ResumenEjecutivo
+            senales={senalesDelMomento}
+            t={t}
+            formatoNota={(v) => v.toFixed(2)}
+            formatoPorcentaje={(v) => `${v.toFixed(1)}%`}
+          />
+        </div>
+      )}
+
       {vistaActual === 'familias' && (
         <div className="max-w-7xl mx-auto">
           {/* En modo TODOS las cifras siguen siendo de UN fichero —el que

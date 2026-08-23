@@ -48,14 +48,60 @@ import { detectarEtapa } from './estadistica.js';
 
 const esNumero = (v) => typeof v === 'number' && Number.isFinite(v);
 
-/** La dispersión a partir de la cual una nube se considera repartida. Es la
- *  misma referencia que pinta la línea del mapa de dispersión, y como todo
- *  umbral de este proyecto es una convención de lectura, no una frontera. */
-export const DISPERSION_ALTA = 1.5;
+/** El reparto de una asignatura: si sus notas están más juntas o más
+ *  separadas de lo habitual EN ESTE CENTRO.
+ *
+ *  ---------------------------------------------------------------------------
+ *  POR QUÉ NO HAY UN NÚMERO FIJO, Y POR QUÉ ESTO NO ES UNA SEÑAL APARTE
+ *
+ *  Primero fue un umbral fijo —1,5, el mismo que pinta la línea del mapa de
+ *  dispersión— y una señal propia, «notas muy repartidas». Al mirarlo en
+ *  pantalla con datos de verdad, **las diez primeras señales del centro eran
+ *  esa misma**, con desviaciones entre 1,53 y 1,75. Medido: en ese centro la
+ *  mediana es 1,36 y el tercer cuartil 1,53, así que el umbral marcaba a una
+ *  de cada tres asignaturas y no distinguía nada.
+ *
+ *  Dos cambios, y los dos vienen de la misma idea:
+ *
+ *  1. **La referencia es el propio centro.** Un 1,5 querría decir cosas
+ *     distintas en un conservatorio y en otro, y nadie sabe de dónde salió.
+ *     Se comparan las asignaturas con las del mismo momento.
+ *  2. **La dispersión no es una señal: es un modificador.** Por sí sola no
+ *     dice nada —una nube repartida puede ser una evaluación que distingue
+ *     bien—. Lo que cambia la decisión es si una media baja la comparte el
+ *     grupo o está concentrada en algunos: en el primer caso se mira la
+ *     asignatura, en el segundo se mira a quién. Así que viaja pegada a la
+ *     señal que sí lo es.
+ */
+export const REPARTO = { concentrado: 'concentrado', compartido: 'compartido', medio: 'medio' };
 
-/** Por debajo de esta desviación, con media alta, conviene preguntarse si la
- *  evaluación distingue niveles distintos. No es un problema: es una pregunta. */
+/** Con media alta, notas casi idénticas. No es un problema: es la única
+ *  situación en la que conviene preguntarse si la evaluación distingue
+ *  niveles distintos, y esa pregunta la hace alguien, no la tabla. */
 export const DISPERSION_MUY_BAJA = 0.6;
+
+/** El alumnado mínimo para decir algo sobre la FORMA de una distribución.
+ *
+ *  El mínimo general de la aplicación son tres alumnos, y para una media está
+ *  bien: una media de tres notas es una media de tres notas. Pero la
+ *  desviación típica es una afirmación sobre cómo se reparten, y sobre tres
+ *  datos no se reparte nada — se vio en pantalla: «notas altas y muy parecidas
+ *  entre sí» sobre un grupo de tres, que es una frase sin contenido.
+ *
+ *  Diez es una convención, como todos los umbrales de aquí, y está escrita
+ *  para poder discutirla. La razón de que sea mayor que el mínimo general es
+ *  que hablar de forma exige más datos que hablar de nivel. */
+export const MINIMO_PARA_FORMA = 10;
+
+/** Los cuartiles de una lista de números. Sin interpolar: con veinte
+ *  asignaturas, afinar el cuartil no cambia ninguna decisión y sí complica
+ *  leer el código. */
+const cuartiles = (valores) => {
+  const v = valores.filter(esNumero).slice().sort((a, b) => a - b);
+  if (!v.length) return null;
+  const en = (p) => v[Math.floor((v.length - 1) * p)];
+  return { q1: en(0.25), mediana: en(0.5), q3: en(0.75), n: v.length };
+};
 
 /* ------------------------------------------------------------------ */
 /* La solidez de una señal                                             */
@@ -88,7 +134,6 @@ const solidezDe = (motivos) => motivos.reduce((s, m) => s + (PESOS[m] || 0), 0);
 export const A_MIRAR = {
   mediaBaja: ['cambioCriterios', 'cambioProfesorado', 'cohorteDistinta', 'asistencia'],
   suspensosAltos: ['cambioCriterios', 'recuperacion', 'asistencia'],
-  dispersionAlta: ['puntosDePartida', 'practicaFuera'],
   concentracionAlta: ['discriminaLaEvaluacion'],
   entraEnRojo: ['cambioCriterios', 'cambioProfesorado', 'calendario'],
   caidaEntreCursos: ['cambioCriterios', 'cambioProfesorado', 'cohorteDistinta'],
@@ -206,6 +251,26 @@ export const senalesDelTrimestre = ({
     ? tamanos[Math.floor((tamanos.length - 1) / 2)]
     : 0;
 
+  /* La dispersión típica DE ESTE CENTRO en este momento. Es la referencia
+     contra la que se dice si una asignatura tiene las notas más juntas o más
+     separadas de lo habitual, en vez de contra un número que no sabe en qué
+     centro está. */
+  const dispersionCentro = cuartiles(asignaturas.map((a) => a.stats.desviacion));
+
+  const repartoDe = (desviacion, registros) => {
+    if (!esNumero(desviacion) || !dispersionCentro) return null;
+    /* Sobre poca gente, la desviación no describe un reparto. */
+    if (!esNumero(registros) || registros < MINIMO_PARA_FORMA) return null;
+    /* Hacen falta unas cuantas asignaturas para que un cuartil signifique
+       algo. Con cuatro, el «tercer cuartil» es la segunda de la lista. */
+    if (dispersionCentro.n < 8) return null;
+    const como = desviacion >= dispersionCentro.q3 ? REPARTO.concentrado
+      : desviacion <= dispersionCentro.q1 ? REPARTO.compartido
+        : REPARTO.medio;
+    return { como, desviacion, tipicaDelCentro: dispersionCentro.mediana,
+             q1: dispersionCentro.q1, q3: dispersionCentro.q3 };
+  };
+
   /* Qué asignaturas caen en una transición: las que la comparación transversal
      ha marcado como valle o como decreciente. No es lo mismo un curso flojo
      suelto que un escalón por el que pasa todo el alumnado. */
@@ -240,10 +305,9 @@ export const senalesDelTrimestre = ({
       cifras.notaMedia < umbrales.mediaCritica;
     const muchosSuspensos = esNumero(cifras.suspendidos) && esNumero(umbrales.suspensosAlerta) &&
       cifras.suspendidos >= umbrales.suspensosAlerta;
-    const muyRepartida = esNumero(cifras.desviacion) && cifras.desviacion >= DISPERSION_ALTA;
     if (bajaMedia) indicadores++;
     if (muchosSuspensos) indicadores++;
-    if (muyRepartida) indicadores++;
+    const reparto = repartoDe(cifras.desviacion, cifras.registros);
 
     const anadir = (tipo, extra) => {
       const { veces, otra } = comunes();
@@ -266,6 +330,11 @@ export const senalesDelTrimestre = ({
         clave: `${tipo}|${claveDe(nivel, asignatura)}`,
         tipo, nivel, asignatura, etapa,
         cifras,
+        /* Si lo que se observa lo comparte el grupo o está concentrado en
+           algunos. Cambia la decisión: en un caso se mira la asignatura, en
+           el otro se mira a quién. `null` cuando no hay bastantes
+           asignaturas para saber qué es lo habitual aquí. */
+        reparto,
         solidez: { puntos: solidezDe(motivos), motivos },
         /* Las preguntas que la aplicación sí sabe contestar, contestadas.
            `null` es «no hay con qué comparar», que no es «no». */
@@ -292,16 +361,17 @@ export const senalesDelTrimestre = ({
           cifras.suspendidos >= umbrales.suspensosAlerta + 15
       });
     }
-    if (muyRepartida) {
-      anadir('dispersionAlta', { magnitud: cifras.desviacion >= DISPERSION_ALTA + 0.5 });
-    }
     /* Media alta y notas casi idénticas. **No es un problema**, y el rótulo no
        puede insinuar que lo sea: es la única situación en la que conviene
        preguntarse si la evaluación distingue niveles distintos, y esa pregunta
-       la tiene que hacer alguien, no la tabla. */
+       la tiene que hacer alguien, no la tabla.
+       Se pide poco Y por debajo de la referencia absoluta: en un centro donde
+       todo esté muy junto, el cuartil bajo marcaría asignaturas normales. */
     if (esNumero(cifras.notaMedia) && esNumero(umbrales.mediaFacil) &&
         cifras.notaMedia >= umbrales.mediaFacil &&
-        esNumero(cifras.desviacion) && cifras.desviacion <= DISPERSION_MUY_BAJA) {
+        esNumero(cifras.desviacion) && cifras.desviacion <= DISPERSION_MUY_BAJA &&
+        cifras.registros >= MINIMO_PARA_FORMA &&
+        (!reparto || reparto.como === REPARTO.compartido)) {
       anadir('concentracionAlta', {});
     }
   });
