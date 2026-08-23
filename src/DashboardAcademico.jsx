@@ -26,6 +26,7 @@ import KPIDetalle from './components/kpi/KPIDetalle.jsx';
 import KPIComparativa from './components/kpi/KPIComparativa.jsx';
 import { HelpModal } from './components/modals/HelpModal.jsx';
 import { ReportModal } from './components/modals/ReportModal.jsx';
+import { PreviewModal } from './components/modals/PreviewModal.jsx';
 import { MainLayout } from './components/layout/MainLayout.jsx';
 import { PDFChartRenderer } from './components/pdf/PDFChartRenderer.jsx';
 import { generarInformePDF } from './services/pdfGenerator.js';
@@ -119,6 +120,10 @@ const DashboardAcademico = () => {
   const [generandoInforme, setGenerandoInforme] = useState(false);
   const [progresoInforme, setProgresoInforme] = useState('');
   const [renderPDFCharts, setRenderPDFCharts] = useState(false);
+  /* El informe recién hecho, antes de bajarlo. Se guarda la URL de blob para
+     poder revocarla: si no, cada informe que se genera deja en memoria su
+     copia entera —y son megas— hasta que se recarga la página. */
+  const [vistaPrevia, setVistaPrevia] = useState(null);
   const [configInforme, setConfigInforme] = useState({
     nombreCentro: 'Conservatorio Profesional de Música',
     cursoAcademico: '2024-2025',
@@ -1455,6 +1460,18 @@ const DashboardAcademico = () => {
         selecciones,
         generadoEn: new Date(),
         t,
+        /* En vez de descargar, se enseña. El informe se baja desde la vista
+           previa, cuando quien lo ha pedido ya ha visto que es el que quería:
+           antes, comprobar si habías marcado las secciones correctas costaba
+           una descarga, y probando se acababa con seis PDF iguales en la
+           carpeta. */
+        guardar: (pdf, nombreArchivo) => {
+          setVistaPrevia({
+            url: pdf.output('bloburl').toString(),
+            nombre: nombreArchivo,
+            paginas: pdf.getNumberOfPages()
+          });
+        },
         onProgress: (msg) => setProgresoInforme(msg),
         onSuccess: () => {
           setMostrarModalInforme(false);
@@ -4451,6 +4468,27 @@ const DashboardAcademico = () => {
       </MainLayout>
 
       {/* Modal de configuración de informe */}
+      <PreviewModal
+        isOpen={!!vistaPrevia}
+        url={vistaPrevia?.url}
+        nombre={vistaPrevia?.nombre}
+        paginas={vistaPrevia?.paginas}
+        t={t}
+        onClose={() => {
+          if (vistaPrevia?.url) URL.revokeObjectURL(vistaPrevia.url);
+          setVistaPrevia(null);
+        }}
+        onDownload={() => {
+          if (!vistaPrevia) return;
+          const a = document.createElement('a');
+          a.href = vistaPrevia.url;
+          a.download = vistaPrevia.nombre;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        }}
+      />
+
       <ReportModal
         isOpen={mostrarModalInforme}
         onClose={() => setMostrarModalInforme(false)}
