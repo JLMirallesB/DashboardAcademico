@@ -70,6 +70,40 @@ seccion('2. En modo de una sola etapa, solo esa');
   comprobar('y hay datos', r.hayDatos === true);
 }
 
+seccion('2b. El filtro por etapa decide qué momentos entran en el eje');
+{
+  /* El mundo de arriba es simétrico —las dos etapas tienen las dos
+     evaluaciones—, así que filtrar por etapa no puede cambiar el eje y el
+     filtro se quedaba sin vigilancia: quitarlo dejaba la prueba en verde.
+     Aquí profesional solo tiene la PRIMERA evaluación. */
+  const asim = {}, listaAsim = [];
+  [elemental('1EV', 7.0), elemental('2EV', 7.5), profesional('1EV', 6.0)].forEach((texto) => {
+    const p = procesarDatos(parseCSV(texto));
+    asim[p.trimestre] = p.datos; listaAsim.push(p.trimestre);
+  });
+
+  const soloEPM = serieEvolucionSelecciones({
+    trimestresDisponibles: listaAsim, datosCompletos: asim,
+    selecciones: [{ nivel: '1EPM', asignatura: 'Total' }], modoEtapa: 'EPM'
+  });
+  /* CANDADO: en modo profesional el eje tiene UN punto, porque solo hay una
+     evaluación de profesional. Sin el filtro se colaría la segunda de
+     elemental y la línea de profesional dibujaría un hueco donde no hay ni
+     fichero — un momento del eje que esa etapa no ha vivido. */
+  comprobar('CANDADO: en modo EPM el eje solo trae los momentos de profesional',
+    soloEPM.puntos.length === 1 && soloEPM.puntos[0].momento.base === '1EV',
+    soloEPM.puntos.map((p) => p.momento.base).join());
+
+  const enEEM = serieEvolucionSelecciones({
+    trimestresDisponibles: listaAsim, datosCompletos: asim,
+    selecciones: [{ nivel: '1EEM', asignatura: 'Total' }], modoEtapa: 'EEM'
+  });
+  comprobar('y en modo EEM, los dos suyos', enEEM.puntos.length === 2);
+  comprobar('mientras que en TODOS caben los dos momentos',
+    serieEvolucionSelecciones({ trimestresDisponibles: listaAsim, datosCompletos: asim,
+      selecciones: [{ nivel: '1EEM', asignatura: 'Total' }], modoEtapa: 'TODOS' }).puntos.length === 2);
+}
+
 seccion('3. Un hueco es un hueco, no un punto inventado');
 {
   /* Una asignatura que existe en la primera evaluación y no en la segunda.

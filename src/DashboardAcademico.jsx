@@ -1952,6 +1952,15 @@ const DashboardAcademico = () => {
       {/* VISTA: FAMILIAS DE ASIGNATURAS */}
       {vistaActual === 'familias' && (
         <div className="max-w-7xl mx-auto">
+          {/* En modo TODOS las cifras siguen siendo de UN fichero —el que
+              está seleccionado, o sea una etapa— porque esta vista es la foto
+              de un momento, no un recorrido. Sin decirlo, media etapa se
+              presentaba bajo el rótulo «Registros del centro». */}
+          {modoEtapa === 'TODOS' && trimestreSeleccionado && (
+            <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-900">
+              {t('fam_soloUnaEtapa').replace('{fichero}', rotuloTrimestre(trimestreSeleccionado))}
+            </div>
+          )}
           <FamiliasAsignaturas
             resultado={familiasDelTrimestre}
             compararFamilias={compararFamilias}
@@ -3649,7 +3658,12 @@ const DashboardAcademico = () => {
               </>
             )}
 
-            {/* ANÁLISIS TRANSVERSAL - Todas las Asignaturas */}
+            {/* La mitad de abajo de esta vista NO recorre los momentos: es la foto
+          del que está seleccionado. Como la vista entera se declara
+          comparativa —la gráfica de arriba sí los recorre—, la cabecera dice
+          «varios momentos» y esto quedaba debajo desmintiéndola en silencio.
+          Se rotula con el momento del que sale. */}
+      {/* ANÁLISIS TRANSVERSAL - Todas las Asignaturas */}
             {trimestreSeleccionado && (() => {
               // Obtener todas las asignaturas y calcular sus datos transversales
               const asignaturasConDatos = todasLasAsignaturas.map(asignatura => {
@@ -3702,7 +3716,7 @@ const DashboardAcademico = () => {
                   <div className="mb-6">
                     <div className="flex items-center justify-between mb-4">
                       <h2 className="text-2xl font-bold text-gray-900">
-                        {t('transversalComparison')} - {t('allSubjects')}
+                        {t('transversalComparison')}{trimestreSeleccionado ? ' · ' + rotuloTrimestre(trimestreSeleccionado) : ''} - {t('allSubjects')}
                       </h2>
                       <div className="flex items-center gap-4">
                         {/* Filtro por tendencia de nota media */}

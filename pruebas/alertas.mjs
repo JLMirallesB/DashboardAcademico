@@ -312,4 +312,37 @@ seccion('9. El orden de las listas: primero lo peor');
     r.puntos[0].listaDificiles.every((a) => typeof a.razon === 'string' && a.razon.length > 0));
 }
 
+seccion('9. La misma asignatura escrita con otra caja');
+{
+  /* `claveDe` normaliza el nombre a propósito —su comentario lo dice— y no lo
+     comprobaba nadie: ningún fixture escribía la misma asignatura de dos
+     formas entre dos evaluaciones, que es exactamente el caso. Pasa de
+     verdad: el analizador se rellena a mano y «Armonía» aparece un trimestre
+     como «ARMONÍA». */
+  const conCaja = cargar([
+    cursoEEM('1EV', [
+      { asignatura: 'Armonía', registros: 12, media: 5.2, aprobados: 0.6, suspendidos: 0.4 },
+      { asignatura: 'Piano', registros: 12, media: 8.0, aprobados: 0.95, suspendidos: 0.05 }
+    ]),
+    cursoEEM('2EV', [
+      /* La misma, en mayúsculas, y ya no es difícil. */
+      { asignatura: 'ARMONÍA', registros: 12, media: 7.5, aprobados: 0.9, suspendidos: 0.1 },
+      { asignatura: 'Piano', registros: 12, media: 8.0, aprobados: 0.95, suspendidos: 0.05 }
+    ])
+  ]);
+  const r = serieAlertas({ ...conCaja, umbrales: UMBRALES, modoEtapa: 'EEM', vista: 'niveles' });
+  const c = r.cambios[0];
+
+  /* CANDADO: sin normalizar el nombre, «ARMONÍA» sería una asignatura
+     DISTINTA de «Armonía»: la primera figuraría como desaparecida —que se lee
+     como «ha dejado de medirse»— y la segunda no habría salido de la lista.
+     Dos errores de lectura por el precio de una mayúscula. */
+  comprobar('CANDADO: la misma asignatura con otra caja es la misma, y SALE de la lista',
+    c.salen.length === 1 && /armon/i.test(c.salen[0].asignatura),
+    JSON.stringify({ salen: c.salen.map((x) => x.asignatura),
+                     desaparecidas: c.desaparecidas.map((x) => x.asignatura) }));
+  comprobar('y no figura como desaparecida', c.desaparecidas.length === 0,
+    JSON.stringify(c.desaparecidas.map((x) => x.asignatura)));
+}
+
 terminar('el recuento de alertas y quién entra y sale de la lista.');

@@ -157,9 +157,29 @@ seccion('4. Las que no tienen familia no desaparecen');
   comprobar('CANDADO: el grupo «0» del CSV no crea una familia llamada «0»',
     familia(res, '0') === null,
     res.familias.map((f) => f.clave).join('|'));
+  /* CANDADO. Ojo con el fixture: aquí el montón lo forma Coro, que tiene la
+     nota MÁS ALTA del centro, así que con el orden por nota ascendente queda
+     el último de todas formas — la comprobación pasaba aunque la regla que lo
+     empuja al final no existiera. Se comprueba con un centro donde el montón
+     tiene la PEOR nota, que es cuando la regla decide de verdad. */
   comprobar('el montón de sin clasificar va el último, no compitiendo con las familias',
     (res.familias[res.familias.length - 1] || {}).esSinClasificar === true,
     res.familias.map((f) => f.clave).join('|'));
+
+  const csvAlReves = csv({ trimestre: '1EV', filas: [
+    fila({ tipo: 'GLOBAL', nivel: 'GLOBAL', asignatura: 'Total', registros: 40, media: 7 }),
+    /* La sin clasificar es la peor del centro: por nota iría la PRIMERA. */
+    fila({ tipo: 'GLOBAL_ASIG', nivel: 'GLOBAL', asignatura: 'Optativa X', registros: 20, media: 3 }),
+    fila({ tipo: 'GLOBAL_ASIG', nivel: 'GLOBAL', asignatura: 'Piano', registros: 20, media: 9 }),
+    fila({ tipo: 'CURSO_TOTAL', nivel: '1EEM', asignatura: 'Total', registros: 40, media: 7 })
+  ] });
+  const alRevés = agruparPorFamilia(procesarDatos(parseCSV(csvAlReves)).datos, {
+    agrupaciones: { piano: ['tecla'] }, modoEtapa: 'EEM',
+    umbrales: { alumnosMinimo: 3 }, vista: 'global'
+  });
+  comprobar('CANDADO: y va el último AUNQUE tenga la peor nota del centro',
+    (alRevés.familias[alRevés.familias.length - 1] || {}).esSinClasificar === true,
+    alRevés.familias.map((f) => f.clave + ':' + f.notaMedia).join(' | '));
 
   const sinMonton = agruparPorFamilia(centro.datos, { ...opciones, incluirSinClasificar: false });
   comprobar('se puede apartar el montón…', familia(sinMonton, SIN_CLASIFICAR) === null);
