@@ -32,10 +32,17 @@ export const calcularResultado = (stats, umbrales) => {
 };
 
 /** La etapa a la que pertenece un nivel. `GLOBAL` no es de ninguna. */
+/* Sin distinguir mayúsculas desde el 23/08/2026. Había DOS criterios: este y
+   una copia dentro del generador de PDF que sí las ignoraba, así que un nivel
+   escrito «1eem» —el analizador se rellena a mano— quedaba fuera de la etapa
+   en la pantalla y dentro en el informe. Se unifica en el del núcleo, que es
+   el que usan los KPIs, la dificultad y las alertas, y se le añade lo único
+   que la otra sabía de más. */
 export const detectarEtapa = (nivel) => {
   if (!nivel || nivel === 'GLOBAL') return null;
-  if (String(nivel).includes('EEM')) return 'EEM';
-  if (String(nivel).includes('EPM')) return 'EPM';
+  const n = String(nivel).toUpperCase();
+  if (n.includes('EEM')) return 'EEM';
+  if (n.includes('EPM')) return 'EPM';
   return null;
 };
 

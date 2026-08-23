@@ -7,6 +7,10 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { esAgregado, normalizar as normalizarNucleo } from '../nucleo/texto.js';
+import { detectarEtapa } from '../nucleo/estadistica.js';
+import { nota, porcentaje, entero, texto, diferencia, conSigno,
+         porAsignaturaAgregada, filasComparativaKPI } from '../nucleo/informe.js';
+import { formatearNombreTrimestre } from '../utils/formatters.js';
 
 // Constantes de diseño
 const COLORS = {
@@ -59,6 +63,14 @@ export const generarInformePDF = async ({
   }
 
   try {
+    /* El rótulo del fichero, NUNCA su clave. `trimestreSeleccionado` es un
+       identificador interno —«1EV-2627-EEM»— y salía tal cual en la cabecera
+       de todas las páginas, en la portada y en la tabla de resumen. El curso
+       académico se escribe siempre: el informe se lee fuera de la aplicación,
+       meses después, y ahí no hay ningún selector al lado que diga de qué año
+       es. */
+    const rotuloTrim = formatearNombreTrimestre(trimestreSeleccionado, true);
+
     // Crear PDF en formato horizontal
     const pdf = new jsPDF('l', 'mm', 'a4');
     let currentPage = 0;
@@ -68,7 +80,7 @@ export const generarInformePDF = async ({
       pdf.setFontSize(8);
       pdf.setTextColor(...COLORS.textLight);
       pdf.text(configInforme.nombreCentro || '', PAGE.margin, 8);
-      pdf.text(`${t('reportTitle')} - ${trimestreSeleccionado}`, PAGE.width - PAGE.margin, 8, { align: 'right' });
+      pdf.text(`${t('reportTitle')} - ${rotuloTrim}`, PAGE.width - PAGE.margin, 8, { align: 'right' });
       pdf.setTextColor(...COLORS.text);
     };
 
@@ -90,6 +102,30 @@ export const generarInformePDF = async ({
     const contentWidth = PAGE.width - 2 * PAGE.margin;
     const contentStartY = PAGE.headerHeight + 5;
 
+    /* Una gráfica se coloca RESPETANDO SU PROPORCIÓN, y esto no es cosmético.
+       Antes cada imagen se estiraba al ancho de la caja y al alto que sobrara
+       en la página, así que la misma gráfica salía achatada o alargada según
+       cuánto texto llevara encima — y una nube de puntos deformada mueve de
+       sitio la diagonal que uno lee para juzgar si una asignatura se sale de
+       la línea. jsPDF sabe el tamaño real del PNG; solo había que
+       preguntárselo. */
+    const ponerImagen = (imagen, y, altoDisponible) => {
+      let ancho = contentWidth;
+      let alto = altoDisponible;
+      try {
+        const props = pdf.getImageProperties(imagen);
+        if (props?.width > 0 && props?.height > 0) {
+          const proporcion = props.height / props.width;
+          alto = contentWidth * proporcion;
+          if (alto > altoDisponible) { alto = altoDisponible; ancho = alto / proporcion; }
+        }
+      } catch {
+        /* Si el PNG no se deja medir se cae al comportamiento de antes: es
+           mejor una gráfica estirada que ninguna. */
+      }
+      pdf.addImage(imagen, 'PNG', PAGE.margin + (contentWidth - ancho) / 2, y, ancho, alto);
+    };
+
     /* La MISMA normalización que usa el resto del proyecto, y esto no es
        cosmético. Esta copia local quitaba las tildes; el mapa de agrupaciones
        se construye con la del núcleo, que las conserva. Así que al filtrar un
@@ -98,15 +134,6 @@ export const generarInformePDF = async ({
        y Teórica Troncal desaparecían del informe sin ningún aviso** — mientras
        la portada seguía diciendo «12 asignaturas en el grupo» cuando eran 18. */
     const normalizar = normalizarNucleo;
-
-    // Función para detectar la etapa educativa de un nivel
-    const detectarEtapa = (nivel) => {
-      if (!nivel) return null;
-      const nivelUpper = nivel.toUpperCase();
-      if (nivelUpper.includes('EEM') || /^[1-4]EEM$/i.test(nivelUpper)) return 'EEM';
-      if (nivelUpper.includes('EPM') || /^[1-6]EPM$/i.test(nivelUpper)) return 'EPM';
-      return null;
-    };
 
     // Determinar qué etapas hay en los datos
     const etapasEnDatos = new Set();
@@ -207,7 +234,7 @@ export const generarInformePDF = async ({
         pdf.text(t('groupReportSubtitle') || 'Análisis comparativo con el centro', PAGE.width / 2, 62, { align: 'center' });
 
         pdf.setFontSize(14);
-        pdf.text(trimestreSeleccionado, PAGE.width / 2, 78, { align: 'center' });
+        pdf.text(rotuloTrim, PAGE.width / 2, 78, { align: 'center' });
       } else {
         pdf.setFontSize(24);
         pdf.text(t('reportTitle'), PAGE.width / 2, 50, { align: 'center' });
@@ -231,7 +258,7 @@ export const generarInformePDF = async ({
         }
 
         pdf.setFontSize(16);
-        pdf.text(trimestreSeleccionado, PAGE.width / 2, etapaTexto ? 74 : 65, { align: 'center' });
+        pdf.text(rotuloTrim, PAGE.width / 2, etapaTexto ? 74 : 65, { align: 'center' });
       }
 
       // Info adicional
@@ -284,21 +311,23 @@ export const generarInformePDF = async ({
         totalAlumnos = datosGlobal.stats.registros;
       }
 
-      // Tabla de resumen
+      /* Los rótulos de esta tabla estaban escritos en castellano dentro del
+         código, así que el informe «en valencià» salía medio traducido: los
+         títulos de página en valenciano y las tablas en castellano. */
       const resumenData = [
-        ['Evaluación analizada', trimestreSeleccionado],
-        ['Niveles incluidos', niveles.length.toString()],
-        ['Asignaturas distintas', asignaturas.size.toString()],
-        ['Total de registros', totalAlumnos.toString()],
-        ['Nota media global', datosGlobal?.stats?.notaMedia?.toFixed(2) || 'N/A'],
-        ['Desviación típica global', datosGlobal?.stats?.desviacion?.toFixed(2) || 'N/A'],
-        ['% Aprobados global', `${(datosGlobal?.stats?.aprobados || 0).toFixed(1)}%`],
-        ['% Suspensos global', `${(datosGlobal?.stats?.suspendidos || 0).toFixed(1)}%`],
+        [t('reportEvaluation') || 'Evaluación analizada', rotuloTrim],
+        [t('reportLevels') || 'Niveles incluidos', niveles.length.toString()],
+        [t('reportSubjects') || 'Asignaturas distintas', asignaturas.size.toString()],
+        [t('reportRecords') || 'Total de registros', totalAlumnos.toString()],
+        [t('reportGlobalAvg') || 'Nota media global', nota(datosGlobal?.stats?.notaMedia)],
+        [t('reportGlobalStdDev') || 'Desviación típica global', nota(datosGlobal?.stats?.desviacion)],
+        [t('reportGlobalPassed') || '% Aprobados global', porcentaje(datosGlobal?.stats?.aprobados)],
+        [t('reportGlobalFailed') || '% Suspensos global', porcentaje(datosGlobal?.stats?.suspendidos)],
       ];
 
       autoTable(pdf, {
         startY: contentStartY + 10,
-        head: [['Indicador', 'Valor']],
+        head: [[t('indicator') || 'Indicador', t('value') || 'Valor']],
         body: resumenData,
         theme: 'striped',
         headStyles: { fillColor: COLORS.primary, fontSize: 11, fontStyle: 'bold' },
@@ -383,23 +412,33 @@ export const generarInformePDF = async ({
           }
         };
 
+        /* Las tarjetas: «—» donde no hay dato, que es lo que hace la pantalla.
+           Los nombres alternativos (`notaMediaEsp`, `countDificiles`) son de
+           una forma del objeto que el núcleo ya no devuelve; se quedan como
+           respaldo pero sin el `|| 0` detrás, que era lo que convertía la
+           ausencia en una cifra. */
+        const kpi = (...campos) => {
+          for (const c of campos) if (typeof kpisBloque[c] === 'number') return kpisBloque[c];
+          return null;
+        };
+
         // Primera fila: KPIs principales
-        drawKPICard(t('kpiCenterAvg'), (kpisBloque.notaMediaCentro || 0).toFixed(2), COLORS.info);
-        drawKPICard(t('kpiStdDev'), (kpisBloque.desviacionCentro || 0).toFixed(2), [99, 102, 241]); // Indigo
-        drawKPICard(t('kpiMode'), (kpisBloque.modaCentro || 0).toString(), [139, 92, 246]); // Violet
-        drawKPICard(t('kpiPassedAvg'), (kpisBloque.aprobadosCentro || 0).toFixed(1), COLORS.success, '%');
+        drawKPICard(t('kpiCenterAvg'), nota(kpi('notaMediaCentro')), COLORS.info);
+        drawKPICard(t('kpiStdDev'), nota(kpi('desviacionCentro')), [99, 102, 241]); // Indigo
+        drawKPICard(t('kpiMode'), entero(kpi('modaCentro')), [139, 92, 246]); // Violet
+        drawKPICard(t('kpiPassedAvg'), porcentaje(kpi('aprobadosCentro')), COLORS.success);
 
         // Segunda fila: Especialidades
-        drawKPICard(t('kpiInstrAvg'), (kpisBloque.notaMediaEspecialidades || kpisBloque.notaMediaEsp || 0).toFixed(2), COLORS.warning);
-        drawKPICard(t('kpiPassedInstr'), (kpisBloque.aprobadosEspecialidades || kpisBloque.aprobadosEsp || 0).toFixed(1), COLORS.success, '%');
-        drawKPICard(t('kpiDifficult'), (kpisBloque.asignaturasDificiles || kpisBloque.countDificiles || 0).toString(), COLORS.danger);
-        drawKPICard(t('kpiEasy'), (kpisBloque.asignaturasFaciles || kpisBloque.countFaciles || 0).toString(), COLORS.success);
+        drawKPICard(t('kpiInstrAvg'), nota(kpi('notaMediaEspecialidades', 'notaMediaEsp')), COLORS.warning);
+        drawKPICard(t('kpiPassedInstr'), porcentaje(kpi('aprobadosEspecialidades', 'aprobadosEsp')), COLORS.success);
+        drawKPICard(t('kpiDifficult'), entero(kpi('asignaturasDificiles', 'countDificiles')), COLORS.danger);
+        drawKPICard(t('kpiEasy'), entero(kpi('asignaturasFaciles', 'countFaciles')), COLORS.success);
 
         // Tercera fila: Referencia (si hay)
         if (kpisBloque.notasMediasRef && kpisBloque.notasMediasRef.length > 0) {
           kpisBloque.notasMediasRef.forEach(ref => {
             const label = ref.asignatura === 'Teórica Troncal' ? t('kpiTTAvg') : t('kpiLMAvg');
-            drawKPICard(label, (ref.notaMedia || 0).toFixed(2), [6, 182, 212]); // Cyan
+            drawKPICard(label, nota(ref.notaMedia), [6, 182, 212]); // Cyan
           });
         }
 
@@ -449,11 +488,11 @@ export const generarInformePDF = async ({
 
           // Métricas
           const metrics = [
-            { label: t('avgGrade') || 'Nota Media', value: (data.notaMedia || 0).toFixed(2) },
-            { label: t('kpiStdDev') || 'Desviación', value: (data.desviacion || 0).toFixed(2) },
-            { label: t('kpiMode') || 'Moda', value: (data.moda || 0).toFixed(0) },
-            { label: t('passed') || '% Aprobados', value: `${(data.aprobados || 0).toFixed(1)}%` },
-            { label: t('failed') || '% Suspensos', value: `${(data.suspendidos || 0).toFixed(1)}%` }
+            { label: t('avgGrade') || 'Nota Media', value: nota(data.notaMedia) },
+            { label: t('kpiStdDev') || 'Desviación', value: nota(data.desviacion) },
+            { label: t('kpiMode') || 'Moda', value: entero(data.moda) },
+            { label: t('passed') || '% Aprobados', value: porcentaje(data.aprobados) },
+            { label: t('failed') || '% Suspensos', value: porcentaje(data.suspendidos) }
           ];
 
           metrics.forEach(metric => {
@@ -534,86 +573,36 @@ export const generarInformePDF = async ({
         pdf.text((t('kpiComparison') || 'KPIs - Comparativa') + sufijoEtapa, PAGE.margin, contentStartY);
         pdf.setTextColor(...COLORS.text);
 
-        // Preparar datos de comparativa
-        const calcDiff = (val, centro) => {
-          if (!centro || centro === 0) return '';
-          const diff = ((val - centro) / centro) * 100;
-          const sign = diff > 0 ? '+' : '';
-          return `(${sign}${diff.toFixed(1)}%)`;
+        /* Las cinco filas las monta el núcleo (`filasComparativaKPI`), que es
+           donde está probado que una columna sin dato dice «—» y no «0.00
+           (-100,0 %)». Aquí solo se decide QUÉ columnas hay y cómo se
+           rotulan. Antes eran cien líneas de plantilla repetida dos veces
+           —una para profesional y otra para el resto— con el `|| 0` metido en
+           cada celda. */
+        const rotulosKPI = {
+          notaMedia: t('avgGrade') || 'Nota Media',
+          desviacion: t('kpiStdDev') || 'Desviación',
+          moda: t('kpiMode') || 'Moda',
+          aprobados: t('passed') || '% Aprobados',
+          suspendidos: t('failed') || '% Suspensos'
         };
+        const rotCentro = t('center') || 'Centro';
+        const rotEsp = t('specialties') || 'Especialidades';
+        const rotNoEsp = t('nonSpecialties') || 'No Especialidades';
+        const rotTT = t('theoreticalCore') || 'Teórica Troncal';
+        const rotMetrica = t('metric') || 'Métrica';
 
-        const comparativaHead = modoEtapa === 'EPM'
-          ? [['Métrica', 'Centro', 'Teórica Troncal', 'Especialidades', 'No Especialidades']]
-          : [['Métrica', 'Especialidades', 'Centro', 'No Especialidades']];
+        const columnasKPI = modoEtapa === 'EPM'
+          ? [{ esCentro: true, rotulo: rotCentro },
+             { sufijo: 'TeoricaTroncal', rotulo: rotTT },
+             { sufijo: 'Especialidades', rotulo: rotEsp },
+             { sufijo: 'NoEspecialidades', rotulo: rotNoEsp }]
+          : [{ sufijo: 'Especialidades', rotulo: rotEsp },
+             { esCentro: true, rotulo: rotCentro },
+             { sufijo: 'NoEspecialidades', rotulo: rotNoEsp }];
 
-        const comparativaBody = modoEtapa === 'EPM' ? [
-          [
-            t('avgGrade') || 'Nota Media',
-            (kpisBloque.notaMediaCentro || 0).toFixed(2),
-            `${(kpisBloque.notaMediaTeoricaTroncal || 0).toFixed(2)} ${calcDiff(kpisBloque.notaMediaTeoricaTroncal, kpisBloque.notaMediaCentro)}`,
-            `${(kpisBloque.notaMediaEspecialidades || 0).toFixed(2)} ${calcDiff(kpisBloque.notaMediaEspecialidades, kpisBloque.notaMediaCentro)}`,
-            `${(kpisBloque.notaMediaNoEspecialidades || 0).toFixed(2)} ${calcDiff(kpisBloque.notaMediaNoEspecialidades, kpisBloque.notaMediaCentro)}`
-          ],
-          [
-            t('kpiStdDev') || 'Desviación',
-            (kpisBloque.desviacionCentro || 0).toFixed(2),
-            `${(kpisBloque.desviacionTeoricaTroncal || 0).toFixed(2)} ${calcDiff(kpisBloque.desviacionTeoricaTroncal, kpisBloque.desviacionCentro)}`,
-            `${(kpisBloque.desviacionEspecialidades || 0).toFixed(2)} ${calcDiff(kpisBloque.desviacionEspecialidades, kpisBloque.desviacionCentro)}`,
-            `${(kpisBloque.desviacionNoEspecialidades || 0).toFixed(2)} ${calcDiff(kpisBloque.desviacionNoEspecialidades, kpisBloque.desviacionCentro)}`
-          ],
-          [
-            t('kpiMode') || 'Moda',
-            (kpisBloque.modaCentro || 0).toFixed(0),
-            `${(kpisBloque.modaTeoricaTroncal || 0).toFixed(0)} ${calcDiff(kpisBloque.modaTeoricaTroncal, kpisBloque.modaCentro)}`,
-            `${(kpisBloque.modaEspecialidades || 0).toFixed(0)} ${calcDiff(kpisBloque.modaEspecialidades, kpisBloque.modaCentro)}`,
-            `${(kpisBloque.modaNoEspecialidades || 0).toFixed(0)} ${calcDiff(kpisBloque.modaNoEspecialidades, kpisBloque.modaCentro)}`
-          ],
-          [
-            t('passed') || '% Aprobados',
-            `${(kpisBloque.aprobadosCentro || 0).toFixed(1)}%`,
-            `${(kpisBloque.aprobadosTeoricaTroncal || 0).toFixed(1)}% ${calcDiff(kpisBloque.aprobadosTeoricaTroncal, kpisBloque.aprobadosCentro)}`,
-            `${(kpisBloque.aprobadosEspecialidades || 0).toFixed(1)}% ${calcDiff(kpisBloque.aprobadosEspecialidades, kpisBloque.aprobadosCentro)}`,
-            `${(kpisBloque.aprobadosNoEspecialidades || 0).toFixed(1)}% ${calcDiff(kpisBloque.aprobadosNoEspecialidades, kpisBloque.aprobadosCentro)}`
-          ],
-          [
-            t('failed') || '% Suspensos',
-            `${(kpisBloque.suspendidosCentro || 0).toFixed(1)}%`,
-            `${(kpisBloque.suspendidosTeoricaTroncal || 0).toFixed(1)}% ${calcDiff(kpisBloque.suspendidosTeoricaTroncal, kpisBloque.suspendidosCentro)}`,
-            `${(kpisBloque.suspendidosEspecialidades || 0).toFixed(1)}% ${calcDiff(kpisBloque.suspendidosEspecialidades, kpisBloque.suspendidosCentro)}`,
-            `${(kpisBloque.suspendidosNoEspecialidades || 0).toFixed(1)}% ${calcDiff(kpisBloque.suspendidosNoEspecialidades, kpisBloque.suspendidosCentro)}`
-          ]
-        ] : [
-          [
-            t('avgGrade') || 'Nota Media',
-            `${(kpisBloque.notaMediaEspecialidades || 0).toFixed(2)} ${calcDiff(kpisBloque.notaMediaEspecialidades, kpisBloque.notaMediaCentro)}`,
-            (kpisBloque.notaMediaCentro || 0).toFixed(2),
-            `${(kpisBloque.notaMediaNoEspecialidades || 0).toFixed(2)} ${calcDiff(kpisBloque.notaMediaNoEspecialidades, kpisBloque.notaMediaCentro)}`
-          ],
-          [
-            t('kpiStdDev') || 'Desviación',
-            `${(kpisBloque.desviacionEspecialidades || 0).toFixed(2)} ${calcDiff(kpisBloque.desviacionEspecialidades, kpisBloque.desviacionCentro)}`,
-            (kpisBloque.desviacionCentro || 0).toFixed(2),
-            `${(kpisBloque.desviacionNoEspecialidades || 0).toFixed(2)} ${calcDiff(kpisBloque.desviacionNoEspecialidades, kpisBloque.desviacionCentro)}`
-          ],
-          [
-            t('kpiMode') || 'Moda',
-            `${(kpisBloque.modaEspecialidades || 0).toFixed(0)} ${calcDiff(kpisBloque.modaEspecialidades, kpisBloque.modaCentro)}`,
-            (kpisBloque.modaCentro || 0).toFixed(0),
-            `${(kpisBloque.modaNoEspecialidades || 0).toFixed(0)} ${calcDiff(kpisBloque.modaNoEspecialidades, kpisBloque.modaCentro)}`
-          ],
-          [
-            t('passed') || '% Aprobados',
-            `${(kpisBloque.aprobadosEspecialidades || 0).toFixed(1)}% ${calcDiff(kpisBloque.aprobadosEspecialidades, kpisBloque.aprobadosCentro)}`,
-            `${(kpisBloque.aprobadosCentro || 0).toFixed(1)}%`,
-            `${(kpisBloque.aprobadosNoEspecialidades || 0).toFixed(1)}% ${calcDiff(kpisBloque.aprobadosNoEspecialidades, kpisBloque.aprobadosCentro)}`
-          ],
-          [
-            t('failed') || '% Suspensos',
-            `${(kpisBloque.suspendidosEspecialidades || 0).toFixed(1)}% ${calcDiff(kpisBloque.suspendidosEspecialidades, kpisBloque.suspendidosCentro)}`,
-            `${(kpisBloque.suspendidosCentro || 0).toFixed(1)}%`,
-            `${(kpisBloque.suspendidosNoEspecialidades || 0).toFixed(1)}% ${calcDiff(kpisBloque.suspendidosNoEspecialidades, kpisBloque.suspendidosCentro)}`
-          ]
-        ];
+        const comparativaHead = [[rotMetrica, ...columnasKPI.map((c) => c.rotulo)]];
+        const comparativaBody = filasComparativaKPI(kpisBloque, columnasKPI, rotulosKPI);
 
         autoTable(pdf, {
           startY: contentStartY + 10,
@@ -660,62 +649,42 @@ export const generarInformePDF = async ({
       pdf.setTextColor(...COLORS.text);
 
       // Obtener nota media del centro (GLOBAL)
-      const datosGlobalCentro = datosCompletos[trimestreSeleccionado]?.['GLOBAL']?.['Total'];
-      const notaMediaCentro = datosGlobalCentro?.stats?.notaMedia || kpisGlobales?.notaMediaCentro || 0;
-      const aprobadosCentro = datosGlobalCentro?.stats?.aprobados || kpisGlobales?.porcentajeAprobados || 0;
+      const statsCentro = datosCompletos[trimestreSeleccionado]?.['GLOBAL']?.['Total']?.stats;
+      const notaMediaCentro = typeof statsCentro?.notaMedia === 'number'
+        ? statsCentro.notaMedia
+        : (typeof kpisGlobales?.notaMediaCentro === 'number' ? kpisGlobales.notaMediaCentro : null);
+      /* El respaldo era `kpisGlobales?.porcentajeAprobados`, un campo que el
+         núcleo no devuelve con ese nombre: cuando el CSV no traía el «Total»
+         global, la referencia del centro caía a cero y TODAS las asignaturas
+         salían «por encima del centro» con la diferencia entera. */
+      const aprobadosCentro = typeof statsCentro?.aprobados === 'number'
+        ? statsCentro.aprobados
+        : (typeof kpisGlobales?.aprobadosCentro === 'number' ? kpisGlobales.aprobadosCentro : null);
 
       // Helper para obtener número de nivel
       const getNivelNum = (n) => parseInt(n.match(/\d+/)?.[0] || '0');
 
-      // ========== PARTE 1: COMPARATIVA GLOBAL (asignatura agregada vs centro) ==========
-      // Calcular medias globales por asignatura (agregando todos los niveles)
-      const asignaturasTotales = {};
-      Object.keys(datosCompletos[trimestreSeleccionado] || {}).forEach(nivel => {
-        if (nivel === 'GLOBAL') return;
-        const datosNivel = datosCompletos[trimestreSeleccionado]?.[nivel];
-        if (datosNivel) {
-          Object.entries(datosNivel).forEach(([asig, data]) => {
-            if (!esAgregado(asig)) {
-              if (perteneceAGruposFiltrados(asig) && data?.stats) {
-                if (!asignaturasTotales[asig]) {
-                  asignaturasTotales[asig] = { sumMedia: 0, sumAprobados: 0, count: 0, registros: 0 };
-                }
-                const registros = data.stats.registros || 1;
-                asignaturasTotales[asig].sumMedia += (data.stats.notaMedia || 0) * registros;
-                asignaturasTotales[asig].sumAprobados += (data.stats.aprobados || 0) * registros;
-                asignaturasTotales[asig].registros += registros;
-                asignaturasTotales[asig].count++;
-              }
-            }
-          });
-        }
-      });
-
-      const globalesData = Object.entries(asignaturasTotales)
-        .filter(([, data]) => data.registros > 0)
-        .map(([asig, data]) => {
-          const mediaGlobal = data.sumMedia / data.registros;
-          const aprobadosGlobal = data.sumAprobados / data.registros;
-          const diffMedia = mediaGlobal - notaMediaCentro;
-          const diffAprobados = aprobadosGlobal - aprobadosCentro;
-          return [
-            asig,
-            t('globalAllLevels') || 'Todos los cursos',
-            mediaGlobal.toFixed(2),
-            diffMedia >= 0 ? `+${diffMedia.toFixed(2)}` : diffMedia.toFixed(2),
-            `${aprobadosGlobal.toFixed(1)}%`,
-            diffAprobados >= 0 ? `+${diffAprobados.toFixed(1)}pp` : `${diffAprobados.toFixed(1)}pp`
-          ];
-        })
-        .sort((a, b) => a[0].localeCompare(b[0], 'es', { sensitivity: 'base' }));
+      /* PARTE 1: cada asignatura agregando todos sus cursos, contra el centro.
+         La media ponderada la hace el núcleo, que es donde está probado que un
+         curso sin nota no cuenta como un cero. */
+      const globalesData = porAsignaturaAgregada(
+        datosCompletos[trimestreSeleccionado], perteneceAGruposFiltrados
+      ).map((a) => [
+        a.asignatura,
+        t('globalAllLevels') || 'Todos los cursos',
+        nota(a.notaMedia),
+        conSigno(diferencia(a.notaMedia, notaMediaCentro), (n) => n.toFixed(2)),
+        porcentaje(a.aprobados),
+        conSigno(diferencia(a.aprobados, aprobadosCentro), (n) => `${n.toFixed(1)}pp`)
+      ]);
 
       // Añadir fila de referencia del centro
       globalesData.unshift([
         `${t('center') || 'Centro'} (${t('reference') || 'ref.'})`,
         '-',
-        notaMediaCentro.toFixed(2),
+        nota(notaMediaCentro),
         '-',
-        `${aprobadosCentro.toFixed(1)}%`,
+        porcentaje(aprobadosCentro),
         '-'
       ]);
 
@@ -792,24 +761,28 @@ export const generarInformePDF = async ({
         const datosNivel = datosCompletos[trimestreSeleccionado]?.[nivel];
         if (!datosNivel) return;
 
-        // Obtener referencia del nivel (Total del nivel)
-        const totalNivel = datosNivel['Total'];
-        const mediaRefNivel = totalNivel?.stats?.notaMedia || 0;
-        const aprobadosRefNivel = totalNivel?.stats?.aprobados || 0;
+        /* La referencia del curso. Sin la fila «Total» del nivel no hay
+           contra qué comparar, y ponerla a cero hacía que toda asignatura
+           saliera «+7,20 sobre la media del curso». */
+        const statsNivel = datosNivel['Total']?.stats;
+        const mediaRefNivel = typeof statsNivel?.notaMedia === 'number' ? statsNivel.notaMedia : null;
+        const aprobadosRefNivel = typeof statsNivel?.aprobados === 'number' ? statsNivel.aprobados : null;
 
         Object.entries(datosNivel).forEach(([asig, data]) => {
           if (!esAgregado(asig)) {
             if (perteneceAGruposFiltrados(asig) && data?.stats) {
+              const media = typeof data.stats.notaMedia === 'number' ? data.stats.notaMedia : null;
+              const aprob = typeof data.stats.aprobados === 'number' ? data.stats.aprobados : null;
               asignaturasPorCurso.push({
                 asignatura: asig,
                 nivel,
                 nivelNum: getNivelNum(nivel),
-                notaMedia: data.stats.notaMedia || 0,
-                aprobados: data.stats.aprobados || 0,
+                notaMedia: media,
+                aprobados: aprob,
                 mediaRefNivel,
                 aprobadosRefNivel,
-                diffMedia: (data.stats.notaMedia || 0) - mediaRefNivel,
-                diffAprobados: (data.stats.aprobados || 0) - aprobadosRefNivel
+                diffMedia: diferencia(media, mediaRefNivel),
+                diffAprobados: diferencia(aprob, aprobadosRefNivel)
               });
             }
           }
@@ -824,20 +797,15 @@ export const generarInformePDF = async ({
       });
 
       // Preparar datos para la tabla
-      const tableDataPorCurso = asignaturasPorCurso.map(asig => {
-        const diffMediaStr = asig.diffMedia >= 0 ? `+${asig.diffMedia.toFixed(2)}` : asig.diffMedia.toFixed(2);
-        const diffAprobStr = asig.diffAprobados >= 0 ? `+${asig.diffAprobados.toFixed(1)}pp` : `${asig.diffAprobados.toFixed(1)}pp`;
-
-        return [
-          asig.asignatura,
-          asig.nivel,
-          asig.notaMedia.toFixed(2),
-          `${asig.mediaRefNivel.toFixed(2)}`,
-          diffMediaStr,
-          `${asig.aprobados.toFixed(1)}%`,
-          diffAprobStr
-        ];
-      });
+      const tableDataPorCurso = asignaturasPorCurso.map(asig => [
+        asig.asignatura,
+        asig.nivel,
+        nota(asig.notaMedia),
+        nota(asig.mediaRefNivel),
+        conSigno(asig.diffMedia, (n) => n.toFixed(2)),
+        porcentaje(asig.aprobados),
+        conSigno(asig.diffAprobados, (n) => `${n.toFixed(1)}pp`)
+      ]);
 
       autoTable(pdf, {
         startY: contentStartY + 12,
@@ -920,10 +888,8 @@ export const generarInformePDF = async ({
       }
 
       // Añadir imagen del gráfico
-      const imgWidth = contentWidth;
       const imgStartY = filtroAgrupacionesActivo ? contentStartY + 12 : contentStartY + 8;
-      const imgHeight = PAGE.height - imgStartY - PAGE.footerHeight - 10;
-      pdf.addImage(chartImages.scatter, 'PNG', PAGE.margin, imgStartY, imgWidth, imgHeight);
+      ponerImagen(chartImages.scatter, imgStartY, PAGE.height - imgStartY - PAGE.footerHeight - 10);
 
       addFooter(currentPage);
     }
@@ -939,9 +905,8 @@ export const generarInformePDF = async ({
       pdf.setTextColor(...COLORS.text);
 
       // Añadir imagen del gráfico
-      const imgWidth = contentWidth;
-      const imgHeight = PAGE.height - contentStartY - PAGE.footerHeight - 15;
-      pdf.addImage(chartImages.correlationEvolution, 'PNG', PAGE.margin, contentStartY + 8, imgWidth, imgHeight);
+      ponerImagen(chartImages.correlationEvolution, contentStartY + 8,
+        PAGE.height - contentStartY - PAGE.footerHeight - 15);
 
       addFooter(currentPage);
     }
@@ -968,17 +933,22 @@ export const generarInformePDF = async ({
       };
 
       // Tabla de correlaciones
+      /* Una correlación que no se ha podido calcular no es «0.000» —que
+         significa «no hay relación», una afirmación bien fuerte—: es que no
+         hay dato. */
       const correlacionesData = correlacionesTrimestre.map((corr, idx) => [
         (idx + 1).toString(),
         corr.Nivel || '',
         corr.Asignatura1 || '',
         corr.Asignatura2 || '',
-        (corr.Correlacion || 0).toFixed(3)
+        texto(corr.Correlacion, (n) => n.toFixed(3))
       ]);
 
       autoTable(pdf, {
         startY: contentStartY + 10,
-        head: [['#', 'Nivel', 'Asignatura 1', 'Asignatura 2', 'Correlación']],
+        head: [['#', t('level') || 'Nivel',
+                `${t('subject') || 'Asignatura'} 1`, `${t('subject') || 'Asignatura'} 2`,
+                t('correlation') || 'Correlación']],
         body: correlacionesData,
         theme: 'grid',
         headStyles: { fillColor: COLORS.primary, fontSize: 10, fontStyle: 'bold' },
@@ -1025,9 +995,8 @@ export const generarInformePDF = async ({
         pdf.setTextColor(...COLORS.text);
 
         // Añadir imagen del gráfico
-        const imgWidth = contentWidth;
-        const imgHeight = PAGE.height - contentStartY - PAGE.footerHeight - 15;
-        pdf.addImage(imgData, 'PNG', PAGE.margin, contentStartY + 8, imgWidth, imgHeight);
+        ponerImagen(imgData, contentStartY + 8,
+          PAGE.height - contentStartY - PAGE.footerHeight - 15);
 
         addFooter(currentPage);
       });
@@ -1044,9 +1013,8 @@ export const generarInformePDF = async ({
       pdf.setTextColor(...COLORS.text);
 
       // Añadir imagen del gráfico
-      const imgWidth = contentWidth;
-      const imgHeight = PAGE.height - contentStartY - PAGE.footerHeight - 15;
-      pdf.addImage(chartImages.evolution, 'PNG', PAGE.margin, contentStartY + 8, imgWidth, imgHeight);
+      ponerImagen(chartImages.evolution, contentStartY + 8,
+        PAGE.height - contentStartY - PAGE.footerHeight - 15);
 
       addFooter(currentPage);
     } else if (configInforme.incluirEvolucionNotas !== false && trimestresDisponibles.length < 2) {
@@ -1275,13 +1243,13 @@ export const generarInformePDF = async ({
           asig.nivel || '',
           asig.asignatura || '',
           asig.registros || 0,
-          (asig.notaMedia || 0).toFixed(2),
-          typeof asig.desviacion === 'number' ? asig.desviacion.toFixed(2) : '-',
-          asig.moda != null ? asig.moda.toString() : '-',
-          `${(asig.aprobados || 0).toFixed(1)}%`,
-          asig.modaAprobados || '-',
-          `${(asig.suspendidos || 0).toFixed(1)}%`,
-          asig.modaSuspendidos || '-'
+          nota(asig.notaMedia),
+          nota(asig.desviacion),
+          entero(asig.moda),
+          porcentaje(asig.aprobados),
+          entero(asig.modaAprobados),
+          porcentaje(asig.suspendidos),
+          entero(asig.modaSuspendidos)
         ]);
 
         autoTable(pdf, {
@@ -1458,14 +1426,9 @@ export const generarInformePDF = async ({
         pdf.setTextColor(...COLORS.text);
 
         // Añadir imagen del gráfico de distribución
-        const imgWidth = contentWidth;
-        const imgHeight = imgWidth * (550 / 1200); // Mantener proporción
-        const maxHeight = PAGE.height - contentStartY - 30;
-        const finalHeight = Math.min(imgHeight, maxHeight);
-        const finalWidth = finalHeight * (1200 / 550);
-
-        const imgX = PAGE.margin + (contentWidth - finalWidth) / 2;
-        pdf.addImage(image, 'PNG', imgX, contentStartY + 12, finalWidth, finalHeight);
+        /* Esta ya respetaba la proporción, pero con una fija escrita a mano
+            (1200×550). Ahora se mide el PNG, como las demás. */
+        ponerImagen(image, contentStartY + 12, PAGE.height - contentStartY - 30);
 
         addFooter(currentPage);
       }
