@@ -9,6 +9,10 @@ import { procesarDatos as procesarDatosService } from './services/dataProcessor.
 import { exportarJSON as exportarJSONService, procesarImportacionJSON } from './services/dataIO.js';
 import { useStatisticalCalculations } from './hooks/useStatisticalCalculations.js';
 import { recordarIdioma } from './idioma.js';
+import { serieAlertas } from './nucleo/alertas.js';
+import { agruparPorFamilia, compararFamilias } from './nucleo/agrupaciones.js';
+import AlertasCurso from './components/vistas/AlertasCurso.jsx';
+import FamiliasAsignaturas from './components/vistas/FamiliasAsignaturas.jsx';
 import { analizarDificultad } from './nucleo/dificultad.js';
 import { serieEvolucionSelecciones, serieEvolucionNiveles } from './nucleo/evolucion.js';
 import { compararTrimestres, esAgregado, mismoMomento, cursosDe,
@@ -156,6 +160,24 @@ const DashboardAcademico = () => {
     });
   }, []);
 
+  /* Cuántas asignaturas están en rojo en cada momento del curso, y cuáles
+     entran y salen. Recorre todos los momentos, así que no depende del
+     seleccionado. */
+  const serieDeAlertas = useMemo(
+    () => serieAlertas({ trimestresDisponibles, datosCompletos, umbrales,
+                         modoEtapa, vista: 'niveles' }),
+    [trimestresDisponibles, datosCompletos, umbrales, modoEtapa]);
+
+  /* Las familias del momento que se está mirando. Esta sí es una foto. */
+  const familiasDelTrimestre = useMemo(
+    () => (trimestreSeleccionado && datosCompletos[trimestreSeleccionado]
+      ? agruparPorFamilia(datosCompletos[trimestreSeleccionado], {
+          agrupaciones: agrupacionesCompletas[trimestreSeleccionado] || {},
+          modoEtapa, umbrales, vista: 'global'
+        })
+      : null),
+    [trimestreSeleccionado, datosCompletos, agrupacionesCompletas, modoEtapa, umbrales]);
+
   /* ---------- QUÉ SE ESTÁ MIRANDO ----------
      Un solo contexto, arriba, y el único sitio donde se cambia. Ver
      components/layout/BarraContexto.jsx para el porqué. */
@@ -165,14 +187,18 @@ const DashboardAcademico = () => {
      fila elige su trimestre, y la Evolución los recorre todos. Enseñar «1EV»
      mientras comparas el segundo no es un despiste de la cabecera, es que
      estaba enseñando una variable que esa vista no usa. */
-  const VISTAS_COMPARATIVAS = ['estadisticas', 'evolucion'];
+  /* «Alertas» entra aquí: recorre todos los momentos del curso, así que
+     tampoco obedece a un momento concreto. «Familias» no, que es la foto de
+     uno solo. */
+  const VISTAS_COMPARATIVAS = ['estadisticas', 'evolucion', 'alertas'];
 
   /* El rótulo de cada vista, el mismo que usa la navegación lateral: si se
      escribieran dos veces, acabarían diciendo cosas distintas. */
   const ETIQUETA_VISTA = {
     kpis: 'kpisNav', dispersion: 'dispersionNav', estadisticas: 'statistics',
     correlaciones: 'correlations', evolucion: 'evolution',
-    dificultad: 'difficulty', asignaturas: 'subjectsData'
+    dificultad: 'difficulty', asignaturas: 'subjectsData',
+    alertas: 'alrTitulo', familias: 'fam_titulo'
   };
 
   const momentosDisponibles = useMemo(
@@ -1858,6 +1884,24 @@ const DashboardAcademico = () => {
           )}
         </h2>
       </div>
+
+      {/* VISTA: ALERTAS A LO LARGO DEL CURSO */}
+      {vistaActual === 'alertas' && (
+        <div className="max-w-7xl mx-auto">
+          <AlertasCurso serie={serieDeAlertas} t={t} rotularMomento={rotularMomento} />
+        </div>
+      )}
+
+      {/* VISTA: FAMILIAS DE ASIGNATURAS */}
+      {vistaActual === 'familias' && (
+        <div className="max-w-7xl mx-auto">
+          <FamiliasAsignaturas
+            resultado={familiasDelTrimestre}
+            compararFamilias={compararFamilias}
+            t={t}
+          />
+        </div>
+      )}
 
       {/* VISTA: INDICADORES (KPIs) */}
       {vistaActual === 'kpis' && (
