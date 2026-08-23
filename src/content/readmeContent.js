@@ -3,7 +3,7 @@
  * Embedded README content for the help modal
  */
 
-export const README_CONTENT = `# Dashboard Académico v3.4.0
+export const README_CONTENT = `# Dashboard Académico v3.5.0
 
 ---
 

@@ -1,0 +1,127 @@
+# Novedades
+
+Lo que cambia en cada versión, y **sobre todo lo que cambia de número**: varios
+arreglos corrigen cifras que antes salían mal, así que si comparas una pantalla
+de hoy con una captura de ayer, aquí está por qué no dicen lo mismo.
+
+Las versiones anteriores a la 3.5.0 se reconstruyen desde el historial de git y
+van resumidas.
+
+---
+
+## 3.5.0 — 23 de agosto de 2026
+
+Una revisión a fondo. Catorce fallos de la auditoría inicial, cinco más que
+encontró una revisión posterior, tres comparaciones nuevas y una reorganización
+de la interfaz.
+
+### ⚠️ Cifras que cambian
+
+Si venías usando la versión anterior, estas son las que **ya no dirán lo
+mismo**, porque antes estaban mal:
+
+- **El porcentaje de suspensos, al comparar dos trimestres.** Subir de un 8,5 %
+  a un 14 % salía en VERDE, como si fuera una mejora. Ahora en rojo.
+- **El recuento de asignaturas.** «Total Especialidad», «Total No
+  Especialidad» y «Teórica Troncal» son filas agregadas y se contaban como
+  asignaturas: en la vista por niveles, con seis cursos de profesional, eran
+  hasta doce entradas fantasma. Y como la tarjeta de KPIs sí las apartaba,
+  **la tarjeta y la lista daban números distintos de lo mismo**.
+- **La gráfica de evolución con las dos etapas cargadas.** El eje mezclaba
+  elemental y profesional, así que la línea zigzagueaba: con las dos etapas
+  subiendo, se leía como «baja y luego sube».
+- **Los porcentajes de un CSV en escala 0-100.** Un `PctSuspendidos` de 1 —una
+  suspensa de cada cien— se convertía en el 100 %, y esa asignatura salía
+  clasificada como difícil.
+- **Los informes filtrados por agrupación** perdían en silencio todas las
+  asignaturas con tilde —percusión, violín, saxofón, órgano, acordeón— mientras
+  la portada seguía contándolas.
+- **Las correlaciones** dependían del orden en que se cargaran los ficheros:
+  ganaba el último. Ahora son las del trimestre que estás mirando.
+
+### Nuevo
+
+- **Curso académico contra curso académico.** El curso pasa a formar parte de
+  la identidad de cada fichero, así que se pueden cargar varios años a la vez
+  —antes se pisaban en silencio y uno desaparecía—. Y en Evolución hay un
+  interruptor que pone la evaluación en el eje y una línea por curso: la
+  distancia entre las líneas responde a «¿vamos mejor que el año pasado?».
+- **Alertas a lo largo del curso.** Cuántas asignaturas están en rojo en cada
+  momento y, sobre todo, **cuáles entran y salen**. La nota media es la cifra
+  que menos se mueve: un centro puede tener la misma media y haber pasado de
+  tres asignaturas problemáticas a nueve.
+- **Familias de asignaturas.** Cuerda contra viento, tecla contra cuerda, con
+  media ponderada por registros y un selector de familia de referencia.
+- **Varios CSV de una vez.** Un curso completo son ocho ficheros; los repetidos
+  se juntan en una sola pregunta en vez de ocho diálogos seguidos.
+- **Ajustar los ejes a los datos** en el mapa de dispersión.
+- Las fuentes van **empaquetadas** con la aplicación: ya no se piden a Google en
+  cada visita.
+
+### Arreglado
+
+- **La aplicación se quedaba en blanco**, sin mensaje, al seleccionar una
+  asignatura cuya moda viniera vacía —lo que pasa siempre que ninguna nota se
+  repite—. Y ahora hay una red que convierte cualquier error inesperado en una
+  pantalla que lo explica en vez de una página vacía.
+- **El informe PDF imprimía tres páginas de KPIs a 0,00** con las dos etapas
+  cargadas. Ahora saca un juego de páginas por etapa.
+- **`1.050` registros se leían como `1,05`**, y esa asignatura desaparecía de
+  todos los análisis sin decir nada.
+- Tres rótulos enseñaban el texto de otro por claves de traducción duplicadas:
+  donde debía poner «Motivo» ponía «Análisis Detallado», y el mensaje de «no
+  hay datos» salía con `{level}` y `{subject}` en crudo.
+- Diez rótulos más salían en castellano también «en valencià».
+- Borrar un trimestre no borraba sus agrupaciones, que seguían filtrando.
+- La cabecera enseñaba el centro y el curso del **primer** fichero cargado, no
+  del que estabas mirando.
+
+### La interfaz
+
+Había tres nociones de «qué estoy mirando» que no se hablaban entre sí, y de
+ahí salía casi todo el desconcierto:
+
+- Ahora hay **una sola barra de contexto**, arriba y fija, con el momento del
+  curso y la etapa. Antes la etapa vivía en la barra lateral y el trimestre
+  solo se podía cambiar desde el modal de gestión de ficheros.
+- **Se retiró un desplegable de la vista de Correlaciones que cambiaba el
+  trimestre global**: tocarlo ahí cambiaba lo que veías después en Indicadores
+  y en Dificultad, sin ningún aviso.
+- Las vistas que comparan varios momentos **lo declaran** en vez de enseñar un
+  contexto que no usan.
+- Los selectores solo aparecen cuando hay algo que elegir.
+- La pestaña «Comparativa» de KPIs ya no se apaga sola al entrar en «las dos
+  etapas»: se deshabilita y dice por qué.
+
+### Por dentro
+
+- El cálculo sale del componente a `src/nucleo/`, sin React y ejercitable en
+  node. **Red de pruebas nueva: 379 comprobaciones**, sin framework, y `npm
+  test` y `npm run lint` pasan a ser puerta del despliegue.
+- Fuera 19 `console.log` de depuración y 1.900 líneas de código muerto.
+- Un JSON exportado con la versión anterior **sigue cargándose**: sus claves se
+  reconstruyen solas.
+
+---
+
+## 3.4.0 — 28 de diciembre de 2025
+
+Plantillas de Excel descargables desde la propia aplicación y enlaces de apoyo.
+
+## 3.3.0 — 28 de diciembre de 2025
+
+Datos de ejemplo y botón para cargarlos, para poder probar la aplicación sin
+tener un CSV a mano.
+
+## 3.2.0 — 28 de diciembre de 2025
+
+Corregido el parseo de los KPIs globales de «No Especialidad» en los CSV de
+profesional.
+
+## 3.1.0 — 28 de diciembre de 2025
+
+Rediseño minimalista completo, con su sistema de diseño documentado.
+
+## 3.0.6 — 27 de diciembre de 2025
+
+Mejoras en el informe PDF: soporte de etapas y distribución de notas.

@@ -1,4 +1,6 @@
-# Dashboard Académico v3.4.0
+# Dashboard Académico v3.5.0
+
+> Lo que cambia en cada versión está en [CHANGELOG.md](CHANGELOG.md). La 3.5.0 corrige cifras que antes salían mal: si comparas con una captura anterior, empieza por ahí.
 
 ---
 
