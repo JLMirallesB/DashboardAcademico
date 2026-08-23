@@ -133,6 +133,14 @@ seccion('3. Las familias se solapan: esto no es un reparto del 100 %');
     res.solape.asignaturas.join('|'));
   /* 44 (tecla) + 60 (especialidad) + 16 (cuerda) + 60 (no especialidad)
      + 60 (teórica troncal) + 10 (sin clasificar) = 250 sobre 130 reales. */
+  /* Y lo mismo con el recuento de asignaturas, que es la OTRA columna que se
+     puede sumar de arriba abajo: 2 (tecla) + 3 (especialidad) + 1 (cuerda)
+     + 3 (no especialidad) + 3 (teórica troncal) + 1 (sin clasificar) = 13,
+     y el centro tiene 7 asignaturas distintas. Sin las dos cifras en pantalla,
+     ese 13 se lee como «el centro imparte trece asignaturas». */
+  comprobar('CANDADO: sumar la columna de asignaturas da 13 y el centro tiene 7 — y se ven las dos',
+    res.solape.asignaturasSumadas === 13 && res.solape.asignaturasDistintas === 7,
+    res.solape.asignaturasSumadas + ' vs ' + res.solape.asignaturasDistintas);
   comprobar('CANDADO: sumar las familias da 250 registros y el centro tiene 130 — y se ven los dos',
     res.solape.registrosSumados === 250 && res.solape.registrosDistintos === 130,
     JSON.stringify(res.solape));

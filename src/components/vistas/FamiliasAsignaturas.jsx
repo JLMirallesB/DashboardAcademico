@@ -280,6 +280,20 @@ const FamiliasAsignaturas = ({ resultado, compararFamilias, t }) => {
             </div>
             <div className="text-2xl font-bold text-gray-900 mt-1">{solape.registrosDistintos}</div>
           </div>
+          {/* El contrapeso de la columna «Asignaturas» de la tabla de abajo:
+              esa columna se puede sumar, y la suma no es el centro. */}
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <div className="text-xs font-medium text-gray-600 uppercase tracking-wide">
+              {t('fam_solapeAsigSumadas') || 'Asignaturas sumando familias'}
+            </div>
+            <div className="text-2xl font-bold text-gray-900 mt-1">{solape.asignaturasSumadas}</div>
+          </div>
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <div className="text-xs font-medium text-gray-600 uppercase tracking-wide">
+              {t('fam_solapeAsigDistintas') || 'Asignaturas del centro'}
+            </div>
+            <div className="text-2xl font-bold text-gray-900 mt-1">{solape.asignaturasDistintas}</div>
+          </div>
         </div>
 
         <p className="text-sm text-gray-800 mt-4">

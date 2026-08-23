@@ -4317,15 +4317,22 @@ const DashboardAcademico = () => {
                         badgeText = 'text-gray-700';
                       }
 
-                      // Formatear header sin redundancia
-                      let headerText;
-                      if (nivel === 'GLOBAL') {
-                        headerText = `${trimestre} · ${nivel}`;
-                      } else {
-                        // Eliminar redundancia: 1EV-EEM 1EEM → 1EV 1EEM
-                        const trimestreBase = getTrimestreBase(trimestre);
-                        headerText = `${trimestreBase} · ${nivel}`;
-                      }
+                      /* El rótulo de la tarjeta. Dos cosas que estaban mal:
+                         la rama de GLOBAL imprimía la CLAVE interna del
+                         fichero —«1EV-2627-EEM»—, que es un identificador y no
+                         un rótulo; y la otra se quedaba solo con la evaluación
+                         y tiraba el curso académico, así que con dos años
+                         cargados y el filtro en «Todos» salían tarjetas
+                         idénticas de cabecera con cifras distintas y sin forma
+                         de saber cuál era de qué año. La etapa se conserva
+                         solo en GLOBAL: en las demás ya la dice el nivel. */
+                      const partes = parseTrimestre(trimestre);
+                      const cursoRot = hayVariosCursos && partes && partes.curso
+                        ? `${formatearCursoAcademico(partes.curso)} · ` : '';
+                      const base = partes ? partes.base : trimestre;
+                      const etapaRot = nivel === 'GLOBAL' && partes && partes.etapa
+                        ? ` (${partes.etapa})` : '';
+                      const headerText = `${cursoRot}${base}${etapaRot} · ${nivel}`;
 
                       return (
                         <div

@@ -271,7 +271,15 @@ export const agruparPorFamilia = (datos, opciones = {}) => {
       hay: compartidas.length > 0,
       asignaturas: compartidas,
       registrosSumados: familias.reduce((s, f) => s + f.registros, 0),
-      registrosDistintos: registrosUniverso
+      registrosDistintos: registrosUniverso,
+      /* Lo mismo para el recuento de asignaturas. La columna «Asignaturas» de
+         la tabla también cuenta cada una una vez POR FAMILIA, así que se puede
+         sumar de arriba abajo y sale un número mayor que el de asignaturas que
+         tiene el centro. Sumar una columna es lo primero que hace quien mira
+         una tabla, y sin estas dos cifras al lado nada avisa de que ese total
+         no significa nada. */
+      asignaturasSumadas: familias.reduce((s, f) => s + f.asignaturas, 0),
+      asignaturasDistintas: nombresUniverso.size
     }
   };
 };

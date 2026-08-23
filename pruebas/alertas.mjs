@@ -310,6 +310,28 @@ seccion('9. El orden de las listas: primero lo peor');
     notas.every((n, i) => i === 0 || notas[i - 1] <= n), JSON.stringify(notas));
   comprobar('y cada una lleva su razón, no solo la etiqueta',
     r.puntos[0].listaDificiles.every((a) => typeof a.razon === 'string' && a.razon.length > 0));
+
+  /* CANDADO: la que NO tiene nota media va al final, no delante.
+     La comprobación de arriba no podía verlo —todas las difíciles del fixture
+     tienen nota— así que la regla de `ordenar` («no delante, que es donde lo
+     pone una resta con null») no la vigilaba nadie: cambiar el `Infinity` por
+     `-Infinity` dejaba la suite en verde. Y el caso es real: el analizador
+     escribe «—» en la nota media cuando no la puede calcular, y una fila con
+     60 % de suspensos sale DIFÍCIL igual. Sin esto, la asignatura de la que
+     menos se sabe encabeza la lista de lo que más preocupa. */
+  const sinNota = cargar([cursoEEM('1EV', [
+    { asignatura: 'Armonía', registros: 12, media: 5.2, aprobados: 0.60, suspendidos: 0.40 },
+    { asignatura: 'Tuba', registros: 10, media: 4.0, aprobados: 0.50, suspendidos: 0.50 },
+    { asignatura: 'Sin nota', registros: 12, media: null, aprobados: 0.40, suspendidos: 0.60 }
+  ])]);
+  const lista = serieAlertas({ ...sinNota, umbrales: UMBRALES, modoEtapa: 'EEM', vista: 'niveles' })
+    .puntos[0].listaDificiles;
+  comprobar('la que no tiene nota media entra igual en la lista de difíciles',
+    lista.some((a) => a.asignatura === 'Sin nota' && a.notaMedia === null),
+    JSON.stringify(lista.map((a) => [a.asignatura, a.notaMedia])));
+  comprobar('CANDADO: y sale la ÚLTIMA, no la primera',
+    lista.length > 1 && lista[lista.length - 1].asignatura === 'Sin nota',
+    JSON.stringify(lista.map((a) => a.asignatura)));
 }
 
 seccion('9. La misma asignatura escrita con otra caja');
