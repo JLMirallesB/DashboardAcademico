@@ -32,6 +32,27 @@ export const formatearCursoAcademico = (curso) => {
   return d;
 };
 
+/** El rótulo de un MOMENTO —curso académico + evaluación—, para el eje de una
+ *  gráfica, un desplegable o una fila del informe.
+ *
+ *  Vivía dentro del componente como un `useCallback`, así que el generador de
+ *  PDF no podía llamarlo y se escribió una copia. Dos copias del mismo
+ *  criterio duran lo que tarda alguien en cambiar una: con dos cursos
+ *  cargados, la que no se enterase rotularía «1EV» dos veces —dos filas con el
+ *  mismo nombre y cifras distintas— sin dar ningún error.
+ *
+ *  @param conCurso  si se escribe el curso académico delante. Solo cuando hay
+ *                   más de uno cargado: escribirlo siempre es ruido en cada
+ *                   fila, y no escribirlo nunca deja sin saber de qué año se
+ *                   habla.
+ */
+export const rotularMomento = (momento, conCurso) => {
+  if (!momento || !momento.base) return '';
+  return conCurso && momento.curso
+    ? `${formatearCursoAcademico(momento.curso)} · ${momento.base}`
+    : momento.base;
+};
+
 export const formatearNombreTrimestre = (trimestreCompleto, conCurso) => {
   const parsed = parseTrimestre(trimestreCompleto);
   if (!parsed) return trimestreCompleto;

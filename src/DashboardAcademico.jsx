@@ -3,7 +3,8 @@ import { LineChart, Line, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tool
 import { translations } from './translations.js';
 import { normalizar, getBestTrimestre, parseTrimestre, getTrimestreBase, getTrimestreEtapa, tieneAsignatura, perteneceAGrupo } from './utils.js';
 import { UMBRALES_DEFAULT, COLORES_COMPARACION, INSTRUMENTALES_EPM, ASIGNATURAS_EXCLUIR_EEM, ASIGNATURAS_EXCLUIR_TODOS } from './constants.js';
-import { formatearNombreTrimestre, formatearCursoAcademico, abreviarAsignatura } from './utils/formatters.js';
+import { formatearNombreTrimestre, formatearCursoAcademico, abreviarAsignatura,
+         rotularMomento as rotularMomentoComun } from './utils/formatters.js';
 import { parseCSV as parseCSVService } from './services/csvParser.js';
 import { procesarDatos as procesarDatosService } from './services/dataProcessor.js';
 import { exportarJSON as exportarJSONService, procesarImportacionJSON } from './services/dataIO.js';
@@ -129,7 +130,16 @@ const DashboardAcademico = () => {
     incluirCorrelaciones: true,
     incluirComparativaTransversal: true,
     incluirDatosAsignaturas: true,
-    incluirDificultad: true
+    incluirDificultad: true,
+    /* Las secciones que antes no salían del navegador, y el índice. Todas
+       encendidas: quien no las quiera las apaga, pero el que no sabe que
+       existen no las va a ir a buscar. */
+    incluirIndice: true,
+    incluirFicha: true,
+    incluirAlertas: true,
+    incluirEntreCursos: true,
+    incluirFamilias: true,
+    incluirSelecciones: true
   });
 
   // Refs para captura de gráficas para PDF
@@ -274,11 +284,8 @@ const DashboardAcademico = () => {
   /* El rótulo de un momento en la barra de contexto. El curso solo cuando hay
      más de uno cargado: escribirlo siempre es ruido en cada desplegable, y no
      escribirlo nunca deja al usuario sin saber de qué año habla. */
-  const rotularMomento = useCallback((m) => (
-    hayVariosCursos && m.curso
-      ? `${formatearCursoAcademico(m.curso)} · ${m.base}`
-      : m.base
-  ), [hayVariosCursos]);
+  const rotularMomento = useCallback(
+    (m) => rotularMomentoComun(m, hayVariosCursos), [hayVariosCursos]);
 
   /* El eje de una gráfica recibe la CLAVE interna del momento —«2526·1EV»—,
      que es un identificador, no un rótulo. Sin esto salía tal cual delante del
@@ -1434,6 +1441,16 @@ const DashboardAcademico = () => {
         tendenciasParaPDF,
         trimestresDisponibles,
         chartImages,
+        /* Lo que hasta ahora se quedaba en la pantalla. Se pasa YA CALCULADO,
+           con los mismos memos que alimentan las vistas: recalcularlo dentro
+           del generador sería abrir la puerta a que el informe y el cuadro
+           dijeran cosas distintas del mismo día. */
+        umbrales,
+        metadata,
+        serieAlertasPDF: serieDeAlertas,
+        familiasPDF: familiasDelTrimestre,
+        selecciones,
+        generadoEn: new Date(),
         t,
         onProgress: (msg) => setProgresoInforme(msg),
         onSuccess: () => {
@@ -1455,7 +1472,7 @@ const DashboardAcademico = () => {
       setProgresoInforme('');
       setRenderPDFCharts(false);
     }
-  }, [trimestreSeleccionado, datosCompletos, configInforme, modoEtapa, kpisGlobales, correlacionesTrimestre, analisisDificultad, agrupacionesCompletas, tendenciasParaPDF, trimestresDisponibles, datosDistribucionPDF, t]);
+  }, [trimestreSeleccionado, datosCompletos, configInforme, modoEtapa, kpisGlobales, correlacionesTrimestre, analisisDificultad, agrupacionesCompletas, tendenciasParaPDF, trimestresDisponibles, datosDistribucionPDF, umbrales, metadata, serieDeAlertas, familiasDelTrimestre, selecciones, t]);
 
   // Datos calculados para las gráficas del PDF
   const datosDispersionPDF = useMemo(() => {

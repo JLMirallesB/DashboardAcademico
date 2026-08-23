@@ -147,6 +147,39 @@ export const ReportModal = ({
                   onChange={(e) => updateConfig('incluirDatosAsignaturas', e.target.checked)}
                   label={t('includeSubjectData') || 'Datos de asignaturas'}
                 />
+                {/* Las que antes solo existían en pantalla. Van con el resto y
+                    no en un apartado aparte: para quien genera el informe son
+                    secciones como las demás, no una novedad. */}
+                <CheckboxOption
+                  checked={config.incluirIndice !== false}
+                  onChange={(e) => updateConfig('incluirIndice', e.target.checked)}
+                  label={t('includeIndex') || 'Índice'}
+                />
+                <CheckboxOption
+                  checked={config.incluirFicha !== false}
+                  onChange={(e) => updateConfig('incluirFicha', e.target.checked)}
+                  label={t('fichaTitulo') || 'En qué se basa este informe'}
+                />
+                <CheckboxOption
+                  checked={config.incluirAlertas !== false}
+                  onChange={(e) => updateConfig('incluirAlertas', e.target.checked)}
+                  label={t('alrTitulo') || 'Alertas a lo largo del curso'}
+                />
+                <CheckboxOption
+                  checked={config.incluirEntreCursos !== false}
+                  onChange={(e) => updateConfig('incluirEntreCursos', e.target.checked)}
+                  label={t('entreCursosTitulo') || 'Comparación con cursos anteriores'}
+                />
+                <CheckboxOption
+                  checked={config.incluirFamilias !== false}
+                  onChange={(e) => updateConfig('incluirFamilias', e.target.checked)}
+                  label={t('fam_titulo') || 'Familias de asignaturas'}
+                />
+                <CheckboxOption
+                  checked={config.incluirSelecciones !== false}
+                  onChange={(e) => updateConfig('incluirSelecciones', e.target.checked)}
+                  label={t('statistics') || 'Estadísticas'}
+                />
               </div>
             </div>
           </div>

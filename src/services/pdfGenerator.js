@@ -6,11 +6,16 @@
 
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { esAgregado, normalizar as normalizarNucleo } from '../nucleo/texto.js';
+import { esAgregado, normalizar as normalizarNucleo, parseTrimestre } from '../nucleo/texto.js';
 import { detectarEtapa } from '../nucleo/estadistica.js';
+import { tablaRecuento, tablaCambios } from '../nucleo/informe-alertas.js';
+import { tablaFamilias } from '../nucleo/informe-familias.js';
+import { tablaSelecciones } from '../nucleo/informe-selecciones.js';
+import { tablaEntreCursos } from '../nucleo/informe-cursos.js';
+import { fichaDelInforme } from '../nucleo/informe-contexto.js';
 import { nota, porcentaje, entero, texto, diferencia, conSigno, anchosQueCaben,
          porAsignaturaAgregada, filasComparativaKPI } from '../nucleo/informe.js';
-import { formatearNombreTrimestre } from '../utils/formatters.js';
+import { formatearNombreTrimestre, rotularMomento } from '../utils/formatters.js';
 
 // Constantes de diseño
 const COLORS = {
@@ -50,6 +55,18 @@ export const generarInformePDF = async ({
   tendenciasParaPDF = [],
   trimestresDisponibles = [],
   chartImages = {},
+  /* Lo que hacía falta para las secciones que hasta ahora se quedaban en la
+     pantalla. Nada de esto se calcula aquí: la aplicación ya lo tiene hecho
+     para pintar sus vistas, y recalcularlo sería arriesgarse a que el informe
+     y la pantalla no dijeran lo mismo. */
+  umbrales,
+  metadata = {},
+  serieAlertasPDF = null,
+  familiasPDF = null,
+  selecciones = [],
+  /* La fecha entra por parámetro. Un generador que llama a `new Date()` por
+     dentro no se puede probar. */
+  generadoEn = null,
   t,
   onProgress,
   onSuccess,
@@ -80,6 +97,18 @@ export const generarInformePDF = async ({
        es. */
     const rotuloTrim = formatearNombreTrimestre(trimestreSeleccionado, true);
 
+    /* Si hay más de un curso académico cargado, los rótulos de momento lo
+       dicen; si no, sobra y es ruido en cada fila. Mismo criterio que la
+       barra de contexto de la pantalla. */
+    const variosCursos = (() => {
+      const cursos = new Set();
+      (trimestresDisponibles || []).forEach((k) => {
+        const p = parseTrimestre(k);
+        if (p && p.curso) cursos.add(p.curso);
+      });
+      return cursos.size > 1;
+    })();
+
     // Crear PDF en formato horizontal
     const pdf = new jsPDF('l', 'mm', 'a4');
     let currentPage = 0;
@@ -101,10 +130,18 @@ export const generarInformePDF = async ({
       pdf.setTextColor(...COLORS.text);
     };
 
-    const addNewPage = () => {
+    /* Dónde empieza cada sección. Se apunta al abrir la página, que es el
+       único momento en que se sabe, y sirve para dos cosas al final: el índice
+       de la segunda hoja y los marcadores del PDF. Catorce páginas sin ninguna
+       forma de saltar son muchas para buscar a mano una tabla, y quien recibe
+       el informe por correo no tiene la aplicación al lado. */
+    const secciones = [];
+
+    const addNewPage = (titulo) => {
       pdf.addPage();
       currentPage++;
       addHeader();
+      if (titulo) secciones.push({ titulo, pagina: pdf.getNumberOfPages() });
       return currentPage;
     };
 
@@ -133,6 +170,160 @@ export const generarInformePDF = async ({
            mejor una gráfica estirada que ninguna. */
       }
       pdf.addImage(imagen, 'PNG', PAGE.margin + (contentWidth - ancho) / 2, y, ancho, alto);
+    };
+
+    /* Los rótulos de las secciones nuevas. **Casi todos son los de la
+       pantalla**: la vista de alertas y la de familias ya los tienen y dicen
+       exactamente lo mismo, así que inventar aquí una segunda tanda de claves
+       sería garantizar que un día la tabla y el cuadro se llamen distinto. */
+    const rotulosAlertas = {
+      /* La MISMA función que rotula los momentos en la pantalla, no una copia:
+         es lo único que sabe si hay dos cursos académicos cargados y hay que
+         decir de cuál es cada fila. */
+      momento: (m) => rotularMomento(m, variosCursos),
+      colMomento: t('trimester') || 'Evaluación',
+      colDificiles: t('alrDificiles') || 'Difíciles',
+      colNeutrales: t('alrNeutrales') || 'Neutrales',
+      colFaciles: t('alrFaciles') || 'Fáciles',
+      colTotal: t('alrDeTotal') || 'Total',
+      colPctDificiles: t('alrPorcentajeDificiles') || '% difíciles',
+      colSalto: t('alrPasaA') || 'De una evaluación a la siguiente',
+      colVariacion: t('alrVariacionSufijo') || 'Variación',
+      colEntran: t('alrEntran') || 'Entran',
+      colSalen: t('alrSalen') || 'Salen',
+      colNuevas: t('alrNuevas') || 'Nuevas',
+      colDesaparecidas: t('alrDesaparecidas') || 'Desaparecidas',
+      avisoNuevas: t('alrNuevasAviso') || '',
+      avisoDesaparecidas: t('alrDesaparecidasAviso') || '',
+      motivos: {
+        ausente: t('alrMotivoAusente') || 'Ya no viene en el fichero',
+        bajoMinimo: t('alrMotivoBajoMinimo') || 'Tiene menos alumnado del mínimo',
+        sinFichero: t('alrMotivoSinFichero') || 'No se ha cargado el fichero de su etapa',
+        presente: t('alrMotivoPresente') || 'Está en el fichero, pero no se ha podido clasificar'
+      }
+    };
+
+    const rotulosFamilias = {
+      colFamilia: t('fam_colFamilia') || 'Familia',
+      colAsignaturas: t('fam_colAsignaturas') || 'Asignaturas',
+      colRegistros: t('fam_colRegistros') || 'Registros',
+      colNotaMedia: t('fam_colNotaMedia') || 'Nota media',
+      colAprobados: t('fam_colAprobados') || '% Aprobados',
+      colSuspensos: t('fam_colSuspensos') || '% Suspensos',
+      sinClasificar: t('fam_etiquetaSinClasificar') || t('fam_sinClasificar') || 'Sin clasificar',
+      sinClasificarNota: t('fam_sinClasificarNota') || '',
+      solapeTitulo: t('fam_solapeTitulo') || '',
+      solapeTexto: t('fam_solapeTexto') || '',
+      sinSolapeTitulo: t('fam_sinSolapeTitulo') || '',
+      sinSolapeTexto: t('fam_sinSolapeTexto') || '',
+      solapeSumados: t('fam_solapeSumados') || '',
+      solapeDistintos: t('fam_solapeDistintos') || '',
+      solapeAsigSumadas: t('fam_solapeAsigSumadas') || '',
+      solapeAsigDistintas: t('fam_solapeAsigDistintas') || '',
+      solapeAsignaturas: t('fam_solapeAsignaturas') || ''
+    };
+
+    const rotulosSelecciones = {
+      seleccion: t('selection') || 'Selección',
+      registros: t('records') || 'N',
+      notaMedia: t('average') || 'Nota media',
+      desviacion: t('deviation') || 'Desviación',
+      moda: t('mode') || 'Moda',
+      aprobados: t('passed') || '% Aprobados',
+      suspendidos: t('failed') || '% Suspensos'
+    };
+
+    const rotulosCursos = {
+      curso: t('academicYear') || 'Curso académico',
+      notaMedia: t('average') || 'Nota media',
+      aprobados: t('passed') || '% Aprobados',
+      suspensos: t('failed') || '% Suspensos',
+      difNota: t('difference') || 'Dif.',
+      difAprobados: t('difference') || 'Dif.',
+      difSuspensos: t('difference') || 'Dif.',
+      referencia: t('reference') || 'ref.'
+    };
+
+    const rotulosFicha = {
+      fichaConcepto: t('indicator') || 'Concepto',
+      fichaValor: t('value') || 'Valor',
+      fichaEvaluacion: t('reportEvaluation') || 'Evaluación analizada',
+      fichaCursoAcademico: t('academicYear') || 'Curso académico',
+      fichaEtapa: t('stage') || 'Etapa',
+      fichaModoEtapa: t('stage') || 'Etapa del informe',
+      fichaEsteFichero: t('fichaEsteFichero') || 'Fichero de este informe',
+      fichaFicherosCargados: t('fichaFicherosCargados') || 'Ficheros cargados',
+      fichaFiltroAgrupaciones: t('fichaFiltroAgrupaciones') || 'Filtro por agrupación',
+      fichaSinFiltro: t('fichaSinFiltro') || 'Ninguno: el informe es de todo el centro',
+      fichaGeneradoEn: t('fichaGeneradoEn') || 'Generado el',
+      fichaCambiado: t('fichaCambiado') || 'cambiado',
+      fichaDeFabrica: t('fichaDeFabrica') || 'de fábrica',
+      umbralMediaCritica: t('criticalAvg') || 'Media crítica',
+      umbralMediaFacil: t('easyAvg') || 'Media fácil',
+      umbralSuspensosAlerta: t('failedAlert') || '% Suspensos alerta',
+      umbralAprobadosMinimo: t('minPassed') || '% Aprobados mínimo',
+      umbralAlumnosMinimo: t('minStudents') || 'Alumnos mínimos'
+    };
+
+    /* Pinta una sección de tabla a partir de lo que devuelve el núcleo:
+       { vacio, cabecera, filas, avisos }. Las secciones viejas llevan cada una
+       sus cuarenta líneas de `autoTable` copiadas; las nuevas pasan por aquí,
+       que es adonde deberían ir migrando las otras.
+
+       Y **una sección vacía no se pinta**: media hoja con un título y una
+       tabla sin filas no dice «no hay nada que contar», dice «esto está roto».
+       El núcleo ya sabe cuándo no tiene nada, y lo dice con `vacio`. */
+    const pintarSeccion = ({ titulo, subtitulo, contenido, color, anchos }) => {
+      if (!contenido || contenido.vacio) return false;
+
+      addNewPage(titulo);
+      pdf.setFontSize(18);
+      pdf.setTextColor(...(color || COLORS.primary));
+      pdf.text(titulo, PAGE.margin, contentStartY);
+      pdf.setTextColor(...COLORS.text);
+
+      let y = contentStartY + 10;
+      if (subtitulo) {
+        pdf.setFontSize(10);
+        pdf.setTextColor(...COLORS.textLight);
+        pdf.text(subtitulo, PAGE.margin, contentStartY + 6);
+        pdf.setTextColor(...COLORS.text);
+        y = contentStartY + 12;
+      }
+
+      autoTable(pdf, {
+        startY: y,
+        head: [contenido.cabecera],
+        body: contenido.filas,
+        theme: 'striped',
+        headStyles: { fillColor: color || COLORS.primary, fontSize: 9, fontStyle: 'bold' },
+        styles: { fontSize: 8, cellPadding: 2.5 },
+        columnStyles: anchos ? anchosQueCaben(anchos, contentWidth) : undefined,
+        margin: { left: PAGE.margin, right: PAGE.margin },
+        didDrawPage: (data) => {
+          if (data.pageNumber > currentPage) { currentPage = data.pageNumber; addHeader(); }
+          addFooter(data.pageNumber);
+        }
+      });
+
+      /* Los avisos van DEBAJO de la tabla y no en una nota al pie: son lo que
+         impide leerla mal —que las familias se solapan, que faltan filas, que
+         un umbral se ha cambiado— y al pie no los lee nadie. */
+      if (contenido.avisos && contenido.avisos.length) {
+        let ay = (pdf.lastAutoTable?.finalY || y) + 7;
+        pdf.setFontSize(8.5);
+        pdf.setTextColor(...COLORS.secondary);
+        contenido.avisos.forEach((aviso) => {
+          const lineas = pdf.splitTextToSize(String(aviso), contentWidth);
+          if (ay + lineas.length * 4 > PAGE.height - 20) { addNewPage(); ay = contentStartY; }
+          pdf.text(lineas, PAGE.margin, ay);
+          ay += lineas.length * 4 + 2;
+        });
+        pdf.setTextColor(...COLORS.text);
+      }
+
+      addFooter(currentPage);
+      return true;
     };
 
     /* La MISMA normalización que usa el resto del proyecto, y esto no es
@@ -173,6 +364,7 @@ export const generarInformePDF = async ({
       const nombreEtapa = etapa === 'EEM'
         ? (t('elementaryEducation') || 'Enseñanzas Elementales')
         : (t('professionalEducation') || 'Enseñanzas Profesionales');
+      secciones.push({ titulo: nombreEtapa, pagina: pdf.getNumberOfPages(), etapa: true });
       pdf.text(nombreEtapa, PAGE.width / 2, PAGE.height / 2 - 10, { align: 'center' });
 
       pdf.setFontSize(24);
@@ -289,10 +481,43 @@ export const generarInformePDF = async ({
       pdf.text(`${t('reportFor')} ${new Date().toLocaleDateString()}`, PAGE.width / 2, PAGE.height - 20, { align: 'center' });
     }
 
+    /* El índice se RESERVA aquí y se rellena al final, porque hasta que no
+       está todo dibujado no se sabe en qué página cae cada cosa. Insertarlo
+       después correría la numeración de todas las páginas ya escritas —y los
+       pies ya llevan su número impreso—, así que se aparta la hoja ahora y se
+       vuelve a ella con `setPage` cuando hay algo que escribir. */
+    let paginaIndice = null;
+    if (configInforme.incluirIndice !== false) {
+      pdf.addPage();
+      currentPage++;
+      paginaIndice = pdf.getNumberOfPages();
+    }
+
+    // ========== CÓMO SE HA HECHO ESTE INFORME ==========
+    /* Va delante, no al final. Hasta ahora el informe **no mencionaba los
+       umbrales ni una sola vez**, y son configurables: dos informes de los
+       mismos datos pueden llamar «difícil» a asignaturas distintas y nada en
+       el documento lo delataba. En la pantalla da igual, porque el panel de
+       umbrales está a un clic; en un PDF que circula por correo, no. Y va
+       delante porque son las reglas con las que se lee todo lo demás. */
+    if (configInforme.incluirFicha !== false) {
+      pintarSeccion({
+        titulo: t('fichaTitulo') || 'En qué se basa este informe',
+        contenido: fichaDelInforme({
+          umbrales, metadata, trimestreSeleccionado, trimestresDisponibles,
+          modoEtapa: modoEtapaConfig,
+          filtroAgrupaciones: configInforme.filtroAgrupaciones,
+          generadoEn: generadoEn || new Date(),
+          rotulos: rotulosFicha
+        }),
+        anchos: { 0: { cellWidth: 95, fontStyle: 'bold' }, 1: { cellWidth: 172 } }
+      });
+    }
+
     // ========== ANÁLISIS GLOBAL ==========
     if (configInforme.incluirAnalisisGlobal !== false) {
       onProgress?.(t('pdfGeneratingAnalysis'));
-      addNewPage();
+      addNewPage(t('globalAnalysisTitle'));
 
       pdf.setFontSize(18);
       pdf.setTextColor(...COLORS.primary);
@@ -374,7 +599,7 @@ export const generarInformePDF = async ({
       const sufijoEtapa = bloque.etapa ? ` — ${bloque.etapa}` : '';
 
         onProgress?.(t('pdfGeneratingKPIs'));
-        addNewPage();
+        addNewPage(t('kpis') + sufijoEtapa);
 
         pdf.setFontSize(18);
         pdf.setTextColor(...COLORS.primary);
@@ -455,7 +680,7 @@ export const generarInformePDF = async ({
 
         // Alumnos por curso (si hay datos) - en página separada
         if (kpisBloque.alumnosPorCurso && kpisBloque.alumnosPorCurso.length > 0) {
-          addNewPage();
+          addNewPage(t('studentsPerCourse') || 'Alumnos por Curso');
 
           pdf.setFontSize(18);
           pdf.setTextColor(...COLORS.primary);
@@ -476,7 +701,7 @@ export const generarInformePDF = async ({
 
 
         // ========== KPI DETALLE (Especialidades vs No Especialidades) ==========
-        addNewPage();
+        addNewPage((t('kpiDetail') || 'KPIs - Detalle por Tipo') + sufijoEtapa);
         pdf.setFontSize(18);
         pdf.setTextColor(...COLORS.primary);
         pdf.text(t('kpiDetail') || 'KPIs - Detalle por Tipo', PAGE.margin, contentStartY);
@@ -576,7 +801,7 @@ export const generarInformePDF = async ({
         addFooter(currentPage);
 
         // ========== KPI COMPARATIVA (Tabla) ==========
-        addNewPage();
+        addNewPage((t('kpiComparison') || 'KPIs - Comparativa') + sufijoEtapa);
         pdf.setFontSize(18);
         pdf.setTextColor(...COLORS.primary);
         pdf.text((t('kpiComparison') || 'KPIs - Comparativa') + sufijoEtapa, PAGE.margin, contentStartY);
@@ -646,11 +871,43 @@ export const generarInformePDF = async ({
 
     }
 
+    // ========== ALERTAS A LO LARGO DEL CURSO ==========
+    /* El relato del curso: qué asignaturas entran y salen de la lista roja
+       entre evaluaciones. Es el contenido más de informe que tiene la
+       aplicación y hasta ahora no salía del navegador. */
+    if (configInforme.incluirAlertas !== false && serieAlertasPDF) {
+      pintarSeccion({
+        titulo: t('alrTitulo') || 'Alertas a lo largo del curso',
+        contenido: tablaRecuento(serieAlertasPDF, rotulosAlertas),
+        color: [180, 83, 9]
+      });
+      pintarSeccion({
+        titulo: t('alrCambiosTitulo') || 'Qué ha cambiado entre evaluaciones',
+        subtitulo: t('alrCambiosDesc') || '',
+        contenido: tablaCambios(serieAlertasPDF, rotulosAlertas),
+        color: [180, 83, 9]
+      });
+    }
+
+    // ========== CURSO ACADÉMICO CONTRA CURSO ACADÉMICO ==========
+    if (configInforme.incluirEntreCursos !== false) {
+      pintarSeccion({
+        titulo: t('entreCursosTitulo') || 'Comparación con cursos anteriores',
+        subtitulo: t('entreCursosDesc') || '',
+        contenido: tablaEntreCursos({
+          trimestresDisponibles, datosCompletos,
+          modoEtapa: modoEtapaConfig, trimestreSeleccionado,
+          rotulos: rotulosCursos
+        }),
+        color: [67, 56, 202]
+      });
+    }
+
     // ========== COMPARATIVA ASIGNATURAS VS CENTRO (SOLO PARA GRUPOS) ==========
     const filtroAgrupacionesActivo = configInforme.filtroAgrupaciones != null && configInforme.filtroAgrupaciones.length > 0;
     if (filtroAgrupacionesActivo) {
       onProgress?.(t('pdfGeneratingGroupComparison'));
-      addNewPage();
+      addNewPage(t('subjectVsCenter') || 'Comparativa Asignaturas vs Centro');
 
       pdf.setFontSize(18);
       pdf.setTextColor(...COLORS.primary);
@@ -751,7 +1008,7 @@ export const generarInformePDF = async ({
       });
 
       // ========== PARTE 2: COMPARATIVA POR CURSO (asignatura por curso vs global del curso) ==========
-      addNewPage();
+      addNewPage(t('subjectVsCourse') || 'Comparativa por Curso');
 
       pdf.setFontSize(18);
       pdf.setTextColor(...COLORS.primary);
@@ -885,6 +1142,7 @@ export const generarInformePDF = async ({
       const tituloDispersion = filtroAgrupacionesActivo
         ? `${t('filteredDispersion') || 'Mapa de dispersión filtrado'}: ${configInforme.filtroAgrupaciones.join(', ')}`
         : t('dispersionMap');
+      secciones.push({ titulo: tituloDispersion, pagina: pdf.getNumberOfPages() });
       pdf.text(tituloDispersion, PAGE.margin, contentStartY);
       pdf.setTextColor(...COLORS.text);
 
@@ -906,7 +1164,7 @@ export const generarInformePDF = async ({
     // ========== EVOLUCIÓN DE CORRELACIONES ==========
     if (configInforme.incluirEvolucionCorrelaciones !== false && chartImages.correlationEvolution) {
       onProgress?.(t('pdfAddingCharts'));
-      addNewPage();
+      addNewPage(t('correlationEvolution'));
 
       pdf.setFontSize(18);
       pdf.setTextColor(...COLORS.primary);
@@ -923,7 +1181,7 @@ export const generarInformePDF = async ({
     // ========== CORRELACIONES DETALLADAS ==========
     if (configInforme.incluirCorrelaciones !== false && correlacionesTrimestre && correlacionesTrimestre.length > 0) {
       onProgress?.(t('pdfGeneratingCorrelations'));
-      addNewPage();
+      addNewPage(t('correlationsTitle'));
 
       pdf.setFontSize(18);
       pdf.setTextColor(...COLORS.primary);
@@ -988,6 +1246,42 @@ export const generarInformePDF = async ({
       });
     }
 
+    // ========== FAMILIAS DE ASIGNATURAS ==========
+    if (configInforme.incluirFamilias !== false && familiasPDF) {
+      pintarSeccion({
+        titulo: t('fam_titulo') || 'Familias de asignaturas',
+        contenido: tablaFamilias(familiasPDF, rotulosFamilias),
+        color: [88, 28, 135],
+        anchos: { 0: { cellWidth: 87 }, 1: { cellWidth: 36, halign: 'center' },
+                  2: { cellWidth: 36, halign: 'center' }, 3: { cellWidth: 36, halign: 'center' },
+                  4: { cellWidth: 36, halign: 'center' }, 5: { cellWidth: 36, halign: 'center' } }
+      });
+    }
+
+    // ========== LA COMPARACIÓN QUE COMPUSO EL USUARIO ==========
+    /* La vista «Estadísticas»: las filas que alguien eligió a mano. Es
+       precisamente la que se arma para llevarla a una reunión, así que era la
+       más rara de todas de no poder imprimir. */
+    if (configInforme.incluirSelecciones !== false && selecciones && selecciones.length) {
+      pintarSeccion({
+        titulo: t('statistics') || 'Estadísticas',
+        subtitulo: t('selComparacionDesc') || '',
+        /* El cuarto argumento no es opcional aunque lo parezca: las
+           selecciones llevan su propio trimestre —la pantalla tiene un
+           desplegable por fila— y sin la clave del que se está imprimiendo,
+           las filas de otras evaluaciones salen con las cifras de esta.
+           Es el mismo rótulo y otro número, que es la peor forma de fallar. */
+        contenido: tablaSelecciones(selecciones,
+          datosCompletos[trimestreSeleccionado], rotulosSelecciones,
+          trimestreSeleccionado),
+        color: [15, 118, 110],
+        anchos: { 0: { cellWidth: 87 }, 1: { cellWidth: 24, halign: 'center' },
+                  2: { cellWidth: 30, halign: 'center' }, 3: { cellWidth: 32, halign: 'center' },
+                  4: { cellWidth: 24, halign: 'center' }, 5: { cellWidth: 34, halign: 'center' },
+                  6: { cellWidth: 36, halign: 'center' } }
+      });
+    }
+
     // ========== COMPARATIVA TRANSVERSAL (múltiples páginas) ==========
     if (configInforme.incluirComparativaTransversal !== false && chartImages.transversalArray?.length > 0) {
       onProgress?.(t('pdfAddingCharts'));
@@ -1000,6 +1294,7 @@ export const generarInformePDF = async ({
         const titulo = chartImages.transversalArray.length > 1
           ? `${t('transversalComparison')} (${idx + 1}/${chartImages.transversalArray.length})`
           : t('transversalComparison');
+        secciones.push({ titulo, pagina: pdf.getNumberOfPages() });
         pdf.text(titulo, PAGE.margin, contentStartY);
         pdf.setTextColor(...COLORS.text);
 
@@ -1014,7 +1309,7 @@ export const generarInformePDF = async ({
     // ========== EVOLUCIÓN DE NOTAS MEDIAS POR TRIMESTRE ==========
     if (configInforme.incluirEvolucionNotas !== false && chartImages.evolution) {
       onProgress?.(t('pdfGeneratingEvolution'));
-      addNewPage();
+      addNewPage(t('gradeEvolutionTitle') || 'Evolución de Notas Medias por Trimestre');
 
       pdf.setFontSize(18);
       pdf.setTextColor(...COLORS.primary);
@@ -1029,7 +1324,7 @@ export const generarInformePDF = async ({
     } else if (configInforme.incluirEvolucionNotas !== false && trimestresDisponibles.length < 2) {
       // Mostrar mensaje informativo si no hay suficientes trimestres
       onProgress?.(t('pdfGeneratingEvolution'));
-      addNewPage();
+      addNewPage(t('gradeEvolutionTitle') || 'Evolución de Notas Medias por Trimestre');
 
       pdf.setFontSize(18);
       pdf.setTextColor(...COLORS.primary);
@@ -1047,7 +1342,7 @@ export const generarInformePDF = async ({
     // ========== ANÁLISIS DE TENDENCIAS TRANSVERSALES ==========
     if (configInforme.incluirAnalisisTendencias !== false && tendenciasParaPDF.length > 0) {
       onProgress?.(t('pdfGeneratingTrends'));
-      addNewPage();
+      addNewPage(t('trendAnalysisTitle') || 'Análisis de Tendencias Transversales');
 
       pdf.setFontSize(18);
       pdf.setTextColor(...COLORS.primary);
@@ -1244,6 +1539,7 @@ export const generarInformePDF = async ({
         const titulo = etapaFiltro
           ? `${t('subjectsData')} - ${etapaFiltro === 'EEM' ? (t('elementaryEducation') || 'Enseñanzas Elementales') : (t('professionalEducation') || 'Enseñanzas Profesionales')}`
           : t('subjectsData');
+        secciones.push({ titulo, pagina: pdf.getNumberOfPages() });
         pdf.text(titulo, PAGE.margin, contentStartY);
         pdf.setTextColor(...COLORS.text);
 
@@ -1428,6 +1724,8 @@ export const generarInformePDF = async ({
 
         pdf.setFontSize(16);
         pdf.setTextColor(...COLORS.primary);
+        secciones.push({ titulo: `${t('gradeDistribution') || 'Distribución de Notas'}: ${asignatura}`,
+                         pagina: pdf.getNumberOfPages() });
         pdf.text(`${t('gradeDistribution') || 'Distribución de Notas'}: ${asignatura}`, PAGE.margin, contentStartY);
         pdf.setTextColor(...COLORS.text);
 
@@ -1444,6 +1742,77 @@ export const generarInformePDF = async ({
         addFooter(currentPage);
       }
 
+    }
+
+    /* ---------------------------------------------------------------- */
+    /* El índice y los marcadores                                         */
+
+    if (paginaIndice !== null && secciones.length > 0) {
+      pdf.setPage(paginaIndice);
+      addHeader();
+
+      pdf.setFontSize(18);
+      pdf.setTextColor(...COLORS.primary);
+      pdf.text(t('tableOfContents') || 'Índice', PAGE.margin, contentStartY);
+      pdf.setTextColor(...COLORS.text);
+
+      /* Dos columnas: con quince secciones y una A4 apaisada, una sola deja
+         media hoja en blanco y obliga a recorrerla entera con la vista. */
+      const porColumna = Math.ceil(secciones.length / 2);
+      const anchoColumna = contentWidth / 2 - 6;
+
+      secciones.forEach((sec, i) => {
+        const col = Math.floor(i / porColumna);
+        const x = PAGE.margin + col * (anchoColumna + 12);
+        const y = contentStartY + 14 + (i % porColumna) * 8;
+
+        pdf.setFontSize(sec.etapa ? 11 : 10);
+        pdf.setTextColor(...(sec.etapa ? COLORS.primary : COLORS.text));
+        pdf.setFont(undefined, sec.etapa ? 'bold' : 'normal');
+
+        /* El título se recorta a lo que cabe menos el hueco del número: sin
+           esto, un título largo —«Distribución de Notas: Lenguaje Musical»—
+           se comía la cifra de la página, que es lo único que hace útil un
+           índice. */
+        const hueco = 14;
+        let titulo = String(sec.titulo || '');
+        while (pdf.getTextWidth(titulo) > anchoColumna - hueco && titulo.length > 4) {
+          titulo = titulo.slice(0, -2);
+        }
+        if (titulo !== sec.titulo) titulo += '…';
+
+        pdf.text(titulo, x, y);
+        pdf.text(String(sec.pagina), x + anchoColumna - 2, y, { align: 'right' });
+
+        /* La línea de puntos entre el título y el número: es lo que permite
+           seguir la fila con el ojo sin equivocarse de renglón. */
+        const finTitulo = x + pdf.getTextWidth(titulo) + 2;
+        const inicioNum = x + anchoColumna - 2 - pdf.getTextWidth(String(sec.pagina)) - 2;
+        if (inicioNum > finTitulo) {
+          pdf.setTextColor(...COLORS.textLight);
+          pdf.setLineDashPattern([0.4, 1.2], 0);
+          pdf.setDrawColor(...COLORS.textLight);
+          pdf.line(finTitulo, y - 1, inicioNum, y - 1);
+          pdf.setLineDashPattern([], 0);
+        }
+        pdf.setFont(undefined, 'normal');
+        pdf.setTextColor(...COLORS.text);
+      });
+
+      addFooter(paginaIndice);
+    }
+
+    /* Y los marcadores del propio PDF, que es como se navega un documento
+       largo desde el lector: el índice sirve en papel, esto en pantalla. */
+    if (pdf.outline && typeof pdf.outline.add === 'function') {
+      let raizEtapa = null;
+      secciones.forEach((sec) => {
+        if (sec.etapa) {
+          raizEtapa = pdf.outline.add(null, sec.titulo, { pageNumber: sec.pagina });
+        } else {
+          pdf.outline.add(raizEtapa, sec.titulo, { pageNumber: sec.pagina });
+        }
+      });
     }
 
     // Guardar PDF

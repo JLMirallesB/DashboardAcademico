@@ -21,6 +21,8 @@ import { parseCSV } from '../src/nucleo/csv.js';
 import { procesarDatos } from '../src/nucleo/datos.js';
 import { calcularKPIsGlobales } from '../src/nucleo/kpi.js';
 import { analizarDificultad } from '../src/nucleo/dificultad.js';
+import { serieAlertas } from '../src/nucleo/alertas.js';
+import { agruparPorFamilia } from '../src/nucleo/agrupaciones.js';
 import { csv, fila } from './fixtures.mjs';
 import { comprobar, seccion, terminar, UMBRALES } from './ayuda.mjs';
 
@@ -97,6 +99,15 @@ const CORRELACIONES = [
   { Nivel: '2EEM', Asignatura1: 'Piano', Asignatura2: 'Optativa', Correlacion: null }
 ];
 
+/* La comparación que compone el usuario a mano, que es la vista
+   «Estadísticas». Con su trimestre en cada fila, que es como la guarda la
+   pantalla. */
+const SELECCIONES = [
+  { id: 's1', trimestre: '1EV-2627-EEM', nivel: '1EEM', asignatura: 'Piano' },
+  { id: 's2', trimestre: '1EV-2627-EEM', nivel: '2EEM', asignatura: 'Lenguaje Musical' },
+  { id: 's3', trimestre: '1EV-2627-EEM', nivel: '1EEM', asignatura: 'Optativa' }
+];
+
 const TODAS_LAS_SECCIONES = {
   nombreCentro: 'Centro de prueba',
   cursoAcademico: '26/27',
@@ -134,6 +145,17 @@ const generar = async (opciones) => {
     tendenciasParaPDF: o.tendencias || [],
     trimestresDisponibles: MUNDO.trimestresDisponibles,
     chartImages: {},
+    umbrales: o.umbrales === undefined ? UMBRALES : o.umbrales,
+    metadata: MUNDO.metadata,
+    serieAlertasPDF: o.sinAlertas ? null : serieAlertas({
+      trimestresDisponibles: MUNDO.trimestresDisponibles,
+      datosCompletos: MUNDO.datosCompletos, umbrales: UMBRALES, modoEtapa, vista: 'niveles'
+    }),
+    familiasPDF: agruparPorFamilia(MUNDO.datosCompletos[trimestre], {
+      agrupaciones: {}, modoEtapa, umbrales: UMBRALES, vista: 'global'
+    }),
+    selecciones: o.selecciones === undefined ? SELECCIONES : o.selecciones,
+    generadoEn: new Date('2026-08-23T10:00:00Z'),
     t,
     onError: (e) => { error = e; },
     onSuccess: () => { exito = true; },
@@ -291,13 +313,133 @@ seccion('7. Un fichero al que le faltan las filas agregadas');
     texto.split('\n').filter((l) => l.includes('-100.0%')).join(' | '));
 }
 
-seccion('8. El nombre del fichero que se descarga');
+seccion('8. El índice y los marcadores');
+{
+  const r = await generar({});
+  comprobar('el informe lleva su índice', r.texto.includes('tableOfContents'));
+
+  /* El índice tiene que llevar el número de página de cada sección, y esos
+     números tienen que ser los de verdad: un índice que apunta a otro sitio
+     es peor que no tenerlo, porque se sigue igual y se llega a otra tabla.
+     Se comprueba contra los marcadores del propio PDF, que salen del mismo
+     registro pero por otro camino. */
+  const crudo = new TextDecoder('latin1').decode(new Uint8Array(r.salida.pdf.output('arraybuffer')));
+  const marcadores = (crudo.match(/\/Title\s*\(/g) || []).length;
+  comprobar('CANDADO: y marcadores para navegarlo desde el lector',
+    marcadores >= 6, marcadores + ' marcadores');
+
+  const sinIndice = await generar({ config: { incluirIndice: false } });
+  comprobar('se puede quitar', !sinIndice.texto.includes('tableOfContents'));
+  comprobar('CANDADO: y al quitarlo el informe tiene UNA página menos, no la misma',
+    sinIndice.paginas === r.paginas - 1, `${sinIndice.paginas} frente a ${r.paginas}`);
+}
+
+seccion('9. El nombre del fichero que se descarga');
 {
   const r = await generar({});
   const n = r.salida.nombreArchivo;
   comprobar('lleva el centro y la evaluación', /Centro_de_prueba/.test(n) && /1EV/.test(n), n);
   comprobar('CANDADO: y ni un carácter que rompa un guardado',
     /^[\w.\-]+\.pdf$/.test(n), n);
+}
+
+seccion('10. Las cinco secciones que antes no salían del navegador');
+{
+  const r = await generar({});
+  /* Cada una tiene que dejar su título en el papel. Si una deja de pintarse
+     —porque una condición cambia, o porque alguien se deja un argumento— el
+     informe se genera igual, solo que sin ella y sin decirlo. */
+  const nuevas = {
+    'la ficha de en qué se basa': 'fichaTitulo',
+    'las alertas del curso': 'alrTitulo',
+    'qué cambia entre evaluaciones': 'alrCambiosTitulo',
+    'las familias de asignaturas': 'fam_titulo',
+    'la comparación compuesta a mano': 'statistics'
+  };
+  Object.entries(nuevas).forEach(([nombre, clave]) => {
+    comprobar('está ' + nombre, r.texto.includes(clave), 'no aparece ' + clave);
+  });
+
+  /* Y la de curso contra curso NO tiene que estar: este mundo solo tiene un
+     curso académico cargado, así que compararlo consigo mismo sería una fila
+     de ceros que se lee «igual que el año pasado». */
+  comprobar('CANDADO: con un solo curso académico, la comparación entre cursos no se pinta',
+    !r.texto.includes('entreCursosTitulo'),
+    'aparece una sección que no tiene nada que comparar');
+}
+
+seccion('11. Con dos cursos académicos SÍ se compara, y ahí está el sentido');
+{
+  /* La comprobación de arriba —«con un curso no se pinta»— pasaría también si
+     la sección estuviera rota y no se pintara nunca. Este es el caso que las
+     separa. */
+  const dos = cargar([
+    ficheroEEM('1EV', '26/27'), ficheroEEM('1EV', '25/26', -0.4),
+    ficheroEEM('2EV', '25/26', -0.2)
+  ]);
+  const trim = dos.trimestresDisponibles.find((k) => k.includes('2627'));
+  let error = null, doc = null;
+  await generarInformePDF({
+    trimestreSeleccionado: trim, datosCompletos: dos.datosCompletos,
+    configInforme: { ...TODAS_LAS_SECCIONES, modoEtapa: 'EEM' },
+    kpisGlobales: calcularKPIsGlobales({ trimestreSeleccionado: trim,
+      datosCompletos: dos.datosCompletos, trimestresDisponibles: dos.trimestresDisponibles,
+      umbrales: UMBRALES, modoEtapa: 'EEM' }),
+    correlacionesTrimestre: [],
+    analisisDificultad: analizarDificultad(dos.datosCompletos[trim],
+      { umbrales: UMBRALES, vista: 'niveles', modoEtapa: 'EEM' }),
+    agrupacionesCompletas: {}, tendenciasParaPDF: [],
+    trimestresDisponibles: dos.trimestresDisponibles, chartImages: {},
+    umbrales: UMBRALES, metadata: dos.metadata, selecciones: [],
+    generadoEn: new Date('2026-08-23T10:00:00Z'), t,
+    onError: (e) => { error = e; }, guardar: (p) => { doc = p; }
+  });
+  const crudo = new TextDecoder('latin1').decode(new Uint8Array(doc.output('arraybuffer')));
+  const texto = [...crudo.matchAll(/\((?:\\.|[^()\\])*\)\s*Tj/g)]
+    .map((m) => m[0].replace(/\)\s*Tj$/, '').slice(1)).join('\n');
+
+  comprobar('se genera con dos cursos cargados', error === null, error && error.message);
+  comprobar('CANDADO: ahora SÍ sale la comparación entre cursos',
+    texto.includes('entreCursosTitulo'), 'no se pinta habiendo dos cursos que comparar');
+  comprobar('y nombra los dos cursos académicos, legibles',
+    texto.includes('25/26') && texto.includes('26/27'),
+    texto.split('\n').filter((l) => /\d\d\/\d\d/.test(l)).slice(0, 4).join(' | '));
+  comprobar('CANDADO: compara la MISMA evaluación, no la 2.ª del año pasado con la 1.ª de este',
+    texto.split('\n').filter((l) => l.trim() === '2EV').length === 0,
+    'se ha colado una evaluación que no toca');
+}
+
+seccion('12. Los umbrales con los que se ha clasificado salen en el papel');
+{
+  /* Es lo que faltaba y por lo que la ficha existe: los umbrales son
+     configurables, así que dos informes de los mismos datos pueden llamar
+     «difícil» a asignaturas distintas. Sin esto, nada en el documento lo
+     delata. */
+  const deFabrica = await generar({});
+  const cambiados = await generar({ umbrales: { ...UMBRALES, mediaCritica: 6.8 } });
+
+  comprobar('el informe escribe los cinco umbrales',
+    ['criticalAvg', 'easyAvg', 'failedAlert', 'minPassed', 'minStudents']
+      .every((k) => deFabrica.texto.includes(k)),
+    'faltan umbrales en la ficha');
+  comprobar('CANDADO: y si se ha cambiado uno, el papel lo dice',
+    cambiados.texto.includes('6.8') && /cambiado/i.test(cambiados.texto),
+    'no se marca el umbral cambiado');
+  comprobar('CANDADO: con los de fábrica NO dice «cambiado», que si no la marca no significa nada',
+    !/cambiado/i.test(deFabrica.texto),
+    'marca como cambiado un umbral que no lo está');
+  comprobar('y dice de qué fichero sale y cuántos hay cargados',
+    deFabrica.texto.includes('fichaEsteFichero') && deFabrica.texto.includes('fichaFicherosCargados'));
+}
+
+seccion('13. Sin selecciones y sin alertas, esas secciones no se pintan');
+{
+  const pelado = await generar({ selecciones: [], sinAlertas: true });
+  comprobar('se genera igual', pelado.error === null, pelado.error && pelado.error.message);
+  comprobar('CANDADO: no queda una hoja con un título y una tabla vacía',
+    !pelado.texto.includes('alrTitulo') && !pelado.texto.includes('statistics'),
+    'se ha pintado una sección sin nada dentro');
+  comprobar('y las demás siguen ahí', pelado.texto.includes('fichaTitulo'));
 }
 
 terminar('el informe entero, generado de verdad y leído del PDF.');
