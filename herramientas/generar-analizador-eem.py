@@ -91,6 +91,58 @@ def rehacer(cont, viejo, nuevo):
     cont = re.sub(r'(?<![$\w])([A-Z])%d(?![\d:])' % viejo, lambda m: '%s%d' % (m.group(1), nuevo), cont)
     return cont
 
+# --- Los dos totales, con UN SOLO criterio: el que dice el catálogo -------
+#
+# «Especialidad» era dos cosas a la vez. El recuento del bloque GLOBAL miraba
+# el catálogo (COUNTIF sobre el bloque de instrumentos) y TODO lo demás
+# —media, desviación, moda, porcentajes, reparto de notas, y también el
+# recuento de los bloques de curso— usaba la lista negativa «no es Lenguaje
+# Musical, ni Coro, ni Conjunto», con los tres nombres escritos dentro de
+# dieciocho columnas.
+#
+# Coinciden mientras toda asignatura de DATOS esté en el catálogo. En cuanto
+# llega una que no está —una asignatura nueva, una errata de GEODE— el
+# recuento global la deja fuera y la media la mete dentro, y el global deja de
+# ser la suma de los cursos. Y con los nombres escritos a mano, añadir una
+# común a la configuración no la metía en «Total no Especialidad»: justo lo
+# contrario de que mande la lista.
+#
+# El criterio pasa a ser POSITIVO en los dos casos: está en el bloque de
+# instrumentos del catálogo, o está en el de comunes. Tiene una consecuencia
+# que hay que conocer: si en DATOS hay una asignatura que no está en la
+# configuración, `Total Especialidad + Total no Especialidad` da MENOS que
+# `Total`, y la diferencia son exactamente esos registros. Antes se colaban
+# como instrumento sin decirlo.
+CUR  = 'DATOS!$G$2:$G$20000=CONFIG_METADATA!$B$4'
+NOTA = 'DATOS!$K$2:$K$20000'
+APTO = 'DATOS!$L$2:$L$20000'
+
+def criterio(clave):
+    ini, fin = ((len(COMUNES) + 2, FIN_CFG) if clave == 'esp' else (2, len(COMUNES) + 1))
+    return 'COUNTIF(CONFIG_ASIGNATURAS!$B$%d:$B$%d,DATOS!$I$2:$I$20000)>0' % (ini, fin)
+
+def totales(c, clave, r, es_global):
+    cond = ('(%s)*(%s)' % (CUR, criterio(clave)) if es_global else
+            '(%s)*(DATOS!$D$2:$D$20000=A%d)*(%s)' % (CUR, r, criterio(clave)))
+    n = 'SUMPRODUCT(%s*1)' % cond
+    f = {'D': n,
+         'E': 'IFERROR(AVERAGE(IF(%s,%s)),"—")' % (cond, NOTA),
+         'F': 'IFERROR(_xlfn.STDEV.P(IF(%s,%s)),"—")' % (cond, NOTA),
+         'G': 'IFERROR(_xlfn.MODE.SNGL(IF(%s,%s)),"—")' % (cond, NOTA),
+         'H': 'IFERROR(SUMPRODUCT(%s*(%s="S"))/%s,"—")' % (cond, APTO, n),
+         'I': 'IFERROR(SUMPRODUCT(%s*(%s="N"))/%s,"—")' % (cond, APTO, n),
+         'J': 'IFERROR(_xlfn.MODE.SNGL(IF(%s*(%s="S"),%s)),"—")' % (cond, APTO, NOTA),
+         'K': 'IFERROR(_xlfn.MODE.SNGL(IF(%s*(%s="N"),%s)),"—")' % (cond, APTO, NOTA)}
+    for i, col in enumerate('LMNOPQRSTU', start=1):
+        f[col] = 'SUMPRODUCT(%s*(%s=%d))' % (cond, NOTA, i)
+    for col, formula in f.items():
+        m = re.search(r'<c r="%s%d"([^>]*)>' % (col, r), c)
+        e = re.search(r's="(\d+)"', m.group(1)) if m else None
+        c = re.sub(r'<c r="%s%d"(?:[^>]*/>|[^>]*>.*?</c>)' % (col, r),
+                   lambda _m, _c=col, _f=formula, _e=(e.group(1) if e else ''):
+                       fx('%s%d' % (_c, r), _e, _f), c, flags=re.S)
+    return c
+
 # plantillas: GLOBAL (sin guarda) y de curso (con guarda V)
 PL_GLOBAL = {'total': fk[2], 'esp': fk[3], 'noesp': fk[4], 'asig': fk[8]}
 PL_CURSO  = {'total': fk[24], 'esp': fk[25], 'noesp': fk[26], 'asig': fk[30]}
@@ -106,9 +158,8 @@ for bloque in BLOQUES:
         attrs, cont = pl[clave]
         viejo = int(re.search(r'r="(\d+)"', attrs).group(1))
         c = rehacer(cont, viejo, r)
-        # el rango de especialidades de CONFIG se ensancha al catálogo entero
-        c = c.replace('CONFIG_ASIGNATURAS!$B$5:$B$20',
-                      'CONFIG_ASIGNATURAS!$B$%d:$B$%d' % (len(COMUNES) + 2, FIN_CFG))
+        if clave != 'total':
+            c = totales(c, clave, r, bloque == 'GLOBAL')
         # nivel y rótulos, que son literales
         c = re.sub(r'<c r="A%d"([^>]*)>.*?</c>' % r, txt('A%d' % r, '3', bloque), c, flags=re.S)
         c = re.sub(r'<c r="B%d"([^>]*)>.*?</c>' % r, txt('B%d' % r, '3', etiqueta), c, flags=re.S)

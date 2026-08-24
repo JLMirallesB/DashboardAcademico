@@ -183,6 +183,23 @@ MODELOS.forEach((m) => {
     comprobar('CANDADO: los nombres de asignatura los pone la configuración',
       dinamicas > 100, dinamicas + ' filas con nombre calculado');
 
+    /* CANDADO: y NINGUNA fórmula lleva un nombre de asignatura escrito dentro.
+       «Total Especialidad» era dos cosas a la vez: el recuento del bloque
+       GLOBAL preguntaba al catálogo y todo lo demás —media, moda, reparto de
+       notas, y el recuento de los bloques de curso— usaba «no es Lenguaje
+       Musical, ni Coro, ni Conjunto» escrito a mano en dieciocho columnas. Se
+       parecen mientras toda asignatura de DATOS esté en la configuración; en
+       cuanto llega una que no está, el global deja de ser la suma de los
+       cursos y nadie lo dice. Y añadir una común a la configuración no la
+       metía en «Total no Especialidad», que era justo lo contrario de que
+       mande la lista. */
+    const escritos = ['Lenguaje Musical', 'Coro', 'Conjunto']
+      .map((n) => [n, (calc.match(new RegExp(`"${n}"`, 'g')) || []).length])
+      .filter(([, n]) => n > 0);
+    comprobar('CANDADO: ni una asignatura escrita dentro de una fórmula',
+      escritos.length === 0,
+      escritos.map(([n, c]) => `"${n}" ×${c}`).join(' · '));
+
     /* Y que el exportador siga apuntando a todas las filas de cálculo: si se
        queda corto, las últimas asignaturas no salen en el CSV y no lo dice
        nadie. */
