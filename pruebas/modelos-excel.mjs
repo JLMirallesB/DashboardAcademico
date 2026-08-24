@@ -105,6 +105,29 @@ MODELOS.forEach((m) => {
 
   comprobar('están las nueve hojas', hojas.length === 9, hojas.length + ' hojas');
 
+  /* CANDADO. Dos celdas con la misma referencia en la misma fila, o filas
+     desordenadas: Excel lo comprueba al abrir y ofrece reparar. Sale al
+     regenerar una hoja conservando lo que había y añadiendo lo nuevo encima
+     —ha pasado tres veces— y no se ve por ningún otro sitio. */
+  const rotas = [];
+  hojas.forEach((h) => {
+    let ultima = 0;
+    for (const fila of txt(h).matchAll(/<row r="(\d+)"[^>]*>(.*?)<\/row>/gs)) {
+      const n = +fila[1];
+      if (n <= ultima) rotas.push(`${h.split('/').pop()} fila ${n} fuera de orden`);
+      ultima = n;
+      const refs = [...fila[2].matchAll(/<c r="([A-Z]+)(\d+)"/g)];
+      const cols = refs.map((x) => x[1]);
+      if (new Set(cols).size !== cols.length) {
+        const dup = cols.filter((c, i) => cols.indexOf(c) !== i);
+        rotas.push(`${h.split('/').pop()} fila ${n}: celda repetida ${[...new Set(dup)]}`);
+      }
+      if (refs.some((x) => +x[2] !== n)) rotas.push(`${h.split('/').pop()} fila ${n}: celda de otra fila`);
+    }
+  });
+  comprobar('CANDADO: ni celdas repetidas en una fila ni filas desordenadas',
+    rotas.length === 0, rotas.slice(0, 4).join(' · ') + (rotas.length > 4 ? ` (y ${rotas.length - 4} más)` : ''));
+
   /* CANDADO. Excel no guarda `FILTER(`: guarda `_xlfn._xlws.FILTER(`. El
      prefijo no es decoración, es el nombre de la función en el fichero —lo
      mismo con `STDEV.P`, `UNIQUE` o `MODE.SNGL`, que llevan `_xlfn.`—. Escrita
