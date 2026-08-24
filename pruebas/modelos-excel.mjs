@@ -183,6 +183,26 @@ MODELOS.forEach((m) => {
       .every((n) => wb.includes(`name="${n}"`)),
     wb.match(/name="[^"]+"/g).slice(0, 9).join(' '));
 
+  /* CANDADO. Los rangos llegan hasta donde hay datos, no hasta la fila
+     20.000. Con 1.939 filas reales, diecinueve de cada veinte lecturas eran
+     de celdas vacías: profesional citaba 345.221 veces un rango de 20.000, o
+     sea unos 6.900 millones de lecturas por recálculo. Se hace con nombres
+     definidos —`nASIG` ocupa menos que `DATOS!$I$2:$I$20000`, así que el
+     fichero encoge— y con INDEX, no con OFFSET, que es volátil y obligaría a
+     recalcular el libro entero cada vez que se toca una celda.
+
+     Si alguien vuelve a escribir un rango fijo, no falla nada: el libro da
+     las mismas cifras y tarda diez veces más en abrirse. */
+  const fijos = hojas.map((h) => [h, (txt(h).match(/\$2:\$[A-Z]+\$20000/g) || []).length])
+    .filter(([, n]) => n > 0);
+  comprobar('CANDADO: ningún rango llega a la fila 20.000 a lo bruto',
+    fijos.length === 0,
+    fijos.map(([h, n]) => `${h.split('/').pop()} ×${n}`).join(' · '));
+
+  comprobar('y hay nombres definidos que dicen hasta dónde',
+    /<definedName name="nASIG">/.test(wb) && wb.includes('INDEX(') && !wb.includes('OFFSET('),
+    (wb.match(/<definedName name="(\w+)"/g) || []).length + ' nombres');
+
   /* Los valores en caché son los de antes de cualquier corrección, así que
      el libro tiene que recalcular al abrirse o enseña cifras viejas sin
      decirlo. */
@@ -237,7 +257,10 @@ MODELOS.forEach((m) => {
     && cfg0.includes('&quot;Especialidad&quot;,&quot;E&quot;'),
     'la columna Clase del catálogo');
 
-  const porClase = (calc.match(/CONFIG_METADATA!\$[A-Z]\$2:\$[A-Z]\$20000(?:&lt;&gt;|=)&quot;(?:E|NT|)&quot;/g) || []).length;
+  /* El rango puede venir escrito entero o por su nombre definido: desde que
+     los rangos se acotan a las filas con datos, las fórmulas dicen `nCLASE_I`
+     en vez de `CONFIG_METADATA!$I$2:$I$20000`. */
+  const porClase = (calc.match(/(?:CONFIG_METADATA!\$[A-Z]\$2:\$[A-Z]\$20000|nCLASE_[A-Z])(?:&lt;&gt;|=)&quot;(?:E|NT|)&quot;/g) || []).length;
   comprobar('CANDADO: los totales preguntan a la clase, no se recorren el catálogo',
     porClase >= 10 && !/COUNTIFS\(CONFIG_ASIGNATURAS/.test(calc),
     `${porClase} totales miran la clase` + (/COUNTIFS\(CONFIG_ASIGNATURAS/.test(calc)
