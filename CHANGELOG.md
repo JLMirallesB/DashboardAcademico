@@ -79,6 +79,17 @@ rangos llegan hasta la última fila con datos. Profesional pasa de unos 6.900
 millones de lecturas por recálculo a unos 670; Elemental, de 1.650 a 70. **Sin
 cambiar ni una cifra.**
 
+### Una gráfica de correlaciones que evoluciona
+
+La sección se llamaba «Evolución de correlaciones» y no evolucionaba: sus dos
+gráficas ponen en el eje X los pares o los niveles, así que enseñan la foto del
+momento elegido. Hay una tercera con **los momentos en el eje X**, y las dos de
+antes dejan de llamarse «evolución».
+
+Los coeficientes de los distintos niveles se promedian por Fisher, no a pelo
+—0,9 y 0,5 dan 0,766, no 0,70—, y un par que falta en un momento no recibe
+punto: la línea se corta en vez de dibujar una tendencia que nadie ha medido.
+
 ### Y lo demás
 
 - Listas cerradas en las columnas de criterio del catálogo: «especialidad» en
@@ -89,7 +100,8 @@ cambiar ni una cifra.**
   —imposible con `OR+EX`—, ofrecía un código de evaluación que no existe y
   daba una capacidad máxima veinte veces menor que la real.
 - Elemental incorpora las 23 especialidades del art. 5 del D.159/2007; antes
-  tenía 16.
+  tenía 16. Las siete nuevas ya tienen familia, así que aparecen en los filtros
+  por agrupación.
 
 ---
 
