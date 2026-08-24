@@ -1,5 +1,13 @@
 export const translations = {
   es: {
+    // Avisos que vienen dentro del fichero. No los calcula la aplicación: los
+    // trae el libro de cálculo, que es quien sabe qué se quedó fuera.
+    avisosTitulo: 'Antes de leer estas cifras',
+    avisoFueraDeLasCifras: '{n} registro(s) no entran en ninguna cifra: su asignatura no está en la configuración del libro, o está desactivada.',
+    avisoExtraSinOrdinaria: '{n} calificación(es) de la extraordinaria no tienen su ordinaria. No se recupera lo que no se suspendió: falta por cargar la ordinaria, o sobra algo en la extraordinaria.',
+    avisoDobleEspecialidad: '{n} registro(s) se cuentan dos veces: quien cursa dos especialidades aparece dos veces en las asignaturas que solo se cursan una. Pesan doble en la media y en el reparto.',
+    avisoFilasLeidas: 'Calculado sobre {n} registros.',
+
     comparisonNeedsOneStage: 'Esta comparativa necesita una sola etapa: con las dos cargadas no hay un centro único con el que comparar. Elige elemental o profesional arriba.',
     ctxVariosMomentos: 'varios momentos del curso',
     ctxSeleccion: 'selección',
@@ -578,6 +586,14 @@ export const translations = {
     supportLink: 'Ko-fi',
   },
   va: {
+    // Avisos que vénen dins del fitxer. No els calcula l'aplicació: els porta
+    // el llibre de càlcul, que és qui sap què s'ha quedat fora.
+    avisosTitulo: 'Abans de llegir estes xifres',
+    avisoFueraDeLasCifras: '{n} registre(s) no entren en cap xifra: la seua assignatura no està en la configuració del llibre, o està desactivada.',
+    avisoExtraSinOrdinaria: '{n} qualificació(ns) de l\'extraordinària no tenen la seua ordinària. No es recupera el que no s\'ha suspés: falta per carregar l\'ordinària, o sobra alguna cosa en l\'extraordinària.',
+    avisoDobleEspecialidad: '{n} registre(s) es compten dos vegades: qui cursa dos especialitats apareix dos vegades en les assignatures que només es cursen una. Pesen el doble en la mitjana i en el repartiment.',
+    avisoFilasLeidas: 'Calculat sobre {n} registres.',
+
     comparisonNeedsOneStage: 'Esta comparativa necessita una sola etapa: amb les dues carregades no hi ha un centre únic amb què comparar. Tria elemental o professional a dalt.',
     ctxVariosMomentos: 'diversos moments del curs',
     ctxSeleccion: 'selecció',

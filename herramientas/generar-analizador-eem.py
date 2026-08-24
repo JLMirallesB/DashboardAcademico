@@ -387,12 +387,38 @@ pl_agr = fe[122]    # una fila de #AGRUPACIONES
 nuevas = []
 for a, c in sorted(fe.items()):
     pass
-# se reconstruye entero: cabecera (1-8), estadísticas, agrupaciones, correlaciones
-salida = []
-for n in range(1, 9):
-    if n in fe: salida.append('<row r="%d"%s>%s</row>' % (n, re.sub(r'^ r="\d+"', '', fe[n][0]), fe[n][1]))
+FILAS_AVISO = [(6, 'DobleEspecialidad'), (7, 'FueraDeLasCifras'), (8, 'FilasConDatos')]
+# ── La cabecera del CSV: los avisos viajan con las cifras ──────────────────
+#
+# Los avisos vivían en CONFIG_METADATA y NO salían: el exportador solo leía
+# el centro, el curso y la evaluación. Quien mira el Dashboard nunca se
+# enteraba de que hay registros fuera de las cifras o contados dos veces —y
+# son justo los que hacen que un número no signifique lo que parece—.
+# El que abre el Excel los veía; el que solo ve la web, no.
+AVISOS_CSV = [
+    ('Centro', 'CONFIG_METADATA!B2'), ('CursoAcademico', 'CONFIG_METADATA!B3'),
+    ('Trimestre', 'CONFIG_METADATA!B4'),
+]
+for _fila, _campo in FILAS_AVISO:
+    AVISOS_CSV.append((_campo, 'CONFIG_METADATA!B%d' % _fila))
 
-fila_exp = 9
+salida = []
+cab_est = fe[[n for n in sorted(fe) if n >= 7][0]][1] if False else None
+salida.append('<row r="1">%s</row>' % txt('A1', '', '#METADATA'))
+salida.append('<row r="2">%s%s</row>' % (txt('A2', '', 'Campo'), txt('B2', '', 'Valor')))
+_r = 3
+for _campo, _ref in AVISOS_CSV:
+    salida.append('<row r="%d">%s%s</row>'
+                  % (_r, txt('A%d' % _r, '', _campo), fx('B%d' % _r, '', _ref)))
+    _r += 1
+_r += 1
+salida.append('<row r="%d">%s</row>' % (_r, txt('A%d' % _r, '', '#ESTADISTICAS')))
+_r += 1
+salida.append('<row r="%d"%s>%s</row>'
+              % (_r, re.sub(r'^ r="\d+"', '', fe[8][0]),
+                 re.sub(r'\br="([A-Z]+)\d+"', lambda m: 'r="%s%d"' % (m.group(1), _r), fe[8][1])))
+fila_exp = _r + 1
+
 attrs, cont = pl_est
 viejo_exp = 9
 for (fila_calc, bloque, tipo) in mapa:

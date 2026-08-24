@@ -27,7 +27,7 @@ npm run preview
 ### Single-Page Application Structure
 
 The UI still lives largely in one React component
-([DashboardAcademico.jsx](src/DashboardAcademico.jsx)), now ~4500 lines. The
+([DashboardAcademico.jsx](src/DashboardAcademico.jsx)), now ~2517 lines. The
 agreed strategy is **not** a big-bang split: each view gets extracted the next
 time we work on that view (that is how `AlertasCurso.jsx` and
 `FamiliasAsignaturas.jsx` came out).
@@ -171,6 +171,18 @@ House rules, and they are not decoration:
 - Labels the PDF prints must stay inside WinAnsi — jsPDF's standard fonts are
   single-byte and a `σ` came out as `Ã`. `pruebas/traducciones.mjs` guards it.
 
+### Warnings that travel inside the file
+
+`src/nucleo/avisos.js` turns the `#METADATA` section into the list of things
+you must know **before** reading a figure: records left outside every total,
+records counted twice, extraordinary grades with no ordinary one. The app does
+not compute them — the workbook does, because it is the one that knows what
+fell out.
+
+Two rules: a **zero is not shown** (a box that always has something in it gets
+ignored within a week), and a **missing key is not invented** — a file from an
+older workbook simply has no warnings, and `undefined` is not `0`.
+
 ### Signals, and the rule that governs them
 
 `src/nucleo/senales.js` decides what is worth looking at, and the whole
@@ -229,6 +241,54 @@ Uses configurable thresholds ([constants.js](src/constants.js:7-13)):
 ### Agrupaciones (Subject Groupings)
 
 Flexible system allowing subjects to be grouped for correlation analysis. Stored as `{ asignatura: [grupo1, grupo2] }` and loaded from CSV `#AGRUPACIONES` section.
+
+## The Excel models are generated, not edited
+
+`public/data/ANALIZADOR_*.xlsx` are the two workbooks the centres actually
+use: they paste their grades in, and the CSV they export is what this app
+reads. **They are not edited by hand any more** — they are produced by scripts
+in `herramientas/`, and there is one entry point:
+
+```bash
+herramientas/generar-modelos.sh    # both books, end to end, then the tests
+node pruebas/modelos-excel.mjs     # 56 checks
+```
+
+The order matters and the script encodes it: each generator starts from a
+pinned commit (they pick their templates **by row number**, so running one over
+its own output picks a slot believing it is a total — that happened, and the
+book came out with plausible wrong figures), then `acotar-rangos.py`, then
+`portada.py`, then `listas-y-formato.py`.
+
+An `.xlsx` is a zip of XML, and every rule below was learnt by shipping a
+broken file. `pruebas/modelos-excel.mjs` guards all of them, and each check was
+verified by reintroducing the fault and watching it go red:
+
+- **Element order inside `<worksheet>` is fixed by the schema.**
+  `conditionalFormatting` before `dataValidations`, both before `pageMargins`.
+  Out of place, Excel opens with «we found a problem with the content».
+- **`calcChain.xml` is a cache of every formula cell.** Move rows and it stops
+  matching; Excel checks it on open. It is rebuildable, so it is dropped.
+- **Excel does not store `FILTER(`, it stores `_xlfn._xlws.FILTER(`.** The
+  prefix is the function's name in the file, not decoration.
+- **A formula containing a dynamic-array function must be declared as one:**
+  `cm="1"` on the cell and `<f t="array" ref="…">`. Without it the formula does
+  not spill — and gives no error. One of them stayed in a single cell and every
+  total in the book read `1`, with the first cell showing the right value.
+- **No duplicated cells in a row, no rows out of order**, which is what
+  rebuilding a sheet while keeping what was there produces.
+- **No range reaching row 20.000 by brute force.** Ranges are defined names
+  bounded by the last row with data (`INDEX`, never volatile `OFFSET`). If
+  someone writes a fixed range nothing fails: the book gives the same figures
+  and takes ten times longer to open.
+- **No mention of any specific school-management product** in anything the user
+  reads. These books are used by other conservatoires; what matters is the
+  *shape* of the data, not where it came from.
+
+The design principle behind all of it: **the list rules**. Subject names,
+courses and what counts as a speciality come from `CONFIG_ASIGNATURAS`, never
+from a row range and never written inside a formula. Adding a subject is
+writing one line in the marked free margin.
 
 ## Translations
 

@@ -9,6 +9,90 @@ van resumidas.
 
 ---
 
+## 3.6.0 — 24 de agosto de 2026
+
+Los dos libros de Excel, rehechos. Todo lo que cambia está ahí: la aplicación
+solo gana una barra de avisos y no toca ninguna cifra.
+
+### ⚠️ Cifras que cambian
+
+**En el analizador de Elemental**, «Total Especialidad» contaba también
+Lenguaje Musical, Coro y Conjunto: se solapaba con «Total No Especialidad» y
+las dos juntas sumaban más que el total del centro. Ahora `D3 + D4 = D2`.
+
+**En el de Profesional**, «Teórica Troncal» llevaba tres nombres escritos
+dentro de la fórmula. Si tu centro llama de otra manera a alguna de esas tres,
+antes no contaba y ahora sí.
+
+**En los dos**, una asignatura desactivada dejaba de salir en las filas pero
+sus registros seguían sumando en los totales. Si tenías alguna con Activa =
+No, los totales bajan — y esos registros aparecen ahora en el aviso
+«FueraDeLasCifras».
+
+### La foto definitiva del curso, en Profesional
+
+Todas las fórmulas filtraban por UNA evaluación. Elegir `EX` enseñaba solo las
+asignaturas suspendidas en junio, porque es lo único que trae la
+extraordinaria: una media de 4,2 sobre los recuperados se leía igual que «la
+media del centro».
+
+Hay una opción nueva, **`OR+EX`**: la ordinaria como base y cada recuperación
+de la extraordinaria sustituyendo a la suya. Se pega la ordinaria y se añaden
+debajo las filas de la extraordinaria — no se sustituyen, hacen falta las dos.
+Es la única opción que da la foto del curso completo.
+
+### Añadir una asignatura es escribir una línea
+
+Antes había que insertar filas en un bloque concreto, y una asignatura escrita
+en la primera fila libre quedaba fuera de los dos totales sin que nada lo
+dijera. Ahora los criterios preguntan por la columna `Grupo1`, no por un rango
+de filas, y el catálogo tiene sitio marcado: hasta la fila 61 en Elemental y la
+91 en Profesional, con la primera libre señalada dentro de la hoja.
+
+Y cada bloque de curso recibe solo las asignaturas que se imparten en ese
+curso, que es para lo que existe la columna `Cursos`. Antes Conjunto aparecía
+en 1.º y 2.º de Elemental con un cero, y ese cero viajaba al CSV como si fuera
+un dato.
+
+### Avisos: lo que hay que saber antes de leer una cifra
+
+Cuatro, en `CONFIG_METADATA`, y ahora **viajan al CSV y se ven en la
+aplicación**. Antes vivían solo en el Excel: quien miraba la web nunca se
+enteraba de que hay registros fuera de las cifras.
+
+- **FueraDeLasCifras** — registros cuya asignatura no está en la configuración
+  o está desactivada. Si no es cero, falta algo.
+- **DobleEspecialidad** — quien cursa dos especialidades aparece dos veces en
+  las asignaturas que solo se cursan una. Pesan doble en la media.
+- **ExtraordinariaSinOrdinaria** (Profesional) — no se recupera lo que no se
+  suspendió. Si no es cero, falta cargar la ordinaria.
+- **FilasConDatos** — hasta dónde han mirado los cálculos.
+
+### Más rápido al abrirse
+
+Los cálculos recorrían siempre 20.000 filas y deducían dentro de cada fórmula
+qué era cada asignatura. Con un fichero de 1.900 registros, diecinueve de cada
+veinte lecturas eran de celdas vacías.
+
+Ahora la clase de cada asignatura se decide una vez en el catálogo, y los
+rangos llegan hasta la última fila con datos. Profesional pasa de unos 6.900
+millones de lecturas por recálculo a unos 670; Elemental, de 1.650 a 70. **Sin
+cambiar ni una cifra.**
+
+### Y lo demás
+
+- Listas cerradas en las columnas de criterio del catálogo: «especialidad» en
+  minúscula o «SI» sin tilde no daban error, solo dejaban de contar.
+- Una asignatura desactivada se ve en rojo.
+- El curso académico, validado.
+- La portada rehecha. La anterior decía «incluye solo una única evaluación»
+  —imposible con `OR+EX`—, ofrecía un código de evaluación que no existe y
+  daba una capacidad máxima veinte veces menor que la real.
+- Elemental incorpora las 23 especialidades del art. 5 del D.159/2007; antes
+  tenía 16.
+
+---
+
 ## 3.5.0 — 23 de agosto de 2026
 
 Una revisión a fondo. Catorce fallos de la auditoría inicial, cinco más que

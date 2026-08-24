@@ -1985,6 +1985,9 @@ const DashboardAcademico = () => {
           supportUrl: SUPPORT_URL,
           t
         }}
+        /* Los avisos del fichero que se está mirando, no los del primero de
+           la lista: con dos cursos cargados, los de uno no valen para el otro. */
+        avisos={trimestreSeleccionado ? (metadata[trimestreSeleccionado] || {}) : {}}
         headerProps={{
           /* Del fichero que se está mirando, no del primero de la lista. Con
              un solo curso cargado daba igual; en cuanto conviven dos —que es

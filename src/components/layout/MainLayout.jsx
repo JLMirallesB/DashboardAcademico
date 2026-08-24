@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
+import { AvisosFichero } from './AvisosFichero.jsx';
 
 /**
  * Layout principal con sidebar responsive
@@ -13,7 +14,7 @@ import { Header } from './Header';
  * @param {Object} sidebarProps - Props para el Sidebar
  * @param {Object} headerProps - Props para el Header
  */
-export const MainLayout = ({ children, sidebarProps, headerProps }) => {
+export const MainLayout = ({ children, sidebarProps, headerProps, avisos }) => {
   // Estado del sidebar
   const [collapsed, setCollapsed] = useState(() => {
     const saved = localStorage.getItem('sidebar-collapsed');
@@ -90,6 +91,10 @@ export const MainLayout = ({ children, sidebarProps, headerProps }) => {
           onMenuClick={() => setMobileOpen(true)}
           t={sidebarProps.t}
         />
+
+        {/* Lo que el fichero avisa. Va aquí y no en una pestaña porque cambia
+            lo que SIGNIFICAN las cifras de debajo. */}
+        <AvisosFichero metadata={avisos} t={sidebarProps.t} />
 
         {/* Área de contenido */}
         <main className="p-6 lg:p-8">
