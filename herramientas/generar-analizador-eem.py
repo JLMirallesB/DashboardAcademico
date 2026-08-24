@@ -88,6 +88,31 @@ def filas_de(x):
             for a, c in re.findall(r'<row([^>]*)>(.*?)</row>', x, re.S)}
 
 # ---------- 1 · CONFIG_ASIGNATURAS ----------
+# El margen, dicho en el propio libro. Sin esto, «se pueden añadir asignaturas»
+# es algo que solo sabe quien haya leído este generador.
+AYUDA = [
+    ('K1', 'CÓMO AÑADIR UNA ASIGNATURA'),
+    ('K2', '1. Escríbela en la primera fila libre (marcada abajo con una flecha). No hace falta'),
+    ('K3', '   insertar filas ni ordenar nada: las fórmulas no miran POSICIONES, miran columnas.'),
+    ('K4', '2. B  Asignatura — EXACTAMENTE como la escriben GEODE o ITACA2Excel. Si no coincide'),
+    ('K5', '      letra por letra, esa asignatura no aparece ni con un cero.'),
+    ('K6', '3. C  Cursos — separados por punto y coma. Solo saldrá en los cursos que pongas ahí.'),
+    ('K7', '4. D  Grupo1 — «Especialidad» si es un instrumento. Es lo que decide si cuenta en'),
+    ('K8', '      «Total Especialidad» o en «Total No Especialidad».'),
+    ('K9', '5. G  Activa — «Sí». Sin eso no sale por ningún sitio, y sus registros se cuentan'),
+    ('K10', '      en CONFIG_METADATA como «fuera de las cifras».'),
+    ('K11', '6. H  UnaSolaVez — «Sí» solo si NO se vuelve a cursar al coger un segundo instrumento.'),
+    ('K12', '7. I  Tipo — Obligatoria / Optativa / De centro.'),
+]
+def ayuda_de(fila):
+    PRIMERA_LIBRE = len(CATALOGO) + 2
+    trozos = ''.join(txt(ref, '3', t) for ref, t in AYUDA if int(ref[1:]) == fila)
+    if fila == PRIMERA_LIBRE:
+        trozos += txt('J' + str(fila), '3', '↓ primera fila libre')
+    if fila == FIN_CFG:
+        trozos += txt('J' + str(fila), '3', '↑ última fila que miran las fórmulas')
+    return trozos
+
 cfg = hoja(2)
 fc = filas_de(cfg)
 cab = fc[1][1]                      # la cabecera se conserva tal cual
@@ -95,7 +120,7 @@ est_g1 = (re.search(r'<c r="G1"[^>]*s="(\d+)"', cab) or [None, ''])[1]
 # La cabecera se rehace de H en adelante: en I y K había dos rótulos sueltos
 # —«CURSOS», «GRUPOS»— sin nada debajo, de una versión anterior.
 cab = re.sub(r'<c r="[H-Z]+1"(?:[^>]*/>|[^>]*>.*?</c>)', '', cab, flags=re.S)
-cab += txt('H1', est_g1, 'UnaSolaVez') + txt('I1', est_g1, 'Tipo')
+cab += txt('H1', est_g1, 'UnaSolaVez') + txt('I1', est_g1, 'Tipo') + ayuda_de(1)
 notas_laterales = re.findall(r'<c r="[IK]\d+"[^>]*>(?:<v>\d+</v>)?</c>', fc[1][1])
 
 filas_cfg = ['<row r="1"%s>%s</row>' % (re.sub(r'^ r="\d+"', '', fc[1][0]), cab)]
@@ -106,7 +131,13 @@ for i, (nombre, cursos, g1, g2, unaVez, tipo) in enumerate(CATALOGO, start=2):
               + txt('F%d' % i, '3', 'Sí' if g1 == 'Especialidad' else 'No')
               + txt('G%d' % i, '3', 'Sí') + txt('H%d' % i, '3', unaVez)
               + txt('I%d' % i, '3', tipo))
-    filas_cfg.append('<row r="%d" spans="1:11" ht="15" customHeight="1">%s</row>' % (i, celdas))
+    filas_cfg.append('<row r="%d" spans="1:11" ht="15" customHeight="1">%s</row>' % (i, celdas + ayuda_de(i)))
+
+# Las filas del margen existen aunque estén vacías: si no, la flecha que dice
+# «última fila que miran las fórmulas» no tendría dónde ponerse.
+for n in range(len(CATALOGO) + 2, FIN_CFG + 1):
+    ayuda = ayuda_de(n)
+    if ayuda: filas_cfg.append('<row r="%d">%s</row>' % (n, ayuda))
 
 cfg_nueva = re.sub(r'<sheetData>.*?</sheetData>', '<sheetData>' + ''.join(filas_cfg) + '</sheetData>',
                    cfg, flags=re.S)

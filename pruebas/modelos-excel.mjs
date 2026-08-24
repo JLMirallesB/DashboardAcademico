@@ -247,7 +247,10 @@ MODELOS.forEach((m) => {
 
   /* El catálogo entero, para que cada centro active lo suyo. */
   const cfg = txt('xl/worksheets/sheet2.xml');
-  const cuantas = (cfg.match(/<row r="\d+"/g) || []).length - 1;
+  /* Se cuentan las filas que tienen ASIGNATURA, no las filas de la hoja: por
+     debajo hay margen libre marcado para las que cada centro añada. */
+  const cuantas = [...cfg.matchAll(/<row r="(\d+)"[^>]*>(.*?)<\/row>/gs)]
+    .filter((x) => +x[1] > 1 && /<c r="B\d+"[^>]*>(?!<\/c>)/.test(x[2])).length;
   comprobar(`la configuración lleva las ${m.asignaturas} asignaturas`,
     cuantas === m.asignaturas, cuantas + ' filas');
 
