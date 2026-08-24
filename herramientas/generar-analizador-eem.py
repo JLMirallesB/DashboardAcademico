@@ -22,9 +22,14 @@ TODOS_LOS_CURSOS = '1EEM;2EEM;3EEM;4EEM'
 #     El Grupo2 de las nuevas va VACÍO a propósito: es departamental, no
 #     organológico —percusión está en Metal porque ese es su departamento— y
 #     eso lo decide el centro, no este script.
+# El quinto campo es `UnaSolaVez`: si quien coge un segundo instrumento
+# vuelve a cursarla o no. Conjunto y música de cámara SÍ se repiten con cada
+# especialidad nueva —se hacen con el instrumento nuevo—; Lenguaje Musical y
+# Coro no. Es el mismo criterio que `PLAN.UNA_SOLA_VEZ` del jardín, que hasta
+# ahora era el único sitio donde vivía. Aquí es dato, no código.
 COMUNES = [
-    ('Lenguaje Musical', TODOS_LOS_CURSOS, 'Referencia', '', 'No'),
-    ('Coro',             TODOS_LOS_CURSOS, 'NoEspecialidad', '', 'No'),
+    ('Lenguaje Musical', TODOS_LOS_CURSOS, 'Referencia', '', 'Sí'),
+    ('Coro',             TODOS_LOS_CURSOS, 'NoEspecialidad', '', 'Sí'),
     ('Conjunto',         '3EEM;4EEM',      'NoEspecialidad', '', 'No'),
 ]
 FAMILIA = {'Arpa':'Cuerda','Contrabajo':'Cuerda','Guitarra':'Cuerda','Viola':'Cuerda',
@@ -36,7 +41,7 @@ ESPECIALIDADES = ['Acordeón','Arpa','Clarinete','Clave','Contrabajo','Dulzaina'
                   'Percusión','Piano','Saxofón','Trombón','Trompa','Trompeta','Tuba','Viola',
                   'Viola de Gamba','Violín','Violoncello']
 
-CATALOGO = COMUNES + [(e, TODOS_LOS_CURSOS, 'Especialidad', FAMILIA.get(e, ''), 'Sí')
+CATALOGO = COMUNES + [(e, TODOS_LOS_CURSOS, 'Especialidad', FAMILIA.get(e, ''), 'No')
                       for e in ESPECIALIDADES]
 
 esc = lambda s: (s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
@@ -62,15 +67,18 @@ def filas_de(x):
 cfg = hoja(2)
 fc = filas_de(cfg)
 cab = fc[1][1]                      # la cabecera se conserva tal cual
+est_g1 = (re.search(r'<c r="G1"[^>]*s="(\d+)"', cab) or [None, ''])[1]
+if '<c r="H1"' not in cab:
+    cab = cab.replace('<c r="I1"', txt('H1', est_g1, 'UnaSolaVez') + '<c r="I1"', 1)
 notas_laterales = re.findall(r'<c r="[IK]\d+"[^>]*>(?:<v>\d+</v>)?</c>', fc[1][1])
 
 filas_cfg = ['<row r="1"%s>%s</row>' % (re.sub(r'^ r="\d+"', '', fc[1][0]), cab)]
-for i, (nombre, cursos, g1, g2, esEsp) in enumerate(CATALOGO, start=2):
+for i, (nombre, cursos, g1, g2, unaVez) in enumerate(CATALOGO, start=2):
     celdas = (num('A%d' % i, '3', i - 1) + txt('B%d' % i, '3', nombre)
               + txt('C%d' % i, '3', cursos) + txt('D%d' % i, '3', g1)
               + (txt('E%d' % i, '3', g2) if g2 else vac('E%d' % i, '3'))
               + txt('F%d' % i, '3', 'Sí' if g1 == 'Especialidad' else 'No')
-              + txt('G%d' % i, '3', 'Sí'))
+              + txt('G%d' % i, '3', 'Sí') + txt('H%d' % i, '3', unaVez))
     filas_cfg.append('<row r="%d" spans="1:11" ht="15" customHeight="1">%s</row>' % (i, celdas))
 
 cfg_nueva = re.sub(r'<sheetData>.*?</sheetData>', '<sheetData>' + ''.join(filas_cfg) + '</sheetData>',
@@ -79,6 +87,64 @@ cfg_nueva = re.sub(r'<dimension ref="[^"]*"/>', '<dimension ref="A1:K%d"/>' % (l
 piezas['xl/worksheets/sheet2.xml'] = cfg_nueva.encode('utf8')
 print('CONFIG_ASIGNATURAS: %d asignaturas (%d comunes + %d especialidades)'
       % (len(CATALOGO), len(COMUNES), len(ESPECIALIDADES)))
+
+# ---------- 1 bis · CONFIG_METADATA: lo que las cifras se tragaban ----------
+#
+# Dos sesgos que existían y que nadie podía ver, porque vivían DENTRO de los
+# números en vez de al lado:
+#
+#  · GEODE escribe una fila por matrícula, así que quien cursa dos
+#    especialidades aparece dos veces en Lenguaje Musical y en Coro, con la
+#    misma nota. Cuenta doble en la media, en la moda y en el reparto.
+#  · Desde que el criterio de «especialidad» es positivo, una asignatura que
+#    no esté en la configuración no entra en ninguno de los dos totales. Es
+#    mejor que colarse como instrumento, pero solo si se dice.
+#
+# Ninguno de los dos se corrige aquí a propósito: corregirlos costaría una
+# columna auxiliar en DATOS que habría que arrastrar en cada pegado, y son
+# unidades sobre centenares. Un sesgo dicho no es un sesgo, es una condición
+# de lectura. Lo que no se puede es callarlo.
+meta = hoja(3)
+fm = filas_de(meta)
+INI, FIN = 2, len(CATALOGO) + 1
+UNA_VEZ = ('COUNTIFS(CONFIG_ASIGNATURAS!$B$%d:$B$%d,DATOS!$I$2:$I$20000,'
+           'CONFIG_ASIGNATURAS!$H$%d:$H$%d,"Sí")>0' % (INI, FIN, INI, FIN))
+COND = '(DATOS!$G$2:$G$20000=CONFIG_METADATA!$B$4)*(%s)' % UNA_VEZ
+DOBLES = ('IFERROR(SUMPRODUCT(%s*1)-COUNTA(_xlfn.UNIQUE(_xlfn._xlws.FILTER('
+          'DATOS!$A$2:$A$20000&"|"&DATOS!$I$2:$I$20000,%s))),0)' % (COND, COND))
+
+est = (re.search(r'<c r="A2"[^>]*s="(\d+)"', fm[2][1]) or [None, ''])[1]
+extra = [
+    (6, 'DobleEspecialidad', DOBLES,
+     'Registros de más: quien cursa dos especialidades aparece dos veces en '
+     'las asignaturas de una sola vez, con la misma nota. Cuentan doble en la '
+     'media, en la moda y en el reparto.'),
+    (7, 'SinConfigurar', 'CALC_EEM!$D$2-CALC_EEM!$D$3-CALC_EEM!$D$4',
+     'Registros cuya asignatura no está en CONFIG_ASIGNATURAS: no entran ni '
+     'en Total Especialidad ni en Total no Especialidad. Si no es cero, '
+     'falta algo en la configuración.'),
+]
+filas_meta = []
+for n in sorted(fm):
+    if n == 5:
+        # La lista visible de la columna D decía FINAL y el desplegable ofrece
+        # FI, que es lo que escribe GEODE. Dos listas que no dicen lo mismo, a
+        # un palmo la una de la otra, es una trampa puesta a mano.
+        est_d5 = (re.search(r'<c r="D5"[^>]*s="(\d+)"', fm[n][1]) or [None, ''])[1]
+        fm[n] = (fm[n][0], re.sub(r'<c r="D5"(?:[^>]*/>|[^>]*>.*?</c>)',
+                                  txt('D5', est_d5, 'FI'), fm[n][1], flags=re.S))
+    filas_meta.append('<row r="%d"%s>%s</row>'
+                      % (n, re.sub(r'^ r="\d+"', '', fm[n][0]), fm[n][1]))
+for n, campo, formula, nota_ in extra:
+    filas_meta.append('<row r="%d">%s%s%s</row>'
+                      % (n, txt('A%d' % n, est, campo), fx('B%d' % n, est, formula),
+                         txt('C%d' % n, est, nota_)))
+filas_meta.sort(key=lambda x: int(re.search(r'r="(\d+)"', x).group(1)))
+meta_nueva = re.sub(r'<sheetData>.*?</sheetData>', '<sheetData>' + ''.join(filas_meta) + '</sheetData>',
+                    meta, flags=re.S)
+meta_nueva = re.sub(r'<dimension ref="[^"]*"/>', '<dimension ref="A1:D7"/>', meta_nueva)
+piezas['xl/worksheets/sheet3.xml'] = meta_nueva.encode('utf8')
+print('CONFIG_METADATA: dos avisos (doble especialidad y sin configurar)')
 
 # ---------- 2 · CALC_EEM ----------
 calc = hoja(6)

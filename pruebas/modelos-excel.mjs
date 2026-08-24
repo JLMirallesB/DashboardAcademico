@@ -154,6 +154,25 @@ MODELOS.forEach((m) => {
   comprobar(`y ofrece los códigos de ${m.etapa}: ${m.codigos}`,
     meta.includes(m.codigos), (meta.match(/<formula1>(.*?)<\/formula1>/) || [])[1]);
 
+  /* CANDADO: y la lista VISIBLE de al lado dice lo mismo que el desplegable.
+     La columna D de CONFIG_METADATA ofrecía «FINAL» y el desplegable «FI»,
+     que es lo que escribe GEODE, a un palmo la una de la otra. Quien copie de
+     la de al lado se queda con cero filas y toda la hoja en «—», y no hay
+     nada que se lo explique. */
+  const cadenas = [...txt('xl/sharedStrings.xml').matchAll(/<si>(.*?)<\/si>/gs)]
+    .map((x) => x[1].replace(/<.*?>/g, ''));
+  const valorDe = (celda) => {
+    const v = /<v>(.*?)<\/v>/s.exec(celda);
+    if (/t="s"/.test(celda) && v) return cadenas[+v[1]];
+    const is = /<is>.*?<t[^>]*>(.*?)<\/t>/s.exec(celda);
+    return is ? is[1] : (v ? v[1] : '');
+  };
+  const visible = [...meta.matchAll(/<c r="D(\d+)"(?:[^>]*\/>|[^>]*>.*?<\/c>)/gs)]
+    .filter((x) => +x[1] > 1).map((x) => valorDe(x[0])).filter(Boolean);
+  comprobar('CANDADO: la lista visible, si la hay, dice lo mismo que el desplegable',
+    visible.length === 0 || visible.join(',') === m.codigos,
+    visible.length ? visible.join(',') + ' frente a ' + m.codigos : 'no lleva lista visible');
+
   /* El bloque de instrumentos, que es lo que separa «Especialidad» de «No
      Especialidad». En elemental apuntaba a TODAS las asignaturas
      configuradas, así que las dos cifras se solapaban y sumaban más que el
