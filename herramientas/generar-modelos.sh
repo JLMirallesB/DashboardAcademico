@@ -20,5 +20,11 @@ git checkout 4a6df25 -- public/data/ANALIZADOR_PROFESIONAL_v2.xlsx
 python3 herramientas/generar-analizador-epm.py
 python3 herramientas/acotar-rangos.py \
     public/data/ANALIZADOR_ELEMENTAL_V2.xlsx public/data/ANALIZADOR_PROFESIONAL_v2.xlsx
+# La portada va al final, y las pruebas DESPUÉS de ella: es la que quita de los
+# textos el nombre de herramientas concretas, y pasándolas antes se veía el
+# libro a medio hacer.
+python3 herramientas/portada.py
+python3 herramientas/listas-y-formato.py \
+    public/data/ANALIZADOR_ELEMENTAL_V2.xlsx public/data/ANALIZADOR_PROFESIONAL_v2.xlsx
 cp public/data/ANALIZADOR_*.xlsx dist/data/
 node pruebas/modelos-excel.mjs

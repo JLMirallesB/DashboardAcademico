@@ -203,6 +203,46 @@ MODELOS.forEach((m) => {
     /<definedName name="nASIG">/.test(wb) && wb.includes('INDEX(') && !wb.includes('OFFSET('),
     (wb.match(/<definedName name="(\w+)"/g) || []).length + ' nombres');
 
+  /* Las columnas del catálogo son CRITERIOS, no rótulos: «especialidad» en
+     minúscula o «SI» sin tilde no dan error en ninguna parte, la asignatura
+     simplemente deja de contar donde debía. Una lista cerrada es la
+     diferencia entre un error imposible y un error invisible. */
+  const cfgV = txt('xl/worksheets/sheet2.xml');
+  const conLista = (cfgV.match(/<dataValidation type="list"/g) || []).length;
+  comprobar('el catálogo tiene listas cerradas en sus columnas de criterio',
+    conLista >= 5, conLista + ' columnas con lista');
+
+  /* CANDADO: y van DONDE dice el esquema. Ponerlas al final es lo que hizo
+     que los dos libros abrieran dañados la primera vez. */
+  comprobar('CANDADO: y el formato condicional va antes que las validaciones',
+    !/<dataValidations[\s\S]*<conditionalFormatting/.test(cfgV)
+    && !/<pageMargins[\s\S]*<(?:dataValidations|conditionalFormatting)/.test(cfgV));
+
+  comprobar('y una asignatura desactivada se ve en rojo',
+    /<conditionalFormatting/.test(cfgV) && cfgV.includes('$G2&lt;&gt;&quot;Sí&quot;')
+    && /<dxfs count="[1-9]/.test(txt('xl/styles.xml')));
+
+  /* CANDADO. Ningún texto del libro nombra una herramienta de gestión
+     concreta. Este analizador lo puede abrir cualquier conservatorio, y el que
+     lo haga no tiene por qué usar las mismas que nosotros: lo que importa es
+     la FORMA de los datos, no de dónde salgan. Estaba en el aviso del selector
+     de evaluación —«usa uno de los códigos que escribe X»—, que es justo el
+     texto que alguien lee cuando se equivoca. */
+  const nombrados = ['GEODE', 'ITACA', 'Itaca', 'Geode']
+    .filter((n) => [...piezas.keys()].filter((k) => k.endsWith('.xml'))
+      .some((k) => txt(k).includes(n)));
+  comprobar('CANDADO: no se nombra ninguna herramienta de gestión concreta',
+    nombrados.length === 0, nombrados.join(' · '));
+
+  /* Los tres avisos que hay que mirar antes de fiarse de una cifra. Ninguno
+     corrige nada: los tres DICEN. */
+  const meta3 = txt('xl/worksheets/sheet3.xml');
+  const faltan = ['FilasConDatos', 'FueraDeLasCifras', 'DobleEspecialidad']
+    .concat(m.etapa === 'EPM' ? ['ExtraordinariaSinOrdinaria'] : [])
+    .filter((a) => !meta3.includes(a));
+  comprobar('lleva sus avisos, y los mismos en los dos libros',
+    faltan.length === 0, 'faltan: ' + faltan.join(', '));
+
   /* Los valores en caché son los de antes de cualquier corrección, así que
      el libro tiene que recalcular al abrirse o enseña cifras viejas sin
      decirlo. */

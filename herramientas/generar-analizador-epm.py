@@ -92,15 +92,15 @@ AYUDA = [
     ('K1', 'CÓMO AÑADIR UNA ASIGNATURA'),
     ('K2', '1. Escríbela en la primera fila libre (marcada abajo con una flecha). No hace falta'),
     ('K3', '   insertar filas ni ordenar nada: las fórmulas no miran POSICIONES, miran columnas.'),
-    ('K4', '2. B  Asignatura — EXACTAMENTE como la escriben GEODE o ITACA2Excel. Si no coincide'),
-    ('K5', '      letra por letra, esa asignatura no aparece ni con un cero.'),
-    ('K6', '3. C  Cursos — separados por punto y coma. Solo saldrá en los cursos que pongas ahí.'),
-    ('K7', '4. D  Grupo1 — «Especialidad» si es un instrumento. Es lo que decide si cuenta en'),
-    ('K8', '      «Total Especialidad» o en «Total No Especialidad».'),
-    ('K9', '5. G  Activa — «Sí». Sin eso no sale por ningún sitio, y sus registros se cuentan'),
-    ('K10', '      en CONFIG_METADATA como «fuera de las cifras».'),
-    ('K11', '6. H  UnaSolaVez — «Sí» solo si NO se vuelve a cursar al coger un segundo instrumento.'),
-    ('K12', '7. I  Tipo — Obligatoria / Optativa / De centro.'),
+    ('K4', '2. B  Asignatura — EXACTAMENTE igual que en el fichero de calificaciones que'),
+    ('K5', '      pegas en DATOS. Si no coincide letra por letra, esa asignatura no aparece'),
+    ('K6', '      ni con un cero, y sus registros los cuenta el aviso «FueraDeLasCifras».'),
+    ('K7', '3. C  Cursos — separados por punto y coma. Solo sale en los cursos que pongas.'),
+    ('K8', '4. D  Grupo1 — «Especialidad» si es un instrumento: decide en qué total cuenta.'),
+    ('K9', '5. G  Activa — «Sí». Sin eso no sale por ningún sitio.'),
+    ('K10', '6. H  UnaSolaVez — «Sí» solo si NO se vuelve a cursar con un segundo instrumento.'),
+    ('K11', '7. I  Tipo — Obligatoria / Optativa / De centro.'),
+    ('K12', 'J  Clase se calcula sola. Si sale vacía, esa fila no está activa.'),
 ]
 # La clase de cada asignatura, calculada UNA vez en el catálogo en vez de
 # deducirse dentro de cada fórmula de total.
@@ -340,6 +340,43 @@ meta = re.sub(r'<sheetData>.*?</sheetData>', '<sheetData>' + ''.join(salida_meta
 meta = re.sub(r'<dimension ref="[^"]*"/>', '<dimension ref="A1:I20000"/>', meta)
 piezas['xl/worksheets/sheet3.xml'] = meta.encode('utf8')
 print('CONFIG_METADATA: columna de clase por fila')
+
+# Los dos avisos que elemental ya tenía y este no. Ninguno se corrige: los
+# dos se DICEN, que es distinto. Un sesgo dicho es una condición de lectura.
+UNA_VEZ = ('COUNTIFS(CONFIG_ASIGNATURAS!$B$2:$B$%d,DATOS!$I$2:$I$20000,'
+           'CONFIG_ASIGNATURAS!$H$2:$H$%d,"Sí",'
+           'CONFIG_ASIGNATURAS!$G$2:$G$%d,"Sí")>0' % (FIN_CFG, FIN_CFG, FIN_CFG))
+COND = '(%s)*(%s)' % (SEL, UNA_VEZ)
+CLAVES = 'CONFIG_METADATA!$F$2:$F$20000'
+DOBLES = ('IFERROR(SUMPRODUCT(%s*1)-COUNTA(_xlfn.UNIQUE(_xlfn._xlws.FILTER(%s,%s))),0)'
+          % (COND, CLAVES, COND))
+
+meta2 = piezas['xl/worksheets/sheet3.xml'].decode('utf8')
+f2 = filas_de(meta2)
+avisos = [
+    (9, 'DobleEspecialidad', DOBLES, True,
+     'Registros de más: quien cursa dos especialidades aparece dos veces en las '
+     'asignaturas de una sola vez, con la misma nota. Cuentan doble en la media, '
+     'en la moda y en el reparto.'),
+    (10, 'FueraDeLasCifras', 'CALC_EPM!$D$2-CALC_EPM!$D$3-CALC_EPM!$D$4', False,
+     'Registros que no entran en ninguna cifra: su asignatura no está en '
+     'CONFIG_ASIGNATURAS, o está pero con Activa = No. Si no es cero, falta algo '
+     'en la configuración o sobra un No.'),
+]
+salida2 = []
+for n in sorted(set(f2) | {x[0] for x in avisos}):
+    a, c = f2.get(n, ('', ''))
+    for fila, campo, formula, matriz, nota_ in avisos:
+        if fila != n: continue
+        c = re.sub(r'<c r="[ABC]%d"(?:[^>]*/>|[^>]*>.*?</c>)' % n, '', c, flags=re.S)
+        escribir = fxm if matriz else fx
+        c = (txt('A%d' % n, '', campo) + escribir('B%d' % n, '', formula)
+             + txt('C%d' % n, '', nota_) + c)
+    salida2.append('<row r="%d"%s>%s</row>' % (n, re.sub(r'^ r="\d+"', '', a), c))
+meta2 = re.sub(r'<sheetData>.*?</sheetData>', '<sheetData>' + ''.join(salida2) + '</sheetData>',
+               meta2, flags=re.S)
+piezas['xl/worksheets/sheet3.xml'] = meta2.encode('utf8')
+print('CONFIG_METADATA: avisos de doble especialidad y fuera de las cifras')
 
 CC = 'xl/calcChain.xml'
 if CC in piezas:
