@@ -202,6 +202,35 @@ MODELOS.forEach((m) => {
     comprobar('CANDADO: los nombres de asignatura los pone la configuración',
       dinamicas > 100, dinamicas + ' filas con nombre calculado');
 
+    /* CANDADO: los totales miran «Activa», igual que las filas.
+       La columna B de cada fila sale de un FILTER por «Activa», pero los dos
+       totales contaban con un COUNTIF que no la miraba. Desactivar una
+       asignatura que TIENE datos la borraba de las filas y dejaba sus
+       registros sumando en el total, con `FueraDeLasCifras` a cero porque la
+       asignatura sí estaba configurada. Números que cuentan en un sitio y no
+       salen en ninguno, y nada que lo diga. */
+    const totalesConActiva = (calc.match(/CONFIG_ASIGNATURAS!\$G\$\d+:\$G\$\d+,(?:&quot;|")Sí/g) || []).length;
+    comprobar('CANDADO: los totales cuentan solo lo activo, como las filas',
+      totalesConActiva >= 10, totalesConActiva + ' totales miran «Activa»');
+
+    /* CANDADO: el exportador se calla la fila SIN NOMBRE, no la que da cero.
+       Cada columna se guardaba a sí misma —`IF(CALC_EEM!D2="","",…)`—, así
+       que una ranura sin usar salía al CSV con el nivel puesto, la asignatura
+       vacía y ceros en todo; y `parseCSV` la ingiere, porque solo mira que la
+       primera columna tenga algo y esa es el nivel. Cuarenta filas fantasma
+       por fichero, indistinguibles de una asignatura con cero alumnos.
+       Guardando por el nombre, sin nombre no hay fila y con nombre y cero
+       registros sí la hay — que es justo para lo que existe «Activa»: «no lo
+       impartimos» y «este año no hay nadie» no son lo mismo. */
+    const exp0 = txt('xl/worksheets/sheet9.xml');
+    const porNombre = (exp0.match(/IF\(CALC_EEM!\$B\d+=""/g) || []).length;
+    const porOtra = (exp0.match(/IF\(CALC_EEM![A-Z]+\d+=""/g) || []).length;
+    comprobar('CANDADO: el exportador se guarda por el nombre, no por su propia columna',
+      porOtra === 0 && porNombre > 3000,
+      `por el nombre ${porNombre} · por otra columna ${porOtra}`);
+    comprobar('y no se salta ninguna asignatura por dar cero',
+      (exp0.match(/N\(CALC_EEM!\$?[A-Z]+\d+\)=0/g) || []).length === 0);
+
     /* CANDADO: y NINGUNA fórmula lleva un nombre de asignatura escrito dentro.
        «Total Especialidad» era dos cosas a la vez: el recuento del bloque
        GLOBAL preguntaba al catálogo y todo lo demás —media, moda, reparto de

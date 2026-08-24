@@ -108,7 +108,9 @@ meta = hoja(3)
 fm = filas_de(meta)
 INI, FIN = 2, len(CATALOGO) + 1
 UNA_VEZ = ('COUNTIFS(CONFIG_ASIGNATURAS!$B$%d:$B$%d,DATOS!$I$2:$I$20000,'
-           'CONFIG_ASIGNATURAS!$H$%d:$H$%d,"Sí")>0' % (INI, FIN, INI, FIN))
+           'CONFIG_ASIGNATURAS!$H$%d:$H$%d,"Sí",'
+           'CONFIG_ASIGNATURAS!$G$%d:$G$%d,"Sí")>0'
+           % (INI, FIN, INI, FIN, INI, FIN))
 COND = '(DATOS!$G$2:$G$20000=CONFIG_METADATA!$B$4)*(%s)' % UNA_VEZ
 DOBLES = ('IFERROR(SUMPRODUCT(%s*1)-COUNTA(_xlfn.UNIQUE(_xlfn._xlws.FILTER('
           'DATOS!$A$2:$A$20000&"|"&DATOS!$I$2:$I$20000,%s))),0)' % (COND, COND))
@@ -119,10 +121,10 @@ extra = [
      'Registros de más: quien cursa dos especialidades aparece dos veces en '
      'las asignaturas de una sola vez, con la misma nota. Cuentan doble en la '
      'media, en la moda y en el reparto.'),
-    (7, 'SinConfigurar', 'CALC_EEM!$D$2-CALC_EEM!$D$3-CALC_EEM!$D$4',
-     'Registros cuya asignatura no está en CONFIG_ASIGNATURAS: no entran ni '
-     'en Total Especialidad ni en Total no Especialidad. Si no es cero, '
-     'falta algo en la configuración.'),
+    (7, 'FueraDeLasCifras', 'CALC_EEM!$D$2-CALC_EEM!$D$3-CALC_EEM!$D$4',
+     'Registros que no entran en ninguna cifra: su asignatura no está en '
+     'CONFIG_ASIGNATURAS, o está pero con Activa = No. Si no es cero, falta '
+     'algo en la configuración o sobra un No.'),
 ]
 filas_meta = []
 for n in sorted(fm):
@@ -184,8 +186,17 @@ NOTA = 'DATOS!$K$2:$K$20000'
 APTO = 'DATOS!$L$2:$L$20000'
 
 def criterio(clave):
+    """«Activa» entra en el criterio, y no es un detalle.
+
+    Sin ella, desactivar una asignatura que TIENE datos la borraba de las
+    filas —la columna B sale de un FILTER por «Activa»— pero sus registros
+    seguían sumando en el total, y `SinConfigurar` daba cero porque la
+    asignatura sí estaba en la configuración. Registros que cuentan en una
+    cifra y no salen en ninguna línea, sin que nada lo diga. Ahora el total y
+    las filas preguntan lo mismo, así que `D2-D3-D4` los caza solo."""
     ini, fin = ((len(COMUNES) + 2, FIN_CFG) if clave == 'esp' else (2, len(COMUNES) + 1))
-    return 'COUNTIF(CONFIG_ASIGNATURAS!$B$%d:$B$%d,DATOS!$I$2:$I$20000)>0' % (ini, fin)
+    return ('COUNTIFS(CONFIG_ASIGNATURAS!$B$%d:$B$%d,DATOS!$I$2:$I$20000,'
+            'CONFIG_ASIGNATURAS!$G$%d:$G$%d,"Sí")>0' % (ini, fin, ini, fin))
 
 def totales(c, clave, r, es_global):
     cond = ('(%s)*(%s)' % (CUR, criterio(clave)) if es_global else
@@ -281,13 +292,30 @@ for (fila_calc, bloque, tipo) in mapa:
     # las referencias a CALC_EEM!X<fila> pasan a la fila que toca
     c = re.sub(r'CALC_EEM!([A-Z]+)\d+', lambda m: 'CALC_EEM!%s%d' % (m.group(1), fila_calc), c)
     c = re.sub(r'\br="([A-Z]+)\d+"', lambda m: 'r="%s%d"' % (m.group(1), fila_exp), c)
-    # y se salta lo que no tiene registros: sin esto el CSV se llena de ceros
-    c = re.sub(r'<c r="([A-Z]+)%d"([^>]*)><f>(.*?)</f></c>' % fila_exp,
-               lambda m: '<c r="%s%d"%s><f>%s</f></c>' % (
-                   m.group(1), fila_exp, m.group(2),
-                   esc('IF(OR(CALC_EEM!$B%d="",N(CALC_EEM!$D%d)=0),"",%s)'
-                       % (fila_calc, fila_calc, html.unescape(m.group(3))))
-                   if m.group(1) != 'A' else m.group(3)), c)
+    # Cada columna se guardaba a SÍ MISMA —`IF(CALC_EEM!D2="","",CALC_EEM!D2)`—,
+    # así que una ranura sin usar salía al CSV con el nivel puesto, la
+    # asignatura vacía y ceros en todo. Y `parseCSV` la ingiere, porque solo
+    # mira que la primera columna tenga algo y esa es el nivel: 40 filas
+    # fantasma por fichero, indistinguibles de asignaturas con cero alumnos.
+    #
+    # Ahora todas se guardan sobre el NOMBRE. Sin nombre no hay fila; con
+    # nombre y cero registros, sí la hay. Esa es justo la diferencia que
+    # `Activa` existe para marcar: «no lo impartimos» y «lo impartimos y este
+    # año no hay nadie» no son lo mismo, y el cero no los distingue.
+    def guardar_por_nombre(m):
+        cuerpo = m.group(3)
+        f = re.search(r'<f([^>]*)>(.*?)</f>', cuerpo, re.S)
+        if not f:
+            return m.group(0)
+        formula = re.sub(r'^IF\(CALC_EEM!\$?[A-Z]+%d="",' % fila_calc,
+                         'IF(CALC_EEM!$B%d="",' % fila_calc, f.group(2), count=1)
+        if formula == f.group(2):          # no tenía guarda: se le pone
+            formula = 'IF(CALC_EEM!$B%d="","",%s)' % (fila_calc, formula)
+        return '<c r="%s%d"%s><f%s>%s</f></c>' % (m.group(1), fila_exp, m.group(2),
+                                                  f.group(1), formula)
+
+    c = re.sub(r'<c r="([A-Z]+)%d"([^>]*)>(.*?)</c>' % fila_exp,
+               guardar_por_nombre, c, flags=re.S)
     salida.append('<row r="%d" spans="1:24">%s</row>' % (fila_exp, c))
     fila_exp += 1
 
