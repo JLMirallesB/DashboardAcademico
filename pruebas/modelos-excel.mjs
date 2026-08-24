@@ -219,22 +219,38 @@ MODELOS.forEach((m) => {
   /* Qué separa «Especialidad» de «No Especialidad». */
   const calc = txt(m.hojaCalc === 'CALC_EEM' ? 'xl/worksheets/sheet6.xml' : 'xl/worksheets/sheet6.xml');
 
-  if (m.listaManda) {
-    /* CANDADO. El criterio era un RANGO DE FILAS —«las especialidades son de
-       la 5 a la 27»—, y eso obliga a insertar en mitad del bloque para añadir
-       una: el libro traía una nota diciéndolo. Una asignatura escrita en la
-       primera fila libre quedaba fuera de los dos totales sin que nada lo
-       dijera. Ahora se pregunta por la columna Grupo1, así que se puede
-       escribir donde sea. */
-    const porGrupo = (calc.match(/CONFIG_ASIGNATURAS!\$D\$\d+:\$D\$\d+,(?:&quot;|")(?:&lt;&gt;)?Especialidad/g) || []).length;
-    comprobar('CANDADO: quién es «especialidad» lo dice Grupo1, no un rango de filas',
-      porGrupo >= 10, porGrupo + ' criterios preguntan por Grupo1');
+  /* CANDADO. Quién es «especialidad» y quién está activa se deciden UNA vez,
+     en la columna `Clase` del catálogo, y todo lo demás la mira.
 
+     Antes cada total llevaba el criterio dentro: primero un RANGO DE FILAS
+     —«las especialidades son de la 5 a la 27», que obliga a insertar en mitad
+     del bloque y deja fuera, en silencio, a la que se escriba en la primera
+     fila libre—, luego un COUNTIFS contra el catálogo entero con el rango de
+     DATOS como criterio: 20.000 × 90 comparaciones por fórmula, unos 2.500
+     millones por recálculo en profesional. Ahora es un VLOOKUP por fila.
+
+     Lo que se rompe si esto se deshace no da error: las cifras siguen
+     saliendo, y o cuentan de más, o el libro tarda un minuto en abrirse. */
+  const cfg0 = txt('xl/worksheets/sheet2.xml');
+  comprobar('CANDADO: la clase se calcula en el catálogo, y mira Grupo1 y Activa',
+    /<c r="J\d+"[^>]*><f>IF\(\$G\d+&lt;&gt;&quot;Sí&quot;/.test(cfg0)
+    && cfg0.includes('&quot;Especialidad&quot;,&quot;E&quot;'),
+    'la columna Clase del catálogo');
+
+  const porClase = (calc.match(/CONFIG_METADATA!\$[A-Z]\$2:\$[A-Z]\$20000(?:&lt;&gt;|=)&quot;(?:E|NT|)&quot;/g) || []).length;
+  comprobar('CANDADO: los totales preguntan a la clase, no se recorren el catálogo',
+    porClase >= 10 && !/COUNTIFS\(CONFIG_ASIGNATURAS/.test(calc),
+    `${porClase} totales miran la clase` + (/COUNTIFS\(CONFIG_ASIGNATURAS/.test(calc)
+      ? ' · pero queda algún COUNTIFS contra el catálogo' : ''));
+
+  if (m.listaManda) {
     /* Y los rangos llegan más abajo que las asignaturas escritas, que es lo
        que permite añadir una sin volver a generar el libro. */
-    const cfg0 = txt('xl/worksheets/sheet2.xml');
-    const escritas = (cfg0.match(/<row r="\d+"/g) || []).length - 1;
-    const hasta = Math.max(...[...calc.matchAll(/CONFIG_ASIGNATURAS!\$B\$2:\$B\$(\d+)/g)].map((x) => +x[1]));
+    const escritas = [...cfg0.matchAll(/<row r="(\d+)"[^>]*>(.*?)<\/row>/gs)]
+      .filter((x) => +x[1] > 1 && /<c r="B\d+"[^>]*>(?!<\/c>)/.test(x[2])).length;
+    const hasta = Math.max(...[...cfg0.matchAll(/CONFIG_ASIGNATURAS!\$B\$2:\$[A-Z]\$(\d+)/g)]
+      .concat([...txt('xl/worksheets/sheet3.xml').matchAll(/CONFIG_ASIGNATURAS!\$B\$2:\$[A-Z]\$(\d+)/g)])
+      .map((x) => +x[1]));
     comprobar('y los rangos dejan sitio libre para las que vengan',
       hasta > escritas + 20, `${escritas} escritas · los rangos llegan a la ${hasta}`);
   }
@@ -261,17 +277,6 @@ MODELOS.forEach((m) => {
     const dinamicas = (calc.match(/<f[^>]*>IFERROR\(INDEX\(_xlfn\._xlws\.FILTER\(CONFIG_ASIGNATURAS/g) || []).length;
     comprobar('CANDADO: los nombres de asignatura los pone la configuración',
       dinamicas > 100, dinamicas + ' filas con nombre calculado');
-
-    /* CANDADO: los totales miran «Activa», igual que las filas.
-       La columna B de cada fila sale de un FILTER por «Activa», pero los dos
-       totales contaban con un COUNTIF que no la miraba. Desactivar una
-       asignatura que TIENE datos la borraba de las filas y dejaba sus
-       registros sumando en el total, con `FueraDeLasCifras` a cero porque la
-       asignatura sí estaba configurada. Números que cuentan en un sitio y no
-       salen en ninguno, y nada que lo diga. */
-    const totalesConActiva = (calc.match(/CONFIG_ASIGNATURAS!\$G\$\d+:\$G\$\d+,(?:&quot;|")Sí/g) || []).length;
-    comprobar('CANDADO: los totales cuentan solo lo activo, como las filas',
-      totalesConActiva >= 10, totalesConActiva + ' totales miran «Activa»');
 
     /* CANDADO: el exportador se calla la fila SIN NOMBRE, no la que da cero.
        Cada columna se guardaba a sí misma —`IF(CALC_EEM!D2="","",…)`—, así

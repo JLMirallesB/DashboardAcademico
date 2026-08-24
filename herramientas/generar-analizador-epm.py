@@ -102,13 +102,30 @@ AYUDA = [
     ('K11', '6. H  UnaSolaVez — «Sí» solo si NO se vuelve a cursar al coger un segundo instrumento.'),
     ('K12', '7. I  Tipo — Obligatoria / Optativa / De centro.'),
 ]
+# La clase de cada asignatura, calculada UNA vez en el catálogo en vez de
+# deducirse dentro de cada fórmula de total.
+#
+# Antes, cada uno de esos totales preguntaba
+# `COUNTIFS(catálogo, DATOS!$I$2:$I$20000, …)` con el rango de DATOS entero
+# como criterio: 20.000 × 90 comparaciones POR FÓRMULA, y hay cientos. Medido
+# sobre el libro de profesional, eran unos 2.500 millones de comparaciones por
+# recálculo solo en esto. Calculándolo aquí —90 fórmulas— y mirándolo con un
+# VLOOKUP por fila de DATOS, baja a unos 30 millones sin cambiar ni una cifra.
+#
+#   «E»   es especialidad (un instrumento)
+#   «NT»  no lo es, y además es teórica troncal
+#   «N»   no lo es
+#   «»    no está activa, o la fila está vacía
+CLASE_DE = lambda r: ('IF($G%d<>"Sí","",IF($D%d="Especialidad","E",'
+                      'IF($E%d="TeoricaTroncal","NT","N")))' % (r, r, r))
+
 def ayuda_de(fila):
     PRIMERA_LIBRE = len(CATALOGO) + 2
     trozos = ''.join(txt(ref, '', t) for ref, t in AYUDA if int(ref[1:]) == fila)
     if fila == PRIMERA_LIBRE:
-        trozos += txt('J' + str(fila), '', '↓ primera fila libre')
+        trozos += txt('M' + str(fila), '', '↓ primera fila libre')
     if fila == FIN_CFG:
-        trozos += txt('J' + str(fila), '', '↑ última fila que miran las fórmulas')
+        trozos += txt('M' + str(fila), '', '↑ última fila que miran las fórmulas')
     return trozos
 
 cfg = hoja(2)
@@ -131,7 +148,7 @@ for r in sorted(k for k in fc if k > 1):
 cab = fc[1][1]
 est = (re.search(r'<c r="B1"[^>]*s="(\d+)"', cab) or [None, ''])[1]
 cab = re.sub(r'<c r="[H-Z]+1"(?:[^>]*/>|[^>]*>.*?</c>)', '', cab, flags=re.S)
-cab += txt('H1', est, 'UnaSolaVez') + txt('I1', est, 'Tipo') + ayuda_de(1)
+cab += txt('H1', est, 'UnaSolaVez') + txt('I1', est, 'Tipo') + txt('J1', est, 'Clase (calculada)') + ayuda_de(1)
 filas_cfg = ['<row r="1"%s>%s</row>' % (re.sub(r'^ r="\d+"', '', fc[1][0]), cab)]
 for i, a in enumerate(CATALOGO, start=2):
     filas_cfg.append('<row r="%d">%s</row>' % (i,
@@ -140,10 +157,11 @@ for i, a in enumerate(CATALOGO, start=2):
         + (txt('E%d' % i, '', a['g2']) if a['g2'] else vac('E%d' % i, ''))
         + txt('F%d' % i, '', 'Sí' if a['g1'] == 'Especialidad' else 'No')
         + txt('G%d' % i, '', 'Sí') + txt('H%d' % i, '', a['unaVez'])
-        + txt('I%d' % i, '', a['tipo']) + ayuda_de(i)))
+        + txt('I%d' % i, '', a['tipo']) + fx('J%d' % i, '', CLASE_DE(i)) + ayuda_de(i)))
+# El margen también calcula su clase: una asignatura escrita ahí queda
+# clasificada sola, sin tocar nada más.
 for n in range(len(CATALOGO) + 2, FIN_CFG + 1):
-    ayuda = ayuda_de(n)
-    if ayuda: filas_cfg.append('<row r="%d">%s</row>' % (n, ayuda))
+    filas_cfg.append('<row r="%d">%s</row>' % (n, fx('J%d' % n, '', CLASE_DE(n)) + ayuda_de(n)))
 
 cfg_n = re.sub(r'<sheetData>.*?</sheetData>', '<sheetData>' + ''.join(filas_cfg) + '</sheetData>',
                cfg, flags=re.S)
@@ -153,22 +171,37 @@ print('CONFIG_ASIGNATURAS: %d asignaturas · %d optativas · %d de centro'
       % (len(CATALOGO), sum(1 for a in CATALOGO if a['tipo'] == 'Optativa'),
          sum(1 for a in CATALOGO if a['tipo'] == 'De centro')))
 
+# La clase de la asignatura de CADA FILA de DATOS, buscada una sola vez.
+# `CONFIG_METADATA!I` es lo que consultan después los cientos de totales, en
+# vez de recorrerse el catálogo entero cada uno: eran 20.000 × 90
+# comparaciones por fórmula y unos 2.500 millones por recálculo.
+CLASE_FILA = 'CONFIG_METADATA!$I$2:$I$20000'
+clase_de_fila = lambda r: ('IF(DATOS!$I%d="","",IFERROR(VLOOKUP(DATOS!$I%d,'
+                           'CONFIG_ASIGNATURAS!$B$2:$J$%d,9,FALSE()),""))' % (r, r, FIN_CFG))
+
 # ---------- 2 · CALC_EPM ----------
 SEL = 'CONFIG_METADATA!$G$2:$G$20000=1'
 def criterio(clave):
-    """Un solo criterio, y lo dice el catálogo. Nunca un rango de filas."""
-    col, val = {'esp': ('D', '"Especialidad"'), 'noesp': ('D', '"<>Especialidad"'),
-                'teorica': ('E', '"TeoricaTroncal"')}[clave]
-    return ('COUNTIFS(CONFIG_ASIGNATURAS!$B$2:$B$%d,DATOS!$I$2:$I$20000,'
-            'CONFIG_ASIGNATURAS!$%s$2:$%s$%d,%s,'
-            'CONFIG_ASIGNATURAS!$G$2:$G$%d,"Sí")>0'
-            % (FIN_CFG, col, col, FIN_CFG, val, FIN_CFG))
+    """Un solo criterio, y lo dice la clase que el catálogo ya calculó."""
+    if clave == 'esp': return '%s="E"' % CLASE_FILA
+    if clave == 'teorica': return '%s="NT"' % CLASE_FILA
+    return '(%s<>"")*(%s<>"E")' % (CLASE_FILA, CLASE_FILA)
 
 calc = hoja(6)
 fk = filas_de(calc)
 def rehacer(cont, viejo, nuevo):
     cont = re.sub(r'\br="([A-Z]+)%d"' % viejo, lambda m: 'r="%s%d"' % (m.group(1), nuevo), cont)
     return re.sub(r'(?<![$\w])([A-Z])%d(?![\d:])' % viejo, lambda m: '%s%d' % (m.group(1), nuevo), cont)
+
+# Las plantillas se cogen por NÚMERO DE FILA, así que este generador solo
+# sirve sobre el libro ORIGINAL. Corriéndolo sobre su propia salida cogería
+# filas que ya no son las que cree —una ranura de curso en vez de un total— y
+# el libro saldría con cifras plausibles y mal. Es idéntico a lo que pasó, y
+# no dio ningún error.
+if len(fk) != 298:
+    raise SystemExit(
+        'CALC_EPM tiene %d filas y el original tiene 298: este libro ya está '
+        'regenerado. Parte del original (git checkout del commit anterior).' % len(fk))
 
 PL = {'total': fk[2], 'esp': fk[3], 'noesp': fk[4], 'teorica': fk[5], 'asig': fk[6],
       'cTotal': fk[45], 'cEsp': fk[46], 'cNoesp': fk[47], 'cAsig': fk[68]}
@@ -291,6 +324,22 @@ exp_n = re.sub(r'<sheetData>.*?</sheetData>', '<sheetData>' + ''.join(salida) + 
 exp_n = re.sub(r'<dimension ref="[^"]*"/>', '<dimension ref="A1:X%d"/>' % (fila_exp - 1), exp_n)
 piezas['xl/worksheets/sheet9.xml'] = exp_n.encode('utf8')
 print('EXPORTADOR: %d filas' % (fila_exp - 1))
+
+# La columna de la clase, una celda por fila de DATOS, junto a las que ya
+# había para OR+EX.
+meta = hoja(3)
+fmeta = filas_de(meta)
+salida_meta = []
+for n in sorted(set(fmeta) | set(range(2, 20001))):
+    a, c = fmeta.get(n, ('', ''))
+    c = re.sub(r'<c r="I%d"(?:[^>]*/>|[^>]*>.*?</c>)' % n, '', c, flags=re.S)
+    salida_meta.append('<row r="%d"%s>%s</row>'
+                       % (n, re.sub(r'^ r="\d+"', '', a), c + fx('I%d' % n, '', clase_de_fila(n))))
+meta = re.sub(r'<sheetData>.*?</sheetData>', '<sheetData>' + ''.join(salida_meta) + '</sheetData>',
+              meta, flags=re.S)
+meta = re.sub(r'<dimension ref="[^"]*"/>', '<dimension ref="A1:I20000"/>', meta)
+piezas['xl/worksheets/sheet3.xml'] = meta.encode('utf8')
+print('CONFIG_METADATA: columna de clase por fila')
 
 CC = 'xl/calcChain.xml'
 if CC in piezas:

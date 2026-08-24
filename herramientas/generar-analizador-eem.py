@@ -104,13 +104,30 @@ AYUDA = [
     ('K11', '6. H  UnaSolaVez — «Sí» solo si NO se vuelve a cursar al coger un segundo instrumento.'),
     ('K12', '7. I  Tipo — Obligatoria / Optativa / De centro.'),
 ]
+# La clase de cada asignatura, calculada UNA vez en el catálogo en vez de
+# deducirse dentro de cada fórmula de total.
+#
+# Antes, cada uno de esos totales preguntaba
+# `COUNTIFS(catálogo, DATOS!$I$2:$I$20000, …)` con el rango de DATOS entero
+# como criterio: 20.000 × 90 comparaciones POR FÓRMULA, y hay cientos. Medido
+# sobre el libro de profesional, eran unos 2.500 millones de comparaciones por
+# recálculo solo en esto. Calculándolo aquí —90 fórmulas— y mirándolo con un
+# VLOOKUP por fila de DATOS, baja a unos 30 millones sin cambiar ni una cifra.
+#
+#   «E»   es especialidad (un instrumento)
+#   «NT»  no lo es, y además es teórica troncal
+#   «N»   no lo es
+#   «»    no está activa, o la fila está vacía
+CLASE_DE = lambda r: ('IF($G%d<>"Sí","",IF($D%d="Especialidad","E",'
+                      'IF($E%d="TeoricaTroncal","NT","N")))' % (r, r, r))
+
 def ayuda_de(fila):
     PRIMERA_LIBRE = len(CATALOGO) + 2
     trozos = ''.join(txt(ref, '3', t) for ref, t in AYUDA if int(ref[1:]) == fila)
     if fila == PRIMERA_LIBRE:
-        trozos += txt('J' + str(fila), '3', '↓ primera fila libre')
+        trozos += txt('M' + str(fila), '3', '↓ primera fila libre')
     if fila == FIN_CFG:
-        trozos += txt('J' + str(fila), '3', '↑ última fila que miran las fórmulas')
+        trozos += txt('M' + str(fila), '3', '↑ última fila que miran las fórmulas')
     return trozos
 
 cfg = hoja(2)
@@ -120,7 +137,7 @@ est_g1 = (re.search(r'<c r="G1"[^>]*s="(\d+)"', cab) or [None, ''])[1]
 # La cabecera se rehace de H en adelante: en I y K había dos rótulos sueltos
 # —«CURSOS», «GRUPOS»— sin nada debajo, de una versión anterior.
 cab = re.sub(r'<c r="[H-Z]+1"(?:[^>]*/>|[^>]*>.*?</c>)', '', cab, flags=re.S)
-cab += txt('H1', est_g1, 'UnaSolaVez') + txt('I1', est_g1, 'Tipo') + ayuda_de(1)
+cab += txt('H1', est_g1, 'UnaSolaVez') + txt('I1', est_g1, 'Tipo') + txt('J1', est_g1, 'Clase (calculada)') + ayuda_de(1)
 notas_laterales = re.findall(r'<c r="[IK]\d+"[^>]*>(?:<v>\d+</v>)?</c>', fc[1][1])
 
 filas_cfg = ['<row r="1"%s>%s</row>' % (re.sub(r'^ r="\d+"', '', fc[1][0]), cab)]
@@ -130,14 +147,15 @@ for i, (nombre, cursos, g1, g2, unaVez, tipo) in enumerate(CATALOGO, start=2):
               + (txt('E%d' % i, '3', g2) if g2 else vac('E%d' % i, '3'))
               + txt('F%d' % i, '3', 'Sí' if g1 == 'Especialidad' else 'No')
               + txt('G%d' % i, '3', 'Sí') + txt('H%d' % i, '3', unaVez)
-              + txt('I%d' % i, '3', tipo))
+              + txt('I%d' % i, '3', tipo) + fx('J%d' % i, '3', CLASE_DE(i)))
     filas_cfg.append('<row r="%d" spans="1:11" ht="15" customHeight="1">%s</row>' % (i, celdas + ayuda_de(i)))
 
 # Las filas del margen existen aunque estén vacías: si no, la flecha que dice
 # «última fila que miran las fórmulas» no tendría dónde ponerse.
+# El margen también calcula su clase: una asignatura escrita ahí queda
+# clasificada sola, sin tocar nada más.
 for n in range(len(CATALOGO) + 2, FIN_CFG + 1):
-    ayuda = ayuda_de(n)
-    if ayuda: filas_cfg.append('<row r="%d">%s</row>' % (n, ayuda))
+    filas_cfg.append('<row r="%d">%s</row>' % (n, fx('J%d' % n, '', CLASE_DE(n)) + ayuda_de(n)))
 
 cfg_nueva = re.sub(r'<sheetData>.*?</sheetData>', '<sheetData>' + ''.join(filas_cfg) + '</sheetData>',
                    cfg, flags=re.S)
@@ -145,6 +163,14 @@ cfg_nueva = re.sub(r'<dimension ref="[^"]*"/>', '<dimension ref="A1:I%d"/>' % FI
 piezas['xl/worksheets/sheet2.xml'] = cfg_nueva.encode('utf8')
 print('CONFIG_ASIGNATURAS: %d asignaturas (%d comunes + %d especialidades)'
       % (len(CATALOGO), len(COMUNES), len(ESPECIALIDADES)))
+
+# La clase de la asignatura de CADA FILA de DATOS, buscada una sola vez.
+# `CONFIG_METADATA!E` es lo que consultan después los cientos de totales, en
+# vez de recorrerse el catálogo entero cada uno.
+CLASE_FILA = 'CONFIG_METADATA!$E$2:$E$20000'
+clase_de_fila = lambda r: ('IF(DATOS!$I%d="","",IFERROR(VLOOKUP(DATOS!$I%d,'
+                           'CONFIG_ASIGNATURAS!$B$2:$J$%d,9,FALSE()),""))' % (r, r, FIN_CFG))
+
 
 # ---------- 1 bis · CONFIG_METADATA: lo que las cifras se tragaban ----------
 #
@@ -183,7 +209,7 @@ extra = [
      'CONFIG_ASIGNATURAS, o está pero con Activa = No. Si no es cero, falta '
      'algo en la configuración o sobra un No.'),
 ]
-filas_meta = []
+filas_meta = {}
 for n in sorted(fm):
     if n == 5:
         # La lista visible de la columna D decía FINAL y el desplegable ofrece
@@ -192,17 +218,22 @@ for n in sorted(fm):
         est_d5 = (re.search(r'<c r="D5"[^>]*s="(\d+)"', fm[n][1]) or [None, ''])[1]
         fm[n] = (fm[n][0], re.sub(r'<c r="D5"(?:[^>]*/>|[^>]*>.*?</c>)',
                                   txt('D5', est_d5, 'FI'), fm[n][1], flags=re.S))
-    filas_meta.append('<row r="%d"%s>%s</row>'
-                      % (n, re.sub(r'^ r="\d+"', '', fm[n][0]), fm[n][1]))
+    filas_meta[n] = [re.sub(r'^ r="\d+"', '', fm[n][0]), fm[n][1]]
+
 for n, campo, formula, nota_ in extra:
     escribir = fxm if ('FILTER(' in formula or 'UNIQUE(' in formula) else fx
-    filas_meta.append('<row r="%d">%s%s%s</row>'
-                      % (n, txt('A%d' % n, est, campo), escribir('B%d' % n, est, formula),
-                         txt('C%d' % n, est, nota_)))
-filas_meta.sort(key=lambda x: int(re.search(r'r="(\d+)"', x).group(1)))
+    filas_meta[n] = ['', txt('A%d' % n, est, campo) + escribir('B%d' % n, est, formula)
+                         + txt('C%d' % n, est, nota_)]
+
+# Y la columna de la clase, una celda por fila de DATOS.
+for n in range(2, 20001):
+    if n not in filas_meta: filas_meta[n] = ['', '']
+    filas_meta[n][1] += fx('E%d' % n, '', clase_de_fila(n))
+
+filas_meta = ['<row r="%d"%s>%s</row>' % (n, a, c) for n, (a, c) in sorted(filas_meta.items())]
 meta_nueva = re.sub(r'<sheetData>.*?</sheetData>', '<sheetData>' + ''.join(filas_meta) + '</sheetData>',
                     meta, flags=re.S)
-meta_nueva = re.sub(r'<dimension ref="[^"]*"/>', '<dimension ref="A1:D7"/>', meta_nueva)
+meta_nueva = re.sub(r'<dimension ref="[^"]*"/>', '<dimension ref="A1:E20000"/>', meta_nueva)
 piezas['xl/worksheets/sheet3.xml'] = meta_nueva.encode('utf8')
 print('CONFIG_METADATA: dos avisos (doble especialidad y sin configurar)')
 
@@ -259,10 +290,9 @@ def criterio(clave):
     asignatura sí estaba en la configuración. Registros que cuentan en una
     cifra y no salen en ninguna línea, sin que nada lo diga. Ahora el total y
     las filas preguntan lo mismo, así que `D2-D3-D4` los caza solo."""
-    esEsp = '"Especialidad"' if clave == 'esp' else '"<>Especialidad"'
-    return ('COUNTIFS(CONFIG_ASIGNATURAS!$B$2:$B$%d,DATOS!$I$2:$I$20000,'
-            'CONFIG_ASIGNATURAS!$D$2:$D$%d,%s,'
-            'CONFIG_ASIGNATURAS!$G$2:$G$%d,"Sí")>0' % (FIN_CFG, FIN_CFG, esEsp, FIN_CFG))
+    if clave == 'esp':
+        return '%s="E"' % CLASE_FILA
+    return '(%s<>"")*(%s<>"E")' % (CLASE_FILA, CLASE_FILA)
 
 def totales(c, clave, r, es_global):
     cond = ('(%s)*(%s)' % (CUR, criterio(clave)) if es_global else
