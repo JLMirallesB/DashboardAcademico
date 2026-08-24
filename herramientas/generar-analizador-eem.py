@@ -68,6 +68,14 @@ num = lambda ref, estilo, n: '<c r="%s"%s><v>%s</v></c>' % (ref, (' s="%s"' % es
 fx  = lambda ref, estilo, f: '<c r="%s"%s><f>%s</f></c>' % (ref, (' s="%s"' % estilo) if estilo else '', esc(f))
 vac = lambda ref, estilo: '<c r="%s"%s/>' % (ref, (' s="%s"' % estilo) if estilo else '')
 
+# Una fórmula que lleva dentro FILTER o UNIQUE es de matriz dinámica, y en el
+# XML eso se declara: `cm="1"` en la celda y `<f t="array" ref="…">`. Es lo que
+# escribe Excel —las que ya traía el libro lo llevan— y lo que a mí se me
+# olvidó en la columna selectora de profesional: sin ello la fórmula no se
+# evalúa como matriz, no derrama, y no da ningún error.
+fxm = lambda ref, e, f: ('<c r="%s"%s cm="1"><f t="array" ref="%s">%s</f></c>'
+                         % (ref, (' s="%s"' % e) if e else '', ref, esc(f)))
+
 # ------------------------------------------------------------------ #
 z = zipfile.ZipFile(RUTA)
 piezas = {n: z.read(n) for n in z.namelist()}
@@ -156,8 +164,9 @@ for n in sorted(fm):
     filas_meta.append('<row r="%d"%s>%s</row>'
                       % (n, re.sub(r'^ r="\d+"', '', fm[n][0]), fm[n][1]))
 for n, campo, formula, nota_ in extra:
+    escribir = fxm if ('FILTER(' in formula or 'UNIQUE(' in formula) else fx
     filas_meta.append('<row r="%d">%s%s%s</row>'
-                      % (n, txt('A%d' % n, est, campo), fx('B%d' % n, est, formula),
+                      % (n, txt('A%d' % n, est, campo), escribir('B%d' % n, est, formula),
                          txt('C%d' % n, est, nota_)))
 filas_meta.sort(key=lambda x: int(re.search(r'r="(\d+)"', x).group(1)))
 meta_nueva = re.sub(r'<sheetData>.*?</sheetData>', '<sheetData>' + ''.join(filas_meta) + '</sheetData>',
@@ -293,7 +302,7 @@ for bloque in BLOQUES:
             % (FIN_CFG, bloque, FIN_CFG))
         bf = ('IFERROR(INDEX(_xlfn._xlws.FILTER(CONFIG_ASIGNATURAS!$B$2:$B$%d,%s),%d),"")'
               % (FIN_CFG, filtro_curso, n))
-        c = re.sub(r'<c r="B%d"([^>]*)>.*?</c>' % r, fx('B%d' % r, '3', bf), c, flags=re.S)
+        c = re.sub(r'<c r="B%d"([^>]*)>.*?</c>' % r, fxm('B%d' % r, '3', bf), c, flags=re.S)
         # C: el tipo, también de la configuración
         cf = ('IF(B%d="","",IFERROR(IF(VLOOKUP(B%d,CONFIG_ASIGNATURAS!$B$2:$F$%d,5,FALSE())="Sí",'
               '"Especialidad","Asignatura"),"Asignatura"))' % (r, r, FIN_CFG))

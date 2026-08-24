@@ -128,6 +128,22 @@ MODELOS.forEach((m) => {
   comprobar('CANDADO: ni celdas repetidas en una fila ni filas desordenadas',
     rotas.length === 0, rotas.slice(0, 4).join(' · ') + (rotas.length > 4 ? ` (y ${rotas.length - 4} más)` : ''));
 
+  /* CANDADO. Una fórmula que lleva dentro FILTER o UNIQUE es de matriz
+     dinámica, y en el XML hay que DECLARARLO: `cm="1"` en la celda y
+     `<f t="array" ref="…">`. Sin eso Excel no la evalúa como matriz — y no da
+     ningún error: la columna selectora de profesional se quedó en una sola
+     celda, todos los totales del libro dieron 1, y lo único visible era que
+     la primera celda tenía el valor correcto. */
+  const sinDeclarar = [...piezas.keys()]
+    .filter((k) => /^xl\/worksheets\/sheet\d+\.xml$/.test(k))
+    .flatMap((k) => [...txt(k).matchAll(/<c r="([A-Z]+\d+)"([^>]*)><f([^>]*)>([^<]*)/g)]
+      .filter((x) => /_xlws\.FILTER\(|_xlfn\.UNIQUE\(/.test(x[4])
+                     && !(/cm="1"/.test(x[2]) && /t="array"/.test(x[3])))
+      .map((x) => `${k.split('/').pop()}!${x[1]}`));
+  comprobar('CANDADO: las fórmulas de matriz se declaran como matriz',
+    sinDeclarar.length === 0,
+    sinDeclarar.slice(0, 5).join(' · ') + (sinDeclarar.length > 5 ? ` (y ${sinDeclarar.length - 5} más)` : ''));
+
   /* CANDADO. Excel no guarda `FILTER(`: guarda `_xlfn._xlws.FILTER(`. El
      prefijo no es decoración, es el nombre de la función en el fichero —lo
      mismo con `STDEV.P`, `UNIQUE` o `MODE.SNGL`, que llevan `_xlfn.`—. Escrita
@@ -239,7 +255,7 @@ MODELOS.forEach((m) => {
     /* CANDADO: el nombre de cada asignatura sale de la configuración, no está
        escrito en la hoja de cálculo. Es lo que hace que añadir una
        especialidad sea escribir una línea y no diez inserciones de fila. */
-    const dinamicas = (calc.match(/<f>IFERROR\(INDEX\(_xlfn\._xlws\.FILTER\(CONFIG_ASIGNATURAS/g) || []).length;
+    const dinamicas = (calc.match(/<f[^>]*>IFERROR\(INDEX\(_xlfn\._xlws\.FILTER\(CONFIG_ASIGNATURAS/g) || []).length;
     comprobar('CANDADO: los nombres de asignatura los pone la configuración',
       dinamicas > 100, dinamicas + ' filas con nombre calculado');
 
