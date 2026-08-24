@@ -96,6 +96,46 @@ export const paresMasFuertes = (correlaciones, pares, niveles, cuantos) => {
     .map((x) => x.par);
 };
 
+/** Eje X = MOMENTOS, una serie por par. La única que evoluciona de verdad.
+ *
+ * Las otras dos ponen en el eje los pares o los niveles, así que enseñan la
+ * foto del momento elegido: cambias de trimestre y ves otra foto, pero nunca
+ * la trayectoria. La gráfica se llamaba «evolución» y no evolucionaba.
+ *
+ * Dos reglas que no se ven y deciden si el dibujo miente:
+ *
+ * · Los coeficientes de los distintos niveles se promedian por **Fisher**, no
+ *   a pelo. La escala de r no es lineal y la media aritmética sesga a la baja:
+ *   0,9 y 0,5 no dan 0,7.
+ * · Un par que falta en un momento **no recibe punto**, así que la línea se
+ *   corta. Rellenarlo con el valor de al lado dibujaría una tendencia que
+ *   nadie ha medido, que es la misma regla que la gráfica de evolución de
+ *   notas.
+ *
+ * @param porMomento  { momento: [correlaciones] }
+ * @param pares       los pares a seguir
+ * @param momentos    en orden
+ * @param niveles     los niveles a promediar; vacío o `null` = todos los que haya
+ * @returns [{ momento, [clave del par]: r }]
+ */
+export const porMomentos = (porMomento, pares, momentos, niveles, abreviar) => {
+  const corto = abreviar || ((s) => s);
+  return (momentos || []).map((momento) => {
+    const corrs = (porMomento || {})[momento] || [];
+    const punto = { momento };
+    (pares || []).forEach((par) => {
+      const usar = (niveles && niveles.length)
+        ? niveles
+        : [...new Set(corrs.filter((c) => c.Asignatura1 === par.asig1
+                                       && c.Asignatura2 === par.asig2).map((c) => c.Nivel))];
+      const valores = usar.map((n) => correlacionDe(corrs, par, n)).filter((x) => x !== null);
+      const r = mediaFisher(valores);
+      if (r !== null) punto[`${corto(par.asig1)}-${corto(par.asig2)}`] = r;
+    });
+    return punto;
+  });
+};
+
 /** Eje X = pares, una serie por nivel. */
 export const porPares = (correlaciones, pares, niveles, abreviar) => {
   const corto = abreviar || ((s) => s);

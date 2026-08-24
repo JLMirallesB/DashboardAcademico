@@ -41,10 +41,21 @@ COMUNES = [
     ('Coro',             TODOS_LOS_CURSOS, 'NoEspecialidad', '', 'Sí', 'Obligatoria'),
     ('Conjunto',         '3EEM;4EEM',      'NoEspecialidad', '', 'No', 'Obligatoria'),
 ]
+# La familia con la que se agrupa cada instrumento. Es lo que viaja al CSV en
+# `#AGRUPACIONES` y lo que permite filtrar «enséñame Metal»; sin ella, una
+# especialidad no aparece en ningún filtro de familia —no rompe nada, pero no
+# sale—. Y NO es organología pura: Percusión está en Metal porque ese es su
+# departamento, que es criterio del centro.
 FAMILIA = {'Arpa':'Cuerda','Contrabajo':'Cuerda','Guitarra':'Cuerda','Viola':'Cuerda',
            'Violín':'Cuerda','Violoncello':'Cuerda','Clarinete':'Madera','Fagot':'Madera',
            'Flauta Travesera':'Madera','Oboe':'Madera','Saxofón':'Madera','Percusión':'Metal',
-           'Trombón':'Metal','Trompa':'Metal','Trompeta':'Metal','Piano':'Tecla'}
+           'Trombón':'Metal','Trompa':'Metal','Trompeta':'Metal','Piano':'Tecla',
+           # Las siete que entraron con el catálogo del art. 5 y estaban sin
+           # familia. Dulzaina y Tuba las dice ya el libro de profesional; las
+           # otras cinco las decidió el centro.
+           'Acordeón':'Tecla','Clave':'Tecla','Dulzaina':'Madera',
+           'Flauta de Pico':'Madera','Instrumentos de Púa':'Cuerda',
+           'Tuba':'Metal','Viola de Gamba':'Cuerda'}
 ESPECIALIDADES = ['Acordeón','Arpa','Clarinete','Clave','Contrabajo','Dulzaina','Fagot',
                   'Flauta Travesera','Flauta de Pico','Guitarra','Instrumentos de Púa','Oboe',
                   'Percusión','Piano','Saxofón','Trombón','Trompa','Trompeta','Tuba','Viola',

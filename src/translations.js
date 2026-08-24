@@ -429,6 +429,12 @@ export const translations = {
     weak: 'Débil',
     veryWeak: 'Muy débil',
     correlationEvolution: 'Evolución de correlaciones por nivel',
+    // La de siempre enseña la foto del trimestre elegido; la nueva, la
+    // trayectoria. Llamarlas igual era lo que confundía.
+    correlationSnapshot: 'Correlaciones del momento seleccionado',
+    correlationOverTime: 'Cómo cambian las correlaciones a lo largo del curso',
+    correlationToggleTime: 'En el tiempo',
+    correlationEvolutionDescTime: 'El eje X son los momentos cargados; cada línea es un par de asignaturas. Donde falta el dato, la línea se corta.',
     correlationEvolutionDesc: 'Cada línea representa un nivel (1EEM-4EEM), el eje X muestra los pares de asignaturas',
     correlationEvolutionDescAlt: 'El eje X muestra los niveles ({levels}), cada línea representa un par de asignaturas',
     correlationToggleSubjects: 'Por Asignaturas',
@@ -1011,6 +1017,10 @@ export const translations = {
     correlationEvolutionDescAlt: 'L\'eix X mostra els nivells ({levels}), cada línia representa un parell d\'assignatures',
     correlationToggleSubjects: 'Per Assignatures',
     correlationToggleLevels: 'Per Nivells',
+    correlationSnapshot: 'Correlacions del moment seleccionat',
+    correlationOverTime: 'Com canvien les correlacions al llarg del curs',
+    correlationToggleTime: 'En el temps',
+    correlationEvolutionDescTime: 'L\'eix X són els moments carregats; cada línia és una parella d\'assignatures. On falta la dada, la línia es talla.',
     radarComparison: 'Comparació Radar',
 
     // Evolució

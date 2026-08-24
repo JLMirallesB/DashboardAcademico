@@ -19,7 +19,7 @@ import { analizarDificultad } from './nucleo/dificultad.js';
 import { serieEvolucionNiveles } from './nucleo/evolucion.js';
 import { compararTrimestres, esAgregado, mismoMomento, cursosDe, momentosDe, esDelMomento, parseTrimestre as parseClave } from './nucleo/texto.js';
 
-import { paresDe, porPares, porNiveles, paresMasFuertes } from './nucleo/correlaciones.js';
+import { paresDe, porPares, porNiveles, paresMasFuertes, porMomentos } from './nucleo/correlaciones.js';
 import { useKPICalculation } from './hooks/useKPICalculation.js';
 
 import { HelpModal } from './components/modals/HelpModal.jsx';
@@ -1203,6 +1203,30 @@ const DashboardAcademico = () => {
       nivelesSinGlobalEtapa, abreviarAsignatura),
     [correlacionesDelTrimestre, paresCorrelacion, nivelesSinGlobalEtapa, abreviarAsignatura]);
 
+  /* La única que evoluciona de verdad: el eje X son los MOMENTOS cargados.
+     Las otras dos enseñan la foto del trimestre elegido —cambias de trimestre
+     y ves otra foto, pero nunca la trayectoria—, y la sección se llamaba
+     «evolución de correlaciones». Se siguen los diez pares más fuertes,
+     promediando los niveles por Fisher; un par que falte en un momento no
+     recibe punto, así que la línea se corta en vez de inventarla. */
+  const paresSeguidos = useMemo(
+    () => paresMasFuertes(correlacionesDelTrimestre, paresCorrelacion, nivelesSinGlobalEtapa, 10),
+    [correlacionesDelTrimestre, paresCorrelacion, nivelesSinGlobalEtapa]);
+
+  const datosCorrelacionesEnElTiempo = useMemo(
+    () => porMomentos(correlacionesCompletas, paresSeguidos, momentosDisponibles,
+                      nivelesSinGlobalEtapa, abreviarAsignatura),
+    [correlacionesCompletas, paresSeguidos, momentosDisponibles, nivelesSinGlobalEtapa,
+     abreviarAsignatura]);
+
+  const seriesEnElTiempo = useMemo(() => {
+    const pares = new Set();
+    datosCorrelacionesEnElTiempo.forEach((punto) => {
+      Object.keys(punto).forEach((k) => { if (k !== 'momento') pares.add(k); });
+    });
+    return Array.from(pares);
+  }, [datosCorrelacionesEnElTiempo]);
+
   const paresCorrelacionesAlt = useMemo(() => {
     const pares = new Set();
     datosEvolucionCorrelacionesAlt.forEach(punto => {
@@ -2253,9 +2277,15 @@ const DashboardAcademico = () => {
             <div className="bg-white rounded-xl border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1">{t('correlationEvolution')}</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                    {ejeCorrelaciones === 'momentos' ? t('correlationOverTime') : t('correlationSnapshot')}
+                  </h3>
                   <p className="text-sm text-gray-500">
-                    {ejeCorrelaciones === 'pares' ? t('correlationEvolutionDesc') : t('correlationEvolutionDescAlt').replace('{levels}', nivelesSinGlobalEtapa.join(', '))}
+                    {ejeCorrelaciones === 'momentos'
+                      ? t('correlationEvolutionDescTime')
+                      : ejeCorrelaciones === 'pares'
+                        ? t('correlationEvolutionDesc')
+                        : t('correlationEvolutionDescAlt').replace('{levels}', nivelesSinGlobalEtapa.join(', '))}
                   </p>
                 </div>
                 <div className="flex gap-2 bg-gray-100 rounded-lg p-1">
@@ -2279,11 +2309,52 @@ const DashboardAcademico = () => {
                   >
                     {t('correlationToggleLevels')}
                   </button>
+                  {/* Solo tiene sentido con más de un momento cargado: con uno
+                      solo, una «evolución» de un punto no es una evolución. */}
+                  {momentosDisponibles.length > 1 && (
+                    <button
+                      onClick={() => setEjeCorrelaciones('momentos')}
+                      className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                        ejeCorrelaciones === 'momentos'
+                          ? 'bg-white text-gray-900 '
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      {t('correlationToggleTime')}
+                    </button>
+                  )}
                 </div>
               </div>
 
               <ResponsiveContainer width="100%" height={400}>
-                {ejeCorrelaciones === 'pares' ? (
+                {ejeCorrelaciones === 'momentos' ? (
+                  <LineChart data={datosCorrelacionesEnElTiempo} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis dataKey="momento" stroke="#64748b" tickFormatter={rotularMomento} />
+                    <YAxis stroke="#64748b" domain={[-1, 1]} tickFormatter={(v) => (v || 0).toFixed(1)} />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px' }}
+                      formatter={(value, name) => [typeof value === 'number' ? value.toFixed(2) : 'N/A', name]}
+                      labelFormatter={rotularMomento}
+                    />
+                    <Legend />
+                    {seriesEnElTiempo.map((par, idx) => {
+                      const colores = ['#3b82f6', '#ef4444', '#22c55e', '#a855f7', '#f59e0b',
+                                       '#ec4899', '#06b6d4', '#8b5cf6', '#14b8a6', '#f97316'];
+                      return (
+                        <Line
+                          key={par}
+                          type="monotone"
+                          dataKey={par}
+                          name={par}
+                          stroke={colores[idx % colores.length]}
+                          strokeWidth={2}
+                          dot={{ fill: colores[idx % colores.length], r: 4 }}
+                        />
+                      );
+                    })}
+                  </LineChart>
+                ) : ejeCorrelaciones === 'pares' ? (
                   <LineChart data={datosEvolucionCorrelaciones} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                     <XAxis

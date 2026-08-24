@@ -8,7 +8,7 @@
  * cambiaba el número sin cambiar los datos.
  */
 import { clavePar, paresDe, correlacionDe, mediaFisher, paresMasFuertes,
-         porPares, porNiveles } from '../src/nucleo/correlaciones.js';
+         porPares, porNiveles , porMomentos} from '../src/nucleo/correlaciones.js';
 import { comprobar, seccion, terminar, casi } from './ayuda.mjs';
 
 const c = (nivel, a, b, r) => ({ Nivel: nivel, Asignatura1: a, Asignatura2: b, Correlacion: r });
@@ -102,6 +102,40 @@ seccion('6. El filtro por etapa');
   comprobar('en modo de una etapa solo salen sus pares',
     paresDe(mixto, 'EPM').length === 1 && paresDe(mixto, 'EPM')[0].asig1 === 'Armonía');
   comprobar('y en TODOS, los dos', paresDe(mixto, 'TODOS').length === 2);
+}
+
+
+seccion('Eje X = momentos: la única que evoluciona de verdad');
+{
+  const par = { clave: 'p', asig1: 'Piano', asig2: 'Lenguaje Musical' };
+  const c = (nivel, r) => ({ Asignatura1: 'Piano', Asignatura2: 'Lenguaje Musical',
+                             Nivel: nivel, Correlacion: r });
+  const porMomento = {
+    '1EV': [c('1EEM', 0.9), c('2EEM', 0.5)],
+    '2EV': [c('1EEM', 0.8), c('2EEM', 0.6)],
+    '3EV': []                                   // ese trimestre no trae el par
+  };
+  const filas = porMomentos(porMomento, [par], ['1EV', '2EV', '3EV'], null);
+  comprobar('hay un punto por momento, en orden',
+    filas.map((f) => f.momento).join() === '1EV,2EV,3EV');
+
+  /* CANDADO. Promediar coeficientes a pelo sesga a la baja: la escala de r no
+     es lineal. 0,9 y 0,5 dan 0,766 por Fisher, no 0,70. */
+  comprobar('CANDADO: los niveles se promedian por Fisher, no a pelo',
+    Math.abs(filas[0]['Piano-Lenguaje Musical'] - 0.7661) < 0.001,
+    String(filas[0]['Piano-Lenguaje Musical']));
+
+  /* CANDADO. Sin dato no hay punto, así que la línea se corta. Rellenarlo
+     dibujaría una tendencia que nadie ha medido. */
+  comprobar('CANDADO: el momento sin dato no recibe punto, la línea se corta',
+    !('Piano-Lenguaje Musical' in filas[2]), JSON.stringify(filas[2]));
+
+  const soloUno = porMomentos(porMomento, [par], ['1EV'], ['1EEM']);
+  comprobar('y se puede seguir un solo nivel',
+    soloUno[0]['Piano-Lenguaje Musical'] === 0.9,
+    String(soloUno[0]['Piano-Lenguaje Musical']));
+  comprobar('sin momentos devuelve una lista vacía, no revienta',
+    porMomentos(porMomento, [par], [], null).length === 0);
 }
 
 terminar('las correlaciones, sin que un trimestre pise a otro.');
