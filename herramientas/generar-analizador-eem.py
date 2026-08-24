@@ -14,7 +14,11 @@ existen y solo les cambia el número de fila. Lo que cambia es:
 import zipfile, re, html, sys
 
 RUTA = '/Users/miralles/Documents/GitHub/DashboardAcademico/public/data/ANALIZADOR_ELEMENTAL_V2.xlsx'
-RANURAS = 34          # asignaturas provisionadas por bloque
+RANURAS = 60          # asignaturas provisionadas por bloque
+# Eran 34 para 26 asignaturas: seis de margen. En cuanto un centro añadiera una
+# optativa propia se acababa, y quedarse sin ranura no da error — la asignatura
+# simplemente no sale, y `FueraDeLasCifras` la cuenta sin decir cuál es. Con 60
+# hay sitio para lo que la norma añada y para lo que cada centro tenga suyo.
 BLOQUES = ['GLOBAL', '1EEM', '2EEM', '3EEM', '4EEM']
 TODOS_LOS_CURSOS = '1EEM;2EEM;3EEM;4EEM'
 
@@ -27,10 +31,15 @@ TODOS_LOS_CURSOS = '1EEM;2EEM;3EEM;4EEM'
 # especialidad nueva —se hacen con el instrumento nuevo—; Lenguaje Musical y
 # Coro no. Es el mismo criterio que `PLAN.UNA_SOLA_VEZ` del jardín, que hasta
 # ahora era el único sitio donde vivía. Aquí es dato, no código.
+# El sexto campo es `Tipo`: «Obligatoria» si la pone el currículo, «Optativa»
+# si el currículo la ofrece pero no la cursa todo el mundo, y «De centro» si es
+# de diseño propio. En elemental hoy son todas obligatorias; la columna existe
+# para que un centro pueda añadir las suyas sin tocar el libro, y para que una
+# optativa que elige el 10 % no se lea igual que una obligatoria.
 COMUNES = [
-    ('Lenguaje Musical', TODOS_LOS_CURSOS, 'Referencia', '', 'Sí'),
-    ('Coro',             TODOS_LOS_CURSOS, 'NoEspecialidad', '', 'Sí'),
-    ('Conjunto',         '3EEM;4EEM',      'NoEspecialidad', '', 'No'),
+    ('Lenguaje Musical', TODOS_LOS_CURSOS, 'Referencia', '', 'Sí', 'Obligatoria'),
+    ('Coro',             TODOS_LOS_CURSOS, 'NoEspecialidad', '', 'Sí', 'Obligatoria'),
+    ('Conjunto',         '3EEM;4EEM',      'NoEspecialidad', '', 'No', 'Obligatoria'),
 ]
 FAMILIA = {'Arpa':'Cuerda','Contrabajo':'Cuerda','Guitarra':'Cuerda','Viola':'Cuerda',
            'Violín':'Cuerda','Violoncello':'Cuerda','Clarinete':'Madera','Fagot':'Madera',
@@ -41,8 +50,15 @@ ESPECIALIDADES = ['Acordeón','Arpa','Clarinete','Clave','Contrabajo','Dulzaina'
                   'Percusión','Piano','Saxofón','Trombón','Trompa','Trompeta','Tuba','Viola',
                   'Viola de Gamba','Violín','Violoncello']
 
-CATALOGO = COMUNES + [(e, TODOS_LOS_CURSOS, 'Especialidad', FAMILIA.get(e, ''), 'No')
+CATALOGO = COMUNES + [(e, TODOS_LOS_CURSOS, 'Especialidad', FAMILIA.get(e, ''), 'No', 'Obligatoria')
                       for e in ESPECIALIDADES]
+
+# Los rangos del catálogo llegan MÁS ABAJO que las asignaturas escritas: 60
+# filas para 26. Así añadir una asignatura es escribir una línea y ya está —sin
+# volver a generar el libro—, que era la promesa del rediseño. Las filas vacías
+# no molestan: no tienen «Sí» en Activa, así que ningún criterio las recoge.
+FIN_CFG = RANURAS + 1                # hasta dónde miran los rangos
+FIN_ESCRITAS = len(CATALOGO) + 1     # hasta dónde hay algo escrito
 
 esc = lambda s: (s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
                   .replace('"', '&quot;'))
@@ -68,22 +84,25 @@ cfg = hoja(2)
 fc = filas_de(cfg)
 cab = fc[1][1]                      # la cabecera se conserva tal cual
 est_g1 = (re.search(r'<c r="G1"[^>]*s="(\d+)"', cab) or [None, ''])[1]
-if '<c r="H1"' not in cab:
-    cab = cab.replace('<c r="I1"', txt('H1', est_g1, 'UnaSolaVez') + '<c r="I1"', 1)
+# La cabecera se rehace de H en adelante: en I y K había dos rótulos sueltos
+# —«CURSOS», «GRUPOS»— sin nada debajo, de una versión anterior.
+cab = re.sub(r'<c r="[H-Z]+1"(?:[^>]*/>|[^>]*>.*?</c>)', '', cab, flags=re.S)
+cab += txt('H1', est_g1, 'UnaSolaVez') + txt('I1', est_g1, 'Tipo')
 notas_laterales = re.findall(r'<c r="[IK]\d+"[^>]*>(?:<v>\d+</v>)?</c>', fc[1][1])
 
 filas_cfg = ['<row r="1"%s>%s</row>' % (re.sub(r'^ r="\d+"', '', fc[1][0]), cab)]
-for i, (nombre, cursos, g1, g2, unaVez) in enumerate(CATALOGO, start=2):
+for i, (nombre, cursos, g1, g2, unaVez, tipo) in enumerate(CATALOGO, start=2):
     celdas = (num('A%d' % i, '3', i - 1) + txt('B%d' % i, '3', nombre)
               + txt('C%d' % i, '3', cursos) + txt('D%d' % i, '3', g1)
               + (txt('E%d' % i, '3', g2) if g2 else vac('E%d' % i, '3'))
               + txt('F%d' % i, '3', 'Sí' if g1 == 'Especialidad' else 'No')
-              + txt('G%d' % i, '3', 'Sí') + txt('H%d' % i, '3', unaVez))
+              + txt('G%d' % i, '3', 'Sí') + txt('H%d' % i, '3', unaVez)
+              + txt('I%d' % i, '3', tipo))
     filas_cfg.append('<row r="%d" spans="1:11" ht="15" customHeight="1">%s</row>' % (i, celdas))
 
 cfg_nueva = re.sub(r'<sheetData>.*?</sheetData>', '<sheetData>' + ''.join(filas_cfg) + '</sheetData>',
                    cfg, flags=re.S)
-cfg_nueva = re.sub(r'<dimension ref="[^"]*"/>', '<dimension ref="A1:K%d"/>' % (len(CATALOGO) + 1), cfg_nueva)
+cfg_nueva = re.sub(r'<dimension ref="[^"]*"/>', '<dimension ref="A1:I%d"/>' % FIN_CFG, cfg_nueva)
 piezas['xl/worksheets/sheet2.xml'] = cfg_nueva.encode('utf8')
 print('CONFIG_ASIGNATURAS: %d asignaturas (%d comunes + %d especialidades)'
       % (len(CATALOGO), len(COMUNES), len(ESPECIALIDADES)))
@@ -106,11 +125,10 @@ print('CONFIG_ASIGNATURAS: %d asignaturas (%d comunes + %d especialidades)'
 # de lectura. Lo que no se puede es callarlo.
 meta = hoja(3)
 fm = filas_de(meta)
-INI, FIN = 2, len(CATALOGO) + 1
-UNA_VEZ = ('COUNTIFS(CONFIG_ASIGNATURAS!$B$%d:$B$%d,DATOS!$I$2:$I$20000,'
-           'CONFIG_ASIGNATURAS!$H$%d:$H$%d,"Sí",'
-           'CONFIG_ASIGNATURAS!$G$%d:$G$%d,"Sí")>0'
-           % (INI, FIN, INI, FIN, INI, FIN))
+FIN = FIN_CFG
+UNA_VEZ = ('COUNTIFS(CONFIG_ASIGNATURAS!$B$2:$B$%d,DATOS!$I$2:$I$20000,'
+           'CONFIG_ASIGNATURAS!$H$2:$H$%d,"Sí",'
+           'CONFIG_ASIGNATURAS!$G$2:$G$%d,"Sí")>0' % (FIN, FIN, FIN))
 COND = '(DATOS!$G$2:$G$20000=CONFIG_METADATA!$B$4)*(%s)' % UNA_VEZ
 DOBLES = ('IFERROR(SUMPRODUCT(%s*1)-COUNTA(_xlfn.UNIQUE(_xlfn._xlws.FILTER('
           'DATOS!$A$2:$A$20000&"|"&DATOS!$I$2:$I$20000,%s))),0)' % (COND, COND))
@@ -151,7 +169,6 @@ print('CONFIG_METADATA: dos avisos (doble especialidad y sin configurar)')
 # ---------- 2 · CALC_EEM ----------
 calc = hoja(6)
 fk = filas_de(calc)
-FIN_CFG = len(CATALOGO) + 1          # última fila usada de CONFIG
 
 def rehacer(cont, viejo, nuevo):
     """Cambia el número de fila en las referencias relativas (B8→B41, A27→A60)."""
@@ -186,7 +203,15 @@ NOTA = 'DATOS!$K$2:$K$20000'
 APTO = 'DATOS!$L$2:$L$20000'
 
 def criterio(clave):
-    """«Activa» entra en el criterio, y no es un detalle.
+    """Quién es «especialidad» lo dice la columna Grupo1, no un rango de filas.
+
+    Estaba escrito como `COUNTIF(CONFIG!$B$5:$B$27, …)`: las especialidades son
+    «de la fila 5 a la 27». Eso obliga a insertar en mitad del bloque para
+    añadir una —el propio libro traía una nota diciéndolo— y una asignatura
+    puesta en la primera fila libre queda fuera de los dos totales sin que nada
+    lo diga. Preguntando por `Grupo1` se puede escribir donde sea.
+
+    «Activa» entra en el criterio, y no es un detalle.
 
     Sin ella, desactivar una asignatura que TIENE datos la borraba de las
     filas —la columna B sale de un FILTER por «Activa»— pero sus registros
@@ -194,9 +219,10 @@ def criterio(clave):
     asignatura sí estaba en la configuración. Registros que cuentan en una
     cifra y no salen en ninguna línea, sin que nada lo diga. Ahora el total y
     las filas preguntan lo mismo, así que `D2-D3-D4` los caza solo."""
-    ini, fin = ((len(COMUNES) + 2, FIN_CFG) if clave == 'esp' else (2, len(COMUNES) + 1))
-    return ('COUNTIFS(CONFIG_ASIGNATURAS!$B$%d:$B$%d,DATOS!$I$2:$I$20000,'
-            'CONFIG_ASIGNATURAS!$G$%d:$G$%d,"Sí")>0' % (ini, fin, ini, fin))
+    esEsp = '"Especialidad"' if clave == 'esp' else '"<>Especialidad"'
+    return ('COUNTIFS(CONFIG_ASIGNATURAS!$B$2:$B$%d,DATOS!$I$2:$I$20000,'
+            'CONFIG_ASIGNATURAS!$D$2:$D$%d,%s,'
+            'CONFIG_ASIGNATURAS!$G$2:$G$%d,"Sí")>0' % (FIN_CFG, FIN_CFG, esEsp, FIN_CFG))
 
 def totales(c, clave, r, es_global):
     cond = ('(%s)*(%s)' % (CUR, criterio(clave)) if es_global else
@@ -249,12 +275,24 @@ for bloque in BLOQUES:
     for n in range(1, RANURAS + 1):
         c = rehacer(cont, viejo, r)
         c = re.sub(r'<c r="A%d"([^>]*)>.*?</c>' % r, txt('A%d' % r, '3', bloque), c, flags=re.S)
-        # B: la n-ésima asignatura ACTIVA de la configuración
+        # B: la n-ésima asignatura ACTIVA de la configuración —y, en un bloque
+        # de curso, de las que se imparten EN ESE CURSO.
+        #
+        # Ese segundo filtro es lo que hace que la columna `Cursos` sirva para
+        # algo. Sin él, cada bloque recibía TODAS las asignaturas activas, así
+        # que Conjunto —que solo se cursa en 3.º y 4.º— salía en 1.º y 2.º con
+        # un cero. Y desde que el exportador se calla por «Activa» y no por
+        # cero, ese cero viaja al Dashboard como si fuera un dato: «1EEM /
+        # Conjunto: 0 alumnos», que no es que no haya nadie, es que no existe.
+        #
         # `_xlfn._xlws.` NO es decorativo: es como Excel guarda las funciones de
         # matriz dinámica en el XML. Escrito a pelo, `FILTER` no es una función que
         # exista y el libro entero abre con «hemos encontrado un problema».
-        bf = ('IFERROR(INDEX(_xlfn._xlws.FILTER(CONFIG_ASIGNATURAS!$B$2:$B$%d,'
-              'CONFIG_ASIGNATURAS!$G$2:$G$%d="Sí"),%d),"")' % (FIN_CFG, FIN_CFG, n))
+        filtro_curso = ('CONFIG_ASIGNATURAS!$G$2:$G$%d="Sí"' % FIN_CFG) if bloque == 'GLOBAL' else (
+            '(CONFIG_ASIGNATURAS!$G$2:$G$%d="Sí")*ISNUMBER(SEARCH("%s",CONFIG_ASIGNATURAS!$C$2:$C$%d))'
+            % (FIN_CFG, bloque, FIN_CFG))
+        bf = ('IFERROR(INDEX(_xlfn._xlws.FILTER(CONFIG_ASIGNATURAS!$B$2:$B$%d,%s),%d),"")'
+              % (FIN_CFG, filtro_curso, n))
         c = re.sub(r'<c r="B%d"([^>]*)>.*?</c>' % r, fx('B%d' % r, '3', bf), c, flags=re.S)
         # C: el tipo, también de la configuración
         cf = ('IF(B%d="","",IFERROR(IF(VLOOKUP(B%d,CONFIG_ASIGNATURAS!$B$2:$F$%d,5,FALSE())="Sí",'

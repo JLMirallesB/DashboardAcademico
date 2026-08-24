@@ -200,14 +200,28 @@ MODELOS.forEach((m) => {
     visible.length === 0 || visible.join(',') === m.codigos,
     visible.length ? visible.join(',') + ' frente a ' + m.codigos : 'no lleva lista visible');
 
-  /* El bloque de instrumentos, que es lo que separa «Especialidad» de «No
-     Especialidad». En elemental apuntaba a TODAS las asignaturas
-     configuradas, así que las dos cifras se solapaban y sumaban más que el
-     total del centro. */
-  const calc = txt('xl/worksheets/sheet6.xml');
-  comprobar('CANDADO: «Total Especialidad» mira solo el bloque de instrumentos',
-    calc.includes('CONFIG_ASIGNATURAS!' + m.rangoEspecialidad),
-    (calc.match(/CONFIG_ASIGNATURAS!\$B\$\d+:\$B\$\d+/g) || []).join(' '));
+  /* Qué separa «Especialidad» de «No Especialidad». */
+  const calc = txt(m.hojaCalc === 'CALC_EEM' ? 'xl/worksheets/sheet6.xml' : 'xl/worksheets/sheet6.xml');
+
+  if (m.listaManda) {
+    /* CANDADO. El criterio era un RANGO DE FILAS —«las especialidades son de
+       la 5 a la 27»—, y eso obliga a insertar en mitad del bloque para añadir
+       una: el libro traía una nota diciéndolo. Una asignatura escrita en la
+       primera fila libre quedaba fuera de los dos totales sin que nada lo
+       dijera. Ahora se pregunta por la columna Grupo1, así que se puede
+       escribir donde sea. */
+    const porGrupo = (calc.match(/CONFIG_ASIGNATURAS!\$D\$\d+:\$D\$\d+,(?:&quot;|")(?:&lt;&gt;)?Especialidad/g) || []).length;
+    comprobar('CANDADO: quién es «especialidad» lo dice Grupo1, no un rango de filas',
+      porGrupo >= 10, porGrupo + ' criterios preguntan por Grupo1');
+
+    /* Y los rangos llegan más abajo que las asignaturas escritas, que es lo
+       que permite añadir una sin volver a generar el libro. */
+    const cfg0 = txt('xl/worksheets/sheet2.xml');
+    const escritas = (cfg0.match(/<row r="\d+"/g) || []).length - 1;
+    const hasta = Math.max(...[...calc.matchAll(/CONFIG_ASIGNATURAS!\$B\$2:\$B\$(\d+)/g)].map((x) => +x[1]));
+    comprobar('y los rangos dejan sitio libre para las que vengan',
+      hasta > escritas + 20, `${escritas} escritas · los rangos llegan a la ${hasta}`);
+  }
 
   /* Las fórmulas son el libro: si un día se pierden en una edición, el
      fichero abre igual y no calcula nada. */
