@@ -222,4 +222,30 @@ seccion('7. El filtro por agrupación del informe (fallo 10)');
     !['Percusión', 'Violín', 'Saxofón', 'Órgano'].some(conAcentosQuitados));
 }
 
+seccion('El vocabulario de GEODE en el eje del tiempo');
+{
+  /* GEODE escribe 1EV, 2EV, 3EV y luego FI (elemental) u OR (profesional),
+     más EX. Los tres últimos no estaban en la tabla de orden y caían todos a
+     99: empatados, el eje los colocaba en el orden de carga de los ficheros y
+     la evolución se dibujaba al revés sin dar ningún error. */
+  comprobar('CANDADO: FI, OR y EX tienen su sitio en el eje',
+    ordenDeEvaluacion('FI') === 4 && ordenDeEvaluacion('OR') === 4 &&
+    ordenDeEvaluacion('EX') === 5,
+    [ordenDeEvaluacion('FI'), ordenDeEvaluacion('OR'), ordenDeEvaluacion('EX')].join(','));
+  comprobar('y van DESPUÉS de las tres evaluaciones',
+    ordenDeEvaluacion('3EV') < ordenDeEvaluacion('FI') &&
+    ordenDeEvaluacion('OR') < ordenDeEvaluacion('EX'));
+  comprobar('el exportador antiguo sigue funcionando: FINAL no se ha perdido',
+    ordenDeEvaluacion('FINAL') === 4);
+  comprobar('CANDADO: y ninguno cae al 99 de los desconocidos',
+    ['1EV', '2EV', '3EV', 'FI', 'OR', 'EX'].every((x) => evaluacionConocida(x)),
+    ['1EV', '2EV', '3EV', 'FI', 'OR', 'EX'].filter((x) => !evaluacionConocida(x)).join(','));
+
+  /* Y el orden completo de un curso de profesional, que es lo que se ve. */
+  const claves = ['EX-2627-EPM', '1EV-2627-EPM', 'OR-2627-EPM', '3EV-2627-EPM', '2EV-2627-EPM'];
+  comprobar('CANDADO: el eje ordena una etapa entera como toca',
+    momentosDe(claves).map((m) => m.base).join(' → ') === '1EV → 2EV → 3EV → OR → EX',
+    momentosDe(claves).map((m) => m.base).join(' → '));
+}
+
 terminar('el criterio de totales, los acentos y el eje del tiempo.');

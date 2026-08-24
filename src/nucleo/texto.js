@@ -178,7 +178,17 @@ export const mismoCurso = (a, b) => getTrimestreCurso(a) === getTrimestreCurso(b
    nada lo diga. */
 export const ORDEN_EVALUACION = {
   '1EV': 1, '2EV': 2, '3EV': 3, 'FINAL': 4,
-  '1T': 1, '2T': 2, '3T': 3
+  '1T': 1, '2T': 2, '3T': 3,
+  /* Los códigos que salen de GEODE, añadidos el 24/08/2026. Elemental cierra
+     con FI y profesional con OR, y las dos son «el final de su etapa»: nunca
+     conviven en el mismo fichero —FI solo aparece con cursos EEM y OR solo
+     con EPM—, así que comparten posición. La extraordinaria va detrás, que es
+     donde ocurre.
+
+     Sin esto los tres caían a 99 y empataban: el eje del tiempo los colocaba
+     en el orden en que se cargaron los ficheros, y una evolución dibujada al
+     revés no da ningún error. */
+  'FI': 4, 'OR': 4, 'EX': 5
 };
 
 export const ordenDeEvaluacion = (base) =>
