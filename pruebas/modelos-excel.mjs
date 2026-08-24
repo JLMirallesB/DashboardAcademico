@@ -75,7 +75,11 @@ const MODELOS = [
     /* El catálogo del art. 5 del D.159/2007: 3 comunes + 23 especialidades. */
     asignaturas: 26, listaManda: true },
   { archivo: 'public/data/ANALIZADOR_PROFESIONAL_v2.xlsx', etapa: 'EPM',
-    codigos: '1EV,2EV,3EV,OR,EX', hojaCalc: 'CALC_EPM', rangoEspecialidad: '$B$7:$B$27',
+    /* `OR+EX` es la única opción que da la foto definitiva del curso: EX a
+       solas enseña SOLO lo que se suspendió en junio, que es lo único que
+       trae la extraordinaria, y una media de 4,2 sobre los recuperados se
+       lee igual que «la media del centro». */
+    codigos: '1EV,2EV,3EV,OR,EX,OR+EX', hojaCalc: 'CALC_EPM', rangoEspecialidad: '$B$7:$B$27',
     asignaturas: 42, listaManda: false }
 ];
 
@@ -259,6 +263,36 @@ MODELOS.forEach((m) => {
     comprobar('CANDADO: el exportador cubre todas las filas de cálculo, ni una menos',
       huerfanas.length === 0 && sinExportar.length === 0,
       `apunta a filas que no existen: ${huerfanas.length} · sin exportar: ${sinExportar.length}`);
+  }
+
+  /* La opción que da la foto definitiva del curso. Existe porque `EX` a
+     solas enseña SOLO las asignaturas suspendidas en junio —es lo único que
+     trae la extraordinaria—, y eso se lee como si fuera el centro entero. */
+  if (m.etapa === 'EPM') {
+    const meta2 = txt('xl/worksheets/sheet3.xml');
+    comprobar('lleva la columna que decide qué filas cuentan',
+      /<c r="G2"[^>]*><f>/.test(meta2) && meta2.includes('OR+EX'),
+      'la selectora está en CONFIG_METADATA!G2');
+
+    /* CANDADO. Con 34.002 fórmulas comparando `DATOS!G` contra la evaluación
+       elegida, `OR+EX` no podía existir: habría que escribir dos versiones de
+       cada una. Ahora todas preguntan a una sola columna. Si alguien vuelve a
+       comparar la evaluación en una fórmula de cálculo, esa cifra deja de
+       responder a `OR+EX` y sigue dando un número — el de la ordinaria sola,
+       sin las recuperaciones. */
+    const sueltas = ['xl/worksheets/sheet6.xml', 'xl/worksheets/sheet7.xml',
+      'xl/worksheets/sheet8.xml', 'xl/worksheets/sheet9.xml']
+      .map((h) => [h, (txt(h) || '').split('DATOS!$G$2:$G$20000').length - 1])
+      .filter(([, n]) => n > 0);
+    comprobar('CANDADO: ninguna fórmula de cálculo compara la evaluación por su cuenta',
+      sueltas.length === 0,
+      sueltas.map(([h, n]) => `${h.split('/').pop()} ×${n}`).join(' · '));
+
+    /* Y el aviso que antes no podía darse: una fila de extraordinaria sin su
+       ordinaria no puede existir —no se recupera lo que no se suspendió— y
+       con `OR+EX` se colaría como una nota más. */
+    comprobar('y avisa de las filas de extraordinaria sin su ordinaria',
+      meta2.includes('ExtraordinariaSinOrdinaria'));
   }
 
   /* GEODE escribe «DULZAINA» en castellano. Con «Dolçaina» en la
