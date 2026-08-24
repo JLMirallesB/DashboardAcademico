@@ -71,9 +71,12 @@ const ordenValido = (xml) => {
 
 const MODELOS = [
   { archivo: 'public/data/ANALIZADOR_ELEMENTAL_V2.xlsx', etapa: 'EEM',
-    codigos: '1EV,2EV,3EV,FI', hojaCalc: 'CALC_EEM', rangoEspecialidad: '$B$5:$B$20' },
+    codigos: '1EV,2EV,3EV,FI', hojaCalc: 'CALC_EEM', rangoEspecialidad: '$B$5:$B$27',
+    /* El catálogo del art. 5 del D.159/2007: 3 comunes + 23 especialidades. */
+    asignaturas: 26, listaManda: true },
   { archivo: 'public/data/ANALIZADOR_PROFESIONAL_v2.xlsx', etapa: 'EPM',
-    codigos: '1EV,2EV,3EV,OR,EX', hojaCalc: 'CALC_EPM', rangoEspecialidad: '$B$7:$B$27' }
+    codigos: '1EV,2EV,3EV,OR,EX', hojaCalc: 'CALC_EPM', rangoEspecialidad: '$B$7:$B$27',
+    asignaturas: 42, listaManda: false }
 ];
 
 const RAIZ = new URL('..', import.meta.url).pathname;
@@ -132,6 +135,33 @@ MODELOS.forEach((m) => {
   const formulas = (calc.match(/<f[ >]/g) || []).length;
   comprobar('las fórmulas de cálculo siguen ahí',
     formulas > 2000, formulas + ' fórmulas en ' + m.hojaCalc);
+
+  /* El catálogo entero, para que cada centro active lo suyo. */
+  const cfg = txt('xl/worksheets/sheet2.xml');
+  const cuantas = (cfg.match(/<row r="\d+"/g) || []).length - 1;
+  comprobar(`la configuración lleva las ${m.asignaturas} asignaturas`,
+    cuantas === m.asignaturas, cuantas + ' filas');
+
+  if (m.listaManda) {
+    /* CANDADO: el nombre de cada asignatura sale de la configuración, no está
+       escrito en la hoja de cálculo. Es lo que hace que añadir una
+       especialidad sea escribir una línea y no diez inserciones de fila. */
+    const dinamicas = (calc.match(/<f>IFERROR\(INDEX\(FILTER\(CONFIG_ASIGNATURAS/g) || []).length;
+    comprobar('CANDADO: los nombres de asignatura los pone la configuración',
+      dinamicas > 100, dinamicas + ' filas con nombre calculado');
+
+    /* Y que el exportador siga apuntando a todas las filas de cálculo: si se
+       queda corto, las últimas asignaturas no salen en el CSV y no lo dice
+       nadie. */
+    const exp = txt('xl/worksheets/sheet9.xml');
+    const filasCalc = new Set([...calc.matchAll(/<row r="(\d+)"/g)].map((x) => +x[1]));
+    const apunta = new Set([...exp.matchAll(/CALC_EEM!\$?[A-Z]+\$?(\d+)/g)].map((x) => +x[1]));
+    const huerfanas = [...apunta].filter((x) => !filasCalc.has(x));
+    const sinExportar = [...filasCalc].filter((x) => x > 1 && !apunta.has(x));
+    comprobar('CANDADO: el exportador cubre todas las filas de cálculo, ni una menos',
+      huerfanas.length === 0 && sinExportar.length === 0,
+      `apunta a filas que no existen: ${huerfanas.length} · sin exportar: ${sinExportar.length}`);
+  }
 
   /* GEODE escribe «DULZAINA» en castellano. Con «Dolçaina» en la
      configuración, sus filas no casaban con nada y la asignatura no aparecía
