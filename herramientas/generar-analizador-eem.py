@@ -122,7 +122,10 @@ for bloque in BLOQUES:
         c = rehacer(cont, viejo, r)
         c = re.sub(r'<c r="A%d"([^>]*)>.*?</c>' % r, txt('A%d' % r, '3', bloque), c, flags=re.S)
         # B: la n-ésima asignatura ACTIVA de la configuración
-        bf = ('IFERROR(INDEX(FILTER(CONFIG_ASIGNATURAS!$B$2:$B$%d,'
+        # `_xlfn._xlws.` NO es decorativo: es como Excel guarda las funciones de
+        # matriz dinámica en el XML. Escrito a pelo, `FILTER` no es una función que
+        # exista y el libro entero abre con «hemos encontrado un problema».
+        bf = ('IFERROR(INDEX(_xlfn._xlws.FILTER(CONFIG_ASIGNATURAS!$B$2:$B$%d,'
               'CONFIG_ASIGNATURAS!$G$2:$G$%d="Sí"),%d),"")' % (FIN_CFG, FIN_CFG, n))
         c = re.sub(r'<c r="B%d"([^>]*)>.*?</c>' % r, fx('B%d' % r, '3', bf), c, flags=re.S)
         # C: el tipo, también de la configuración
@@ -174,7 +177,8 @@ for (fila_calc, bloque, tipo) in mapa:
 # agrupaciones y correlaciones, detrás
 salida.append('<row r="%d"><c r="A%d" t="inlineStr"><is><t>#AGRUPACIONES</t></is></c></row>' % (fila_exp+1, fila_exp+1))
 fila_exp += 2
-salida.append('<row r="%d">%s</row>' % (fila_exp, fe[121][1].replace('121', str(fila_exp))))
+salida.append('<row r="%d">%s</row>' % (
+    fila_exp, re.sub(r'\br="([A-Z]+)\d+"', lambda m: 'r="%s%d"' % (m.group(1), fila_exp), fe[121][1])))
 fila_exp += 1
 attrs, cont = pl_agr
 for i in range(2, FIN_CFG + 1):
@@ -194,6 +198,21 @@ exp_nueva = re.sub(r'<sheetData>.*?</sheetData>', '<sheetData>' + ''.join(salida
 exp_nueva = re.sub(r'<dimension ref="[^"]*"/>', '<dimension ref="A1:X%d"/>' % (fila_exp - 1), exp_nueva)
 piezas['xl/worksheets/sheet9.xml'] = exp_nueva.encode('utf8')
 print('EXPORTADOR: %d filas — antes 158' % (fila_exp - 1))
+
+# `calcChain.xml` es el orden en que Excel recalculó la última vez: una lista
+# de TODAS las celdas con fórmula. Al mover filas deja de cuadrar con las que
+# hay, y Excel lo comprueba al abrir —fue la segunda avería de este fichero—.
+# Es una caché reconstruible: se tira, y con `fullCalcOnLoad` se rehace sola.
+CC = 'xl/calcChain.xml'
+if CC in piezas:
+    del piezas[CC]; orden = [n for n in orden if n != CC]
+    piezas['[Content_Types].xml'] = re.sub(
+        r'<Override PartName="/xl/calcChain\.xml"[^>]*/>', '',
+        piezas['[Content_Types].xml'].decode('utf8')).encode('utf8')
+    piezas['xl/_rels/workbook.xml.rels'] = re.sub(
+        r'<Relationship[^>]*calcChain\.xml"[^>]*/>', '',
+        piezas['xl/_rels/workbook.xml.rels'].decode('utf8')).encode('utf8')
+    print('calcChain: fuera (la rehace Excel al abrir)')
 
 nuevo = zipfile.ZipFile(RUTA, 'w', zipfile.ZIP_DEFLATED)
 for n in orden: nuevo.writestr(info[n], piezas[n])

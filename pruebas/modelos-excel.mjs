@@ -101,6 +101,39 @@ MODELOS.forEach((m) => {
 
   comprobar('están las nueve hojas', hojas.length === 9, hojas.length + ' hojas');
 
+  /* CANDADO. Excel no guarda `FILTER(`: guarda `_xlfn._xlws.FILTER(`. El
+     prefijo no es decoración, es el nombre de la función en el fichero —lo
+     mismo con `STDEV.P`, `UNIQUE` o `MODE.SNGL`, que llevan `_xlfn.`—. Escrita
+     a pelo, esa función no existe y el LIBRO ENTERO abre con «hemos encontrado
+     un problema con el contenido». Pasó al generar las fórmulas de la columna
+     B: 170 de golpe, y no lo dice nada hasta que alguien lo abre. */
+  const todoXml = [...piezas.keys()].filter((k) => /\.xml$/.test(k))
+    .map((k) => txt(k)).join('');
+  const MODERNAS = ['FILTER', 'UNIQUE', 'SORT', 'SEQUENCE', 'STDEV.P', 'STDEV.S',
+    'MODE.SNGL', 'VAR.P', 'NORM.DIST', 'QUARTILE.INC', 'PERCENTILE.INC', 'TEXTJOIN', 'IFS'];
+  const desnudas = MODERNAS
+    .map((f) => [f, (todoXml.match(new RegExp(`(?<![.\\w])${f.replace('.', '\\.')}\\(`, 'g')) || []).length])
+    .filter(([, n]) => n > 0);
+  comprobar('CANDADO: las funciones modernas llevan su prefijo _xlfn',
+    desnudas.length === 0,
+    desnudas.map(([f, n]) => `${f}( sin prefijo ×${n}`).join(' · '));
+
+  /* CANDADO. `calcChain.xml` es la caché del orden de recálculo: una lista de
+     todas las celdas con fórmula. Al mover filas deja de cuadrar, Excel lo
+     comprueba al abrir y avisa de contenido dañado. Como es reconstruible, lo
+     correcto es no llevarla; si vuelve, tiene que cuadrar al cero. */
+  const cc = txt('xl/calcChain.xml');
+  if (cc === null) {
+    comprobar('no lleva calcChain, y nadie la nombra',
+      !txt('[Content_Types].xml').includes('calcChain')
+      && !txt('xl/_rels/workbook.xml.rels').includes('calcChain'));
+  } else {
+    const enCadena = (cc.match(/<c r="/g) || []).length;
+    const conFormula = hojas.reduce((a, h) => a + (txt(h).match(/<f[ >]/g) || []).length, 0);
+    comprobar('CANDADO: la calcChain cuadra con las celdas que tienen fórmula',
+      enCadena === conFormula, `cadena ${enCadena} · fórmulas ${conFormula}`);
+  }
+
   const wb = txt('xl/workbook.xml');
   comprobar('y siguen con sus nombres',
     ['CONFIG_ASIGNATURAS', 'CONFIG_METADATA', 'DATOS', m.hojaCalc, 'EXPORTADOR']
@@ -146,7 +179,7 @@ MODELOS.forEach((m) => {
     /* CANDADO: el nombre de cada asignatura sale de la configuración, no está
        escrito en la hoja de cálculo. Es lo que hace que añadir una
        especialidad sea escribir una línea y no diez inserciones de fila. */
-    const dinamicas = (calc.match(/<f>IFERROR\(INDEX\(FILTER\(CONFIG_ASIGNATURAS/g) || []).length;
+    const dinamicas = (calc.match(/<f>IFERROR\(INDEX\(_xlfn\._xlws\.FILTER\(CONFIG_ASIGNATURAS/g) || []).length;
     comprobar('CANDADO: los nombres de asignatura los pone la configuración',
       dinamicas > 100, dinamicas + ' filas con nombre calculado');
 
