@@ -342,7 +342,7 @@ The app is fully bilingual (ES/VA) using [translations.js](src/translations.js).
 
 Automatic deployment to GitHub Pages via [.github/workflows/deploy.yml](.github/workflows/deploy.yml):
 - Triggers on push to `main` branch
-- Uses Node 20, runs `npm ci` and `npm run build`
+- Uses Node 24, runs `npm ci`, `npm run lint`, `npm test` and `npm run build` — a red test stops the deploy
 - Deploys `dist/` folder to https://jlmirallesb.github.io/DashboardAcademico/
 - Base path `/DashboardAcademico/` configured in [vite.config.js](vite.config.js:7)
 
