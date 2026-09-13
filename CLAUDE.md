@@ -290,6 +290,39 @@ courses and what counts as a speciality come from `CONFIG_ASIGNATURAS`, never
 from a row range and never written inside a formula. Adding a subject is
 writing one line in the marked free margin.
 
+### The converter
+
+`public/data/CONVERSOR_EXCEL_A_DASHBOARD.xlsx` turns the end-of-year grades
+export (27 columns, both stages mixed, elemental as `FI`, professional as `OR`
+and `EX`) into the DATOS sheet of each workbook. It is built **from scratch**
+by `herramientas/generar-conversor.py` — no template, no pinned commit — and it
+**reads its CATALOGO from the two analysers**, so it runs after them.
+
+```bash
+node pruebas/conversor-excel.mjs          # structure: opens, no personal columns read, matches the analysers
+python3 herramientas/probar-conversor.py  # figures: needs Microsoft Excel, recalculates invented data and compares cell by cell
+```
+
+The second one is not optional after touching a formula. The structural test
+cannot evaluate a LET, and Excel found two faults the XML looked fine for:
+
+- **`IFNA` needs `_xlfn.` too** (it is from 2013). Without it the whole
+  Contenido column came out as `#NAME?`, with no warning on open.
+- **XLOOKUP's «if not found» is not applied element-wise** when the lookup value
+  is an array: it returns the first element of the whole array. A subject missing
+  from the catalogue was written with the name of the first row of the file —
+  its grades filed under Lenguaje Musical. Use `IFNA(XLOOKUP(…), array)`.
+
+Decisions measured on a real export (aggregate counts only, through the local-LLM
+room, never opened): the stage comes from the `curso_cont` suffix, never «not EEM
+means EPM»; pending subjects count in the course of the subject; rows without a
+grade are dropped (an empty EX row would overwrite the OR grade under `OR+EX` and
+count as zero); a `1` is a real grade; the NIA becomes one correlative for the
+whole file, the same number for the same student in both stages; name, surnames
+and sex are never read. `ENTRADA` ships empty — there is a lock for it — and
+`INCIDENCIAS` groups problems by value with row counts, so a centre can send it
+to us without sending anyone's data.
+
 ## Translations
 
 The app is fully bilingual (ES/VA) using [translations.js](src/translations.js). All user-facing strings must exist in both `translations.es` and `translations.va` objects. Current language is stored in component state and switched via `LanguageSwitcher`.

@@ -419,6 +419,42 @@ MODELOS.forEach((m) => {
       meta2.includes('ExtraordinariaSinOrdinaria'));
   }
 
+  /* CANDADO. El exportador saca las CUATRO secciones, con filas debajo.
+
+     El de profesional perdió #CORRELACIONES y #AGRUPACIONES el 24/08/2026:
+     su generador recorría esas dos secciones del libro original y hacía
+     `pass`. Los cálculos seguían en el libro y la portada seguía prometiendo
+     las cuatro; el CSV llegaba a la web sin correlaciones, y la web lo enseña
+     como «este fichero no trae correlaciones», que parece un dato y no un
+     fallo. Nada lo comprobaba. */
+  const expX = txt('xl/worksheets/sheet9.xml');
+  const colA = [...expX.matchAll(/<row r="(\d+)"[^>]*>(.*?)<\/row>/gs)].map((x) => {
+    const a = /<c r="A\d+"(?:[^>]*\/>|[^>]*>.*?<\/c>)/s.exec(x[2]);
+    return a ? valorDe(a[0]) : '';
+  });
+  const SECCIONES = ['#METADATA', '#ESTADISTICAS', '#CORRELACIONES', '#AGRUPACIONES'];
+  const faltanSecciones = SECCIONES.filter((s) => !colA.includes(s));
+  comprobar('CANDADO: el exportador saca las cuatro secciones',
+    faltanSecciones.length === 0, 'faltan: ' + faltanSecciones.join(', '));
+
+  const cuantasDe = (tipo) => colA.filter((v) => v === tipo).length;
+  const calcCorr = txt('xl/worksheets/sheet8.xml');
+  const paresCalculados = [...calcCorr.matchAll(/<row r="(\d+)"[^>]*>(.*?)<\/row>/gs)]
+    .filter((x) => +x[1] > 1 && /<c r="D\d+"[^>]*><f>/.test(x[2])).length;
+  const exportadas = new Set([...expX.matchAll(/CALC_CORRELACIONES!D(\d+)/g)].map((x) => +x[1]));
+  comprobar('CANDADO: y exporta TODAS las correlaciones que calcula, ni una menos',
+    paresCalculados > 0 && cuantasDe('COR') === paresCalculados && exportadas.size === paresCalculados,
+    `calcula ${paresCalculados} · filas COR ${cuantasDe('COR')} · apunta a ${exportadas.size}`);
+
+  /* Las agrupaciones llegan hasta el final del catálogo, margen libre
+     incluido: una asignatura añadida en la primera fila libre tiene que
+     salir con su familia sin regenerar nada. */
+  const finCatalogo = Math.max(...[...txt('xl/worksheets/sheet2.xml').matchAll(/<row r="(\d+)"/g)].map((x) => +x[1]));
+  const agrHasta = Math.max(0, ...[...expX.matchAll(/CONFIG_ASIGNATURAS!B(\d+)/g)].map((x) => +x[1]));
+  comprobar('y una fila de agrupación por cada fila del catálogo, margen libre incluido',
+    cuantasDe('AGR') === finCatalogo - 1 && agrHasta === finCatalogo,
+    `filas AGR ${cuantasDe('AGR')} · llegan a la ${agrHasta} · el catálogo acaba en la ${finCatalogo}`);
+
   /* GEODE escribe «DULZAINA» en castellano. Con «Dolçaina» en la
      configuración, sus filas no casaban con nada y la asignatura no aparecía
      ni con un cero. */

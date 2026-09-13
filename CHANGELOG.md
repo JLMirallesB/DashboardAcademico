@@ -9,6 +9,45 @@ van resumidas.
 
 ---
 
+## Sin publicar
+
+Un libro nuevo y un arreglo en el analizador de Profesional. La aplicación no
+cambia ni una cifra.
+
+### ⚠️ Regenera tus CSV de profesional
+
+**Desde la 3.6.0, el analizador de Profesional exportaba el CSV sin
+correlaciones ni agrupaciones.** Las calculaba, pero no las sacaba, y la web
+decía «este fichero no trae correlaciones», que parece un dato y era un fallo.
+Elemental no estaba afectado.
+
+Si tienes un CSV de profesional exportado con la 3.6.0, vuelve a exportarlo
+con el analizador nuevo: tus calificaciones valen tal cual, solo hay que pegar
+DATOS y exportar otra vez.
+
+### Conversor Excel a Dashboard
+
+La exportación de calificaciones de fin de curso no se puede pegar tal cual en
+los analizadores: trae las dos etapas mezcladas, las columnas con otros
+nombres, cada fila de profesional dos veces —ordinaria y extraordinaria— y
+datos personales que los analizadores no necesitan. El conversor la recibe
+entera y devuelve una hoja DATOS por etapa, lista para pegar.
+
+- **El curso es el de la asignatura**, también en las pendientes: la Armonía de
+  4.º que cursa uno de 5.º cuenta con la Armonía de 4.º. Con el de matrícula
+  sumaría en el centro y no se vería en ninguna fila.
+- **Se descartan las filas sin nota.** Son sobre todo la extraordinaria de quien
+  aprobó en junio; con `OR+EX` borrarían su nota y contarían como un cero.
+- **El NIA pasa a ser un número**, el mismo para el mismo alumno en todo el
+  fichero. Nombre, apellidos y sexo no pasan.
+- **La especialidad se deduce** de la asignatura de instrumento, porque la
+  exportación no la trae como columna.
+- **INCIDENCIAS** lista lo que no sabe tratar —una especialidad que el catálogo
+  no tiene, un curso sin etapa, una nota con letras— agrupado por valor y sin
+  datos de nadie, para que otro centro nos la pueda enviar.
+
+---
+
 ## 3.6.0 — 24 de agosto de 2026
 
 Los dos libros de Excel, rehechos. Todo lo que cambia está ahí: la aplicación

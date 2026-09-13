@@ -26,5 +26,12 @@ python3 herramientas/acotar-rangos.py \
 python3 herramientas/portada.py
 python3 herramientas/listas-y-formato.py \
     public/data/ANALIZADOR_ELEMENTAL_V2.xlsx public/data/ANALIZADOR_PROFESIONAL_v2.xlsx
-cp public/data/ANALIZADOR_*.xlsx dist/data/
+# El conversor DESPUÉS de los analizadores: su catálogo lo lee de ellos. Si se
+# genera antes, reparte el catálogo viejo y una especialidad recién añadida no
+# se reconoce — y su alumnado sale sin especialidad sin que nada falle.
+python3 herramientas/generar-conversor.py
+cp public/data/ANALIZADOR_*.xlsx public/data/CONVERSOR_EXCEL_A_DASHBOARD.xlsx dist/data/
 node pruebas/modelos-excel.mjs
+node pruebas/conversor-excel.mjs
+# Las cifras del conversor solo las comprueba un Excel de verdad; si hay uno a
+# mano: python3 herramientas/probar-conversor.py
