@@ -65,7 +65,7 @@ Proyecto de código abierto disponible en GitHub
 - [Descargar plantilla EEM](data/ANALIZADOR_ELEMENTAL_V2.xlsx)
 - [Descargar plantilla EPM](data/ANALIZADOR_PROFESIONAL_v2.xlsx)
 - Usa la plantilla de tu etapa para generar el CSV.
-- [Descargar el conversor](data/CONVERSOR_EXCEL_A_DASHBOARD.xlsx): convierte la exportación de calificaciones de fin de curso (elemental con \`FI\`, profesional con \`OR\` y \`EX\`, mezcladas en un solo fichero) en la hoja DATOS de cada plantilla. Sustituye el NIA por un número, no pasa nombres ni apellidos, descarta las filas sin nota y lista en la hoja INCIDENCIAS lo que no sabe tratar, sin datos personales. Necesita Excel 365 o 2021.
+- [Descargar el conversor](data/CONVERSOR_EXCEL_A_DASHBOARD.xlsx): convierte la exportación de calificaciones de fin de curso (elemental con \`FI\`, profesional con \`OR\` y \`EX\`, mezcladas en un solo fichero) en la hoja DATOS de cada plantilla. Sustituye el NIA por un número, no pasa nombres ni apellidos, descarta las filas sin nota y lista en la hoja INCIDENCIAS lo que no sabe tratar, sin datos personales. La hoja PROMOCION resume, por curso, la promoción y la titulación, el alumnado por número de suspensas, las pendientes y la recuperación en la extraordinaria. Necesita Excel 365 o 2021.
 
 **Gestión de Trimestres:**
 - **Ver trimestres cargados**: Botón "Gestionar datos cargados" muestra todos los trimestres disponibles
@@ -548,7 +548,7 @@ Projecte de codi obert disponible en GitHub
 - [Descarregar plantilla EEM](data/ANALIZADOR_ELEMENTAL_V2.xlsx)
 - [Descarregar plantilla EPM](data/ANALIZADOR_PROFESIONAL_v2.xlsx)
 - Usa la plantilla de la teua etapa per a generar el CSV.
-- [Descarregar el conversor](data/CONVERSOR_EXCEL_A_DASHBOARD.xlsx): converteix l'exportació de qualificacions de final de curs (elemental amb \`FI\`, professional amb \`OR\` i \`EX\`, mesclades en un sol fitxer) en el full DATOS de cada plantilla. Substitueix el NIA per un número, no passa noms ni cognoms, descarta les files sense nota i llista en el full INCIDENCIAS allò que no sap tractar, sense dades personals. Necessita Excel 365 o 2021.
+- [Descarregar el conversor](data/CONVERSOR_EXCEL_A_DASHBOARD.xlsx): converteix l'exportació de qualificacions de final de curs (elemental amb \`FI\`, professional amb \`OR\` i \`EX\`, mesclades en un sol fitxer) en el full DATOS de cada plantilla. Substitueix el NIA per un número, no passa noms ni cognoms, descarta les files sense nota i llista en el full INCIDENCIAS allò que no sap tractar, sense dades personals. El full PROMOCION resumeix, per curs, la promoció i la titulació, l'alumnat per nombre de suspeses, les pendents i la recuperació en l'extraordinària. Necessita Excel 365 o 2021.
 
 **Gestió de Trimestres:**
 - **Veure trimestres carregats**: Botó "Gestionar dades carregades" mostra tots els trimestres disponibles

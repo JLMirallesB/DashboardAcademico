@@ -46,6 +46,25 @@ entera y devuelve una hoja DATOS por etapa, lista para pegar.
   no tiene, un curso sin etapa, una nota con letras— agrupado por valor y sin
   datos de nadie, para que otro centro nos la pueda enviar.
 
+### PROMOCION: lo que pasa con cada alumno
+
+Los analizadores cuentan asignaturas; esta hoja del conversor cuenta alumnado,
+con la misma exportación y sin pasar por nada más:
+
+- **Promoción por curso**, con el porcentaje sobre evaluados y sobre
+  matriculados. Manda la decisión de la evaluación **más tardía**: la
+  extraordinaria antes que la ordinaria.
+- **Finalizan elementales y titulan en profesionales**, y al lado quién termina
+  sin ninguna suspensa: si la exportación no rellena la decisión, es la otra
+  lectura.
+- **Alumnado por número de asignaturas suspensas**, con la nota final.
+- **Pendientes** por curso de matrícula, superadas o no.
+- **Recuperación en la extraordinaria**, por curso y por asignatura.
+
+Solo recuentos: ningún NIA ni ningún nombre. Llega hasta la última fila con
+datos, un curso que no aparece sale como «—» y no como 0, y la columna
+`promociona` es opcional y se entiende como 1/0, S/N o Sí/No.
+
 ---
 
 ## 3.6.0 — 24 de agosto de 2026

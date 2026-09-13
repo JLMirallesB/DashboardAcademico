@@ -28,7 +28,7 @@ import openpyxl
 random.seed(7)
 CAB = gen.CABECERAS_ENTRADA
 
-def fila(nia, curso_mat, curso_cont, ev, asig, nota, tipo='Normal', codigo='100'):
+def fila(nia, curso_mat, curso_cont, ev, asig, nota, tipo='Normal', codigo='100', prom='1'):
     d = dict.fromkeys(CAB, '')
     d.update(anoacademico_id='2025', codcentro='12000000', denominacionespecifica='CENTRO DE PRUEBA',
              codensenanza='10', curso_mat=curso_mat, curso_cont=curso_cont,
@@ -38,7 +38,7 @@ def fila(nia, curso_mat, curso_cont, ev, asig, nota, tipo='Normal', codigo='100'
              co_esproyecto='0', co_caracter='Común', co_tipobasico=tipo, co_singularidad='',
              nota='' if nota is None else nota,
              aprueba='' if nota is None or not str(nota).isdigit() else ('1' if int(nota) >= 5 else '0'),
-             promociona='1')
+             promociona=prom)
     return [d[c] for c in CAB]
 
 filas = []
@@ -60,8 +60,14 @@ def epm(nia, curso, instrumentos, extra=()):
         if isinstance(a, tuple):
             a, cont, tipo = a
         o = random.choice([1, 3, 5, 6, 7, 8, 9, 10])
-        filas.append(fila(nia, curso, cont, 'OR', a, o, tipo))
-        filas.append(fila(nia, curso, cont, 'EX', a, random.choice([4, 5, 6]) if o < 5 else None, tipo))
+        ex = random.choice([4, 5, 6]) if o < 5 else None
+        # La decisión cambia entre la ordinaria y la extraordinaria: es lo
+        # que prueba que manda la más tardía. Y a veces viene como S/N.
+        si, no = ('S', 'N') if nia % 3 == 0 else ('1', '0')
+        if curso == '5EPM':
+            si = no = ''      # un curso SIN decisiones: tiene que salir «—», no 0
+        filas.append(fila(nia, curso, cont, 'OR', a, o, tipo, prom=si if o >= 5 else no))
+        filas.append(fila(nia, curso, cont, 'EX', a, ex, tipo, prom='' if ex is None or not si else (si if ex >= 5 else no)))
 for curso in COMUNES:
     for _ in range(4):
         nia += 1
@@ -188,6 +194,138 @@ comprobar('INCIDENCIAS lista la evaluación 3EV', '3EV' in texto)
 comprobar('INCIDENCIAS no lleva ningún NIA ni nombre',
           not any(('NOMBRE%s' % n) in texto or ('APELLIDO%s' % n) in texto for n in ids)
           and not any(str(n) in texto.split() for n in ids))
+
+# ── PROMOCION, calculada aquí por otro camino ───────────────────────────────
+
+def numero(t):
+    t = str(t).strip()
+    if t == '': return None
+    try: return float(t.replace(',', '.'))
+    except ValueError: return '?'
+def es_num(x): return isinstance(x, float)
+
+SI = {'1', 'S', 'SI', 'SÍ', 'TRUE', 'VERDADERO'}
+NO = {'0', 'N', 'NO', 'FALSE', 'FALSO'}
+reg = []
+for r in filas:
+    et = etapa(r)
+    k = (trim(v(r, 'co_desc')).lower(), et)
+    p = v(r, 'promociona').upper()
+    reg.append(dict(id=ids[v(r, 'nia')], mat=v(r, 'curso_mat'), cont=v(r, 'curso_cont'), ev=v(r, 'ev_codigo'),
+                    asig=canon.get(k, trim(v(r, 'co_desc'))), tipo=v(r, 'co_tipobasico'),
+                    nota=numero(v(r, 'nota')), prom='1' if p in SI else ('0' if p in NO else '')))
+nota_ex = {}
+for x in reg:
+    if x['ev'] == 'EX' and es_num(x['nota']):
+        nota_ex.setdefault((x['id'], x['cont'], x['asig']), x['nota'])
+for x in reg:
+    if x['ev'] == 'EX':
+        x['nex'], x['final'] = None, None
+    else:
+        x['nex'] = nota_ex.get((x['id'], x['cont'], x['asig']))
+        x['final'] = x['nex'] if es_num(x['nex']) else (x['nota'] if es_num(x['nota']) else None)
+
+alumnos = {}
+for x in reg:
+    a = alumnos.setdefault(x['id'], dict(curso=x['mat'], notas=0, susp=0, dex='', dotra=''))
+    if x['ev'] != 'EX' and es_num(x['final']):
+        a['notas'] += 1
+        a['susp'] += x['final'] < 5
+    if x['prom']:
+        if x['ev'] == 'EX' and not a['dex']: a['dex'] = x['prom']
+        if x['ev'] != 'EX' and not a['dotra']: a['dotra'] = x['prom']
+for a in alumnos.values():
+    d = a['dex'] or a['dotra']
+    a['estado'] = 'Promociona' if d == '1' else ('No promociona' if d == '0' else 'Sin decisión')
+    a['eval'] = 'Con evaluación' if a['notas'] > 0 or d else 'Sin evaluación'
+
+def en(etq, curso):
+    if etq == 'Total': return curso[-3:] in ('EEM', 'EPM')
+    if etq.startswith('Total '): return curso[-3:] == etq[-3:]
+    return curso == etq
+
+def fila_esperada(grupo, calculos):
+    if not grupo: return ['—'] * len(calculos)
+    return [c(grupo) for c in calculos]
+
+def pct(a, b): return a / b if b else '—'
+CURSOS_T = ['1EEM', '2EEM', '3EEM', '4EEM', 'Total EEM', '1EPM', '2EPM', '3EPM', '4EPM', '5EPM', '6EPM',
+            'Total EPM', 'Total']
+esperado = {}
+for e in CURSOS_T:
+    g = [a for a in alumnos.values() if en(e, a['curso'])]
+    ev_ = lambda g: sum(a['eval'] == 'Con evaluación' for a in g)
+    pr_ = lambda g: sum(a['estado'] == 'Promociona' for a in g)
+    # Sin ninguna decisión en el grupo, lo que depende de ella es «—».
+    dec = lambda f: lambda g: f(g) if any(a['estado'] != 'Sin decisión' for a in g) else '—'
+    esperado[('1', e)] = fila_esperada(g, [len, ev_, dec(pr_),
+        dec(lambda g: sum(a['estado'] == 'No promociona' for a in g)),
+        lambda g: sum(a['eval'] == 'Con evaluación' and a['estado'] == 'Sin decisión' for a in g),
+        lambda g: sum(a['eval'] == 'Sin evaluación' for a in g),
+        dec(lambda g: pct(pr_(g), ev_(g))), dec(lambda g: pr_(g) / len(g))])
+    if e in ('4EEM', '6EPM', '5EPM'):
+        esperado[('2', e)] = fila_esperada(g, [len, ev_, dec(pr_),
+            lambda g: sum(a['eval'] == 'Con evaluación' and a['notas'] > 0 and a['susp'] == 0 for a in g),
+            dec(lambda g: pct(pr_(g), ev_(g)))])
+        if e == '5EPM':
+            del esperado[('2', e)]   # el bloque 2 solo lleva 4EEM y 6EPM; 5EPM se mira en el 1
+    esperado[('3', e)] = fila_esperada(g, [lambda g: sum(a['notas'] > 0 for a in g)] + [
+        (lambda k: lambda g: sum(a['notas'] > 0 and (a['susp'] >= 3 if k == 3 else a['susp'] == k) for a in g))(k)
+        for k in range(4)])
+    gf = [x for x in reg if en(e, x['mat'])]
+    pend = lambda g: [x for x in g if x['tipo'] == 'Pendiente' and x['ev'] != 'EX']
+    esperado[('4', e)] = fila_esperada(gf, [lambda g: len(pend(g)),
+        lambda g: sum(es_num(x['final']) and x['final'] >= 5 for x in pend(g)),
+        lambda g: sum(es_num(x['final']) and x['final'] < 5 for x in pend(g)),
+        lambda g: sum(not es_num(x['final']) for x in pend(g))])
+    if e in ['1EPM', '2EPM', '3EPM', '4EPM', '5EPM', '6EPM', 'Total EPM']:
+        gc = [x for x in reg if en(e, x['cont'])]
+        sus = lambda g: [x for x in g if x['ev'] == 'OR' and es_num(x['nota']) and x['nota'] < 5]
+        rec = lambda g: sum(es_num(x['nex']) and x['nex'] >= 5 for x in sus(g))
+        esperado[('5', e)] = fila_esperada(gc, [lambda g: len(sus(g)), rec,
+            lambda g: sum(es_num(x['nex']) and x['nex'] < 5 for x in sus(g)),
+            lambda g: sum(not es_num(x['nex']) for x in sus(g)),
+            lambda g: pct(rec(g), len(sus(g)))])
+
+por_asig = {}
+for x in reg:
+    if x['ev'] == 'OR' and es_num(x['nota']) and x['nota'] < 5:
+        t = por_asig.setdefault((x['asig'], x['cont']), [0, 0, 0, 0])
+        t[0] += 1
+        t[1] += es_num(x['nex']) and x['nex'] >= 5
+        t[2] += es_num(x['nex']) and x['nex'] < 5
+        t[3] += not es_num(x['nex'])
+
+hp = libro['PROMOCION']
+leido, bloque, asignaturas = {}, None, []
+for fila_ in hp.iter_rows(values_only=True):
+    a = fila_[0]
+    if isinstance(a, str) and a[:2] in ('1.', '2.', '3.', '4.', '5.', '6.'):
+        bloque = a[0]; continue
+    if bloque == '6':
+        if isinstance(fila_[2], (int, float)):
+            asignaturas.append((fila_[0], fila_[1]) + tuple(int(z) for z in fila_[2:6]))
+    elif bloque and a in CURSOS_T:
+        leido[(bloque, a)] = list(fila_[1:1 + len(esperado.get((bloque, a), []))])
+
+def igual(x, y):
+    if isinstance(y, (int, float)) and not isinstance(y, bool):
+        return isinstance(x, (int, float)) and abs(x - y) < 1e-9
+    return x == y
+print('\nPROMOCION:')
+malas = [(k, leido.get(k), v_) for k, v_ in esperado.items()
+         if not (k in leido and len(leido[k]) == len(v_) and all(igual(a, b) for a, b in zip(leido[k], v_)))]
+comprobar('PROMOCION: %d filas de recuento, celda a celda' % len(esperado), not malas, malas[:3])
+esperadas_asig = sorted((k[0], k[1]) + tuple(int(z) for z in t) for k, t in por_asig.items())
+comprobar('PROMOCION: recuperación por asignatura (%d asignaturas)' % len(esperadas_asig),
+          sorted(asignaturas) == esperadas_asig, (sorted(asignaturas)[:3], esperadas_asig[:3]))
+comprobar('y ordenada de más a menos suspensas en ordinaria',
+          [t[2] for t in asignaturas] == sorted([t[2] for t in asignaturas], reverse=True))
+comprobar('un curso sin ninguna decisión dice «—» en promocionan y en los porcentajes, no 0',
+          leido.get(('1', '5EPM'), [None] * 8)[2] == '—' and leido.get(('1', '5EPM'), [None] * 8)[6] == '—',
+          leido.get(('1', '5EPM')))
+for k in [('1', 'Total'), ('1', '5EPM'), ('3', 'Total'), ('5', 'Total EPM'), ('4', 'Total')]:
+    print('   bloque %s · %-9s %s' % (k[0], k[1], leido.get(k)))
 
 print('\n%s' % ('Todo cuadra.' if not fallos else 'FALLAN %d.' % fallos))
 sys.exit(1 if fallos else 0)
