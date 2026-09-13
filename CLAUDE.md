@@ -323,6 +323,17 @@ and sex are never read. `ENTRADA` ships empty — there is a lock for it — and
 `INCIDENCIAS` groups problems by value with row counts, so a centre can send it
 to us without sending anyone's data.
 
+`PROMOCION` counts **students**, which the analysers cannot: promotion and
+graduation per course, students by number of failed subjects, pending subjects
+and recovery in the EX. It lives in the converter on purpose — putting it in the
+app would mean a new CSV section, both analysers and the app. Two hidden sheets
+do the work once: `FILAS` (one per record: its grade, the EX grade that matches
+it, the final grade) and `ALUMNADO` (one per student, keyed by the correlative).
+The promotion decision is the one from the **latest** evaluation that carries it
+(EX before OR): «any 1 wins», as in the workbook it came from, promoted students
+the EX had just failed. `promociona` is optional and read inside `IFERROR`, and a
+course absent from the file prints `—`, never `0`.
+
 ## Translations
 
 The app is fully bilingual (ES/VA) using [translations.js](src/translations.js). All user-facing strings must exist in both `translations.es` and `translations.va` objects. Current language is stored in component state and switched via `LanguageSwitcher`.

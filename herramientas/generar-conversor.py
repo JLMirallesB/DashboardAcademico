@@ -139,6 +139,8 @@ MODERNAS = {'LET': '_xlfn.LET', 'XLOOKUP': '_xlfn.XLOOKUP', 'XMATCH': '_xlfn.XMA
             # De Excel 2013: también lleva prefijo. Sin él, `#¿NOMBRE?` en
             # toda la columna Contenido, y ningún aviso al abrir.
             'IFNA': '_xlfn.IFNA',
+            # `A2#` en la barra de fórmulas; en el fichero, esto.
+            'ANCHORARRAY': '_xlfn.ANCHORARRAY',
             'TEXTJOIN': '_xlfn.TEXTJOIN', 'NUMBERVALUE': '_xlfn.NUMBERVALUE'}
 
 def al_fichero(formula):
@@ -170,6 +172,11 @@ NOMBRES = {
     'eTIPO': columna('co_tipobasico'),
     'eNOTA': columna('nota'),
     'eAPRUEBA': columna('aprueba'),
+    # Opcionales: sin ellas el resto del libro funciona. Se usan siempre
+    # dentro de un IFERROR, porque otro centro puede no traerlas.
+    'ePROMOCIONA': columna('promociona'),
+    'eCENTRO': columna('denominacionespecifica'),
+    'eANO': columna('anoacademico_id'),
     'cASIG': 'CATALOGO!$A$2:$A$%d' % (FILAS_CATALOGO + 1),
     'cETAPA': 'CATALOGO!$B$2:$B$%d' % (FILAS_CATALOGO + 1),
     'cESP': 'CATALOGO!$C$2:$C$%d' % (FILAS_CATALOGO + 1),
@@ -262,6 +269,11 @@ CONTROL = [
                       '*ISNA(XMATCH(vAsig&"|"&vEt,cASIG&"|"&cETAPA))')),
      'Pasan con el nombre que traen, y el analizador las cuenta en «FueraDeLasCifras». '
      'La lista está en INCIDENCIAS.'),
+    # Al final, para no mover CONTROL!B4: todo el libro lo cita.
+    ('Columnas opcionales que faltan',
+     al_fichero('LET(vC,{"promociona","anoacademico_id","denominacionespecifica"},'
+                'vL,TEXTJOIN(", ",TRUE,IF(ISNA(XMATCH(vC,%s)),vC,"")),IF(vL="","Ninguna",vL))' % CAB),
+     'Sin «promociona», PROMOCION no puede dar decisiones de promoción; el resto de sus recuentos, sí.'),
 ]
 
 # ── INCIDENCIAS: lo que no se procesa bien, en una hoja que se puede enviar ──
@@ -324,7 +336,200 @@ BLOQUES = [
 
 # ── El libro ────────────────────────────────────────────────────────────────
 
-# estilos: 0 normal · 1 cabecera · 2 título · 3 texto largo · 4 fuerte · 5 gris · 6 aviso
+# ── PROMOCION: qué pasa con cada alumno, contado ────────────────────────────
+#
+# Los analizadores miran ASIGNATURAS. Esta hoja mira ALUMNADO: quién promociona,
+# quién titula, con cuántas suspensas termina cada uno, qué pasa con las
+# pendientes y cuánto se recupera en la extraordinaria. Se calcula aquí porque
+# aquí están las filas por alumno; los analizadores ya no las tienen agregadas.
+#
+# Se hizo a partir de un Excel que otro centro montó sobre la misma exportación,
+# con tres cosas que aquí se arreglan:
+#   · su rango llegaba hasta la fila 5.012, el tamaño de aquel fichero. El año
+#     siguiente, las filas de más no contaban y nada lo decía. Aquí todo llega
+#     hasta la última fila con datos, como el resto del libro.
+#   · con una sola fila a 1 promocionaba, aunque otra dijera 0. Aquí manda la
+#     decisión de la evaluación MÁS TARDÍA que la trae: la extraordinaria antes
+#     que la ordinaria.
+#   · el centro y el año estaban escritos a mano. Aquí salen de los datos.
+#
+# Dos hojas ocultas hacen el trabajo UNA vez, para no repetir 5.000 × 5.000
+# comparaciones en cada celda del informe:
+#   FILAS     una por registro: curso, evaluación, asignatura, su nota, la nota
+#             de la extraordinaria que le corresponde y la nota final.
+#   ALUMNADO  una por alumno: curso de matrícula, notas, suspensas finales y
+#             decisión de promoción.
+# Ninguna lleva el NIA: el alumno es el mismo número correlativo que en DATOS.
+#
+# Y la regla de la casa: una hoja de recuentos. «Terminan sin ninguna
+# suspensa» está al lado de «titulan» para leerlas juntas, no para decidir
+# nada: las normas de promoción son de cada comunidad, y las aplica el centro.
+
+FIL = lambda k: 'INDEX(ANCHORARRAY(FILAS!$A$2),0,%d)' % k
+ALU = lambda k: 'INDEX(ANCHORARRAY(ALUMNADO!$A$2),0,%d)' % k
+
+CABECERAS_FILAS = ['Alumno', 'Curso matrícula', 'Curso asignatura', 'Etapa', 'Evaluación',
+                   'Asignatura', 'Tipo', 'Nota', 'Nota en la extraordinaria', 'Nota final',
+                   'Promociona']
+FORMULA_FILAS = al_fichero(
+    'IF(CONTROL!$B$4<2,"",LET(' + COMUN +
+    'vId,XMATCH(eNIA&"",UNIQUE(eNIA&"")),'
+    'vEsEx,TRIM(eEVAL&"")="EX",'
+    # La misma asignatura del mismo alumno en el mismo curso: lo que casa una
+    # fila de ordinaria con la de su extraordinaria.
+    'vKey,vId&"|"&TRIM(eCURSO&"")&"|"&vCanon,'
+    'vExK,FILTER(vKey,vEsEx*ISNUMBER(vNum),"~"),'
+    'vExN,FILTER(vNum,vEsEx*ISNUMBER(vNum),""),'
+    'vNotaEx,IF(vEsEx,"",XLOOKUP(vKey,vExK,vExN,"")),'
+    # La nota final, en la fila de la ordinaria (o de FI): la de la
+    # extraordinaria si la hay; si no, la suya. Las filas de EX no llevan
+    # nota final, para no contar dos veces la misma asignatura.
+    'vFinal,IF(vEsEx,"",IF(ISNUMBER(vNotaEx),vNotaEx,IF(ISNUMBER(vNum),vNum,""))),'
+    # promociona, como venga: 1/0, S/N, Sí/No… Lo que no se reconoce, vacío.
+    'vP,UPPER(TRIM(IFERROR(ePROMOCIONA&"",""))),'
+    'vProm,IF(ISNUMBER(XMATCH(vP,{"1","S","SI","SÍ","TRUE","VERDADERO"})),"1",'
+    'IF(ISNUMBER(XMATCH(vP,{"0","N","NO","FALSE","FALSO"})),"0","")),'
+    'CHOOSE({1,2,3,4,5,6,7,8,9,10,11},vId,TRIM(eCURSOMAT&""),TRIM(eCURSO&""),vEt,'
+    'TRIM(eEVAL&""),vCanon,TRIM(IFERROR(eTIPO&"","")),vNum,vNotaEx,vFinal,vProm)))')
+
+CABECERAS_ALUMNADO = ['Alumno', 'Curso', 'Etapa', 'Notas', 'Suspensas finales', 'Decisión',
+                      'Estado', 'Evaluación']
+FORMULA_ALUMNADO = al_fichero(
+    'IF(CONTROL!$B$4<2,"",LET('
+    'vF,ANCHORARRAY(FILAS!$A$2),'
+    'vIdF,INDEX(vF,0,1),vCur,INDEX(vF,0,2),vEval,INDEX(vF,0,5),vFin,INDEX(vF,0,10),vPr,INDEX(vF,0,11),'
+    'vU,UNIQUE(vIdF),'
+    'vM,--(vU=TRANSPOSE(vIdF)),'
+    'vConNota,(vEval<>"EX")*ISNUMBER(vFin),'
+    'vSusp,vConNota*(IF(ISNUMBER(vFin),vFin,99)<5),'
+    'vNotas,MMULT(vM,vConNota),'
+    'vNSusp,MMULT(vM,vSusp),'
+    # Curso de matrícula: el de su primera fila. Para promocionar cuenta dónde
+    # está matriculado, no de qué curso es cada asignatura.
+    'vCurso,XLOOKUP(vU,vIdF,vCur),'
+    # La decisión más tardía: la de la extraordinaria si alguna fila la trae;
+    # si no, la de la ordinaria o la final.
+    'vPEx,XLOOKUP(vU,FILTER(vIdF,(vEval="EX")*(vPr<>""),-1),FILTER(vPr,(vEval="EX")*(vPr<>""),""),""),'
+    'vPOtra,XLOOKUP(vU,FILTER(vIdF,(vEval<>"EX")*(vPr<>""),-1),FILTER(vPr,(vEval<>"EX")*(vPr<>""),""),""),'
+    'vDec,IF(vPEx<>"",vPEx,vPOtra),'
+    'vEstado,IF(vDec="1","Promociona",IF(vDec="0","No promociona","Sin decisión")),'
+    'vEvalA,IF((vNotas>0)+(vDec<>"")>0,"Con evaluación","Sin evaluación"),'
+    'CHOOSE({1,2,3,4,5,6,7,8},vU,vCurso,RIGHT(vCurso,3),vNotas,vNSusp,vDec,vEstado,vEvalA)))')
+
+CABECERA_PROMOCION = al_fichero(
+    'IF(CONTROL!$B$4<2,"Pega la exportación en ENTRADA",'
+    'IFERROR("Año académico "&INDEX(eANO,1),"")&IFERROR(" · "&INDEX(eCENTRO,1),""))')
+
+CURSOS = ['1EEM', '2EEM', '3EEM', '4EEM', 'Total EEM',
+          '1EPM', '2EPM', '3EPM', '4EPM', '5EPM', '6EPM', 'Total EPM', 'Total']
+CURSOS_EPM = ['1EPM', '2EPM', '3EPM', '4EPM', '5EPM', '6EPM', 'Total EPM']
+
+def cond_alumno(etq):
+    if etq == 'Total':
+        return '((%s="EEM")+(%s="EPM"))' % (ALU(3), ALU(3))
+    if etq.startswith('Total '):
+        return '(%s="%s")' % (ALU(3), etq[-3:])
+    return '(%s="%s")' % (ALU(2), etq)
+
+def cond_filas(col):
+    """col 2: curso de matrícula · col 3: curso de la asignatura."""
+    def cond(etq):
+        if etq == 'Total':
+            return '((RIGHT(%s,3)="EEM")+(RIGHT(%s,3)="EPM"))' % (FIL(col), FIL(col))
+        if etq.startswith('Total '):
+            return '(RIGHT(%s,3)="%s")' % (FIL(col), etq[-3:])
+        return '(%s="%s")' % (FIL(col), etq)
+    return cond
+
+def recuento(cond, expr):
+    """Una celda del informe. Un curso que no aparece en el fichero es «—»,
+    no 0: un centro solo de elemental no tiene profesional, y un cero diría
+    que lo tiene y está vacío."""
+    return al_fichero('IF(CONTROL!$B$4<2,"—",IFERROR(LET(vC,%s,vN,SUM(--(vC)),'
+                      'IF(vN=0,"—",%s)),"—"))' % (cond, expr))
+
+CON_EVAL = '(%s="Con evaluación")' % ALU(8)
+PROMOCIONA = '(%s="Promociona")' % ALU(7)
+
+def si_hay_decision(expr):
+    """«Promocionan 0» y «0 %» cuando la exportación no trae NINGUNA decisión
+    para ese curso son un cero de relleno: se leen como «nadie titula». Se vio
+    con 6EPM, donde la columna puede venir vacía. Sin decisiones, «—»."""
+    return 'IF(SUM(vC*(%s<>""))=0,"—",%s)' % (ALU(6), expr)
+PENDIENTE = '(%s="Pendiente")*(%s<>"EX")' % (FIL(7), FIL(5))
+SUSP_OR = '(%s="OR")*ISNUMBER(%s)*(IF(ISNUMBER(%s),%s,99)<5)' % (FIL(5), FIL(8), FIL(8), FIL(8))
+def aprobada(col): return 'ISNUMBER(%s)*(IF(ISNUMBER(%s),%s,0)>=5)' % (col, col, col)
+def suspensa(col): return 'ISNUMBER(%s)*(IF(ISNUMBER(%s),%s,99)<5)' % (col, col, col)
+
+# (título, nota, etiquetas, condición, [(cabecera, expresión, ¿porcentaje?)])
+BLOQUES_PROMOCION = [
+    ('1. Promoción por curso',
+     'Un alumno, una vez, en su curso de matrícula. Manda la decisión de la evaluación más tardía que '
+     'la trae: la extraordinaria antes que la ordinaria. «Con evaluación»: al menos una nota o una decisión.',
+     CURSOS, cond_alumno,
+     [('Matriculados', 'vN', False),
+      ('Con evaluación', 'SUM(vC*%s)' % CON_EVAL, False),
+      ('Promocionan', si_hay_decision('SUM(vC*%s)' % PROMOCIONA), False),
+      ('No promocionan', si_hay_decision('SUM(vC*(%s="No promociona"))' % ALU(7)), False),
+      ('Sin decisión', 'SUM(vC*%s*(%s="Sin decisión"))' % (CON_EVAL, ALU(7)), False),
+      ('Sin evaluación', 'SUM(vC*(%s="Sin evaluación"))' % ALU(8), False),
+      ('% promociona sobre evaluados',
+       si_hay_decision('IFERROR(SUM(vC*%s)/SUM(vC*%s),"—")' % (PROMOCIONA, CON_EVAL)), True),
+      ('% promociona sobre matriculados', si_hay_decision('SUM(vC*%s)/vN' % PROMOCIONA), True)]),
+    ('2. Finalizan elementales y titulan en profesionales',
+     'Finalizar es promocionar en 4EEM y titular, en 6EPM, según la columna promociona. Al lado, '
+     'quién termina sin ninguna suspensa: si la exportación no rellena la decisión, es la otra lectura.',
+     ['4EEM', '6EPM'], cond_alumno,
+     [('Matriculados', 'vN', False),
+      ('Con evaluación', 'SUM(vC*%s)' % CON_EVAL, False),
+      ('Finalizan o titulan, según la exportación', si_hay_decision('SUM(vC*%s)' % PROMOCIONA), False),
+      ('Terminan sin ninguna suspensa', 'SUM(vC*%s*(%s>0)*(%s=0))' % (CON_EVAL, ALU(4), ALU(5)), False),
+      ('% sobre evaluados',
+       si_hay_decision('IFERROR(SUM(vC*%s)/SUM(vC*%s),"—")' % (PROMOCIONA, CON_EVAL)), True)]),
+    ('3. Alumnado por número de asignaturas suspensas',
+     'Con la nota final de cada asignatura: la de la extraordinaria si la hay. Es un recuento: no '
+     'aplica ninguna norma de promoción.',
+     CURSOS, cond_alumno,
+     [('Con notas', 'SUM(vC*(%s>0))' % ALU(4), False),
+      ('Ninguna', 'SUM(vC*(%s>0)*(%s=0))' % (ALU(4), ALU(5)), False),
+      ('Una', 'SUM(vC*(%s>0)*(%s=1))' % (ALU(4), ALU(5)), False),
+      ('Dos', 'SUM(vC*(%s>0)*(%s=2))' % (ALU(4), ALU(5)), False),
+      ('Tres o más', 'SUM(vC*(%s>0)*(%s>=3))' % (ALU(4), ALU(5)), False)]),
+    ('4. Asignaturas pendientes',
+     'Por curso de matrícula: las pendientes de cursos anteriores que el alumnado cursa este año. '
+     'Superada: nota final de 5 o más.',
+     CURSOS, cond_filas(2),
+     [('Pendientes', 'SUM(vC*%s)' % PENDIENTE, False),
+      ('Superadas', 'SUM(vC*%s*%s)' % (PENDIENTE, aprobada(FIL(10))), False),
+      ('No superadas', 'SUM(vC*%s*%s)' % (PENDIENTE, suspensa(FIL(10))), False),
+      ('Sin nota', 'SUM(vC*%s*(1-ISNUMBER(%s)))' % (PENDIENTE, FIL(10)), False)]),
+    ('5. Recuperación en la extraordinaria, por curso',
+     'Solo profesional: elemental no tiene extraordinaria. Por curso de la asignatura.',
+     CURSOS_EPM, cond_filas(3),
+     [('Suspensas en ordinaria', 'SUM(vC*%s)' % SUSP_OR, False),
+      ('Recuperadas en la extraordinaria', 'SUM(vC*%s*%s)' % (SUSP_OR, aprobada(FIL(9))), False),
+      ('Siguen suspensas', 'SUM(vC*%s*%s)' % (SUSP_OR, suspensa(FIL(9))), False),
+      ('Sin nota en la extraordinaria', 'SUM(vC*%s*(1-ISNUMBER(%s)))' % (SUSP_OR, FIL(9)), False),
+      ('% recuperado', 'IFERROR(SUM(vC*%s*%s)/SUM(vC*%s),"—")' % (SUSP_OR, aprobada(FIL(9)), SUSP_OR), True)]),
+]
+
+CABECERAS_REC_ASIG = ['Asignatura', 'Curso', 'Suspensas en ordinaria', 'Recuperadas en la extraordinaria',
+                      'Siguen suspensas', 'Sin nota en la extraordinaria']
+REC_POR_ASIGNATURA = al_fichero(
+    'IF(CONTROL!$B$4<2,"Sin datos",IFERROR(LET(vF,ANCHORARRAY(FILAS!$A$2),'
+    'vN8,INDEX(vF,0,8),vN9,INDEX(vF,0,9),vAs,INDEX(vF,0,6),vCu,INDEX(vF,0,3),'
+    'vS,(INDEX(vF,0,5)="OR")*ISNUMBER(vN8)*(IF(ISNUMBER(vN8),vN8,99)<5),'
+    'vU,UNIQUE(FILTER(CHOOSE({1,2},vAs,vCu),vS)),'
+    'vM,--((INDEX(vU,0,1)&"|"&INDEX(vU,0,2))=TRANSPOSE(vAs&"|"&vCu)),'
+    'vRec,vS*ISNUMBER(vN9)*(IF(ISNUMBER(vN9),vN9,0)>=5),'
+    'vSig,vS*ISNUMBER(vN9)*(IF(ISNUMBER(vN9),vN9,99)<5),'
+    'vSin,vS*(1-ISNUMBER(vN9)),'
+    'SORT(CHOOSE({1,2,3,4,5,6},INDEX(vU,0,1),INDEX(vU,0,2),MMULT(vM,vS),MMULT(vM,vRec),'
+    'MMULT(vM,vSig),MMULT(vM,vSin)),3,-1)),"Ninguna"))')
+
+OCULTAS = {'FILAS', 'ALUMNADO'}
+
+# estilos: 0 normal · 1 cabecera · 2 título · 3 texto largo · 4 fuerte · 5 gris · 6 aviso · 7 porcentaje
 ESTILOS = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
 <fonts count="5">
@@ -345,7 +550,7 @@ ESTILOS = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <border><left/><right/><top/><bottom style="medium"><color rgb="FF111827"/></bottom><diagonal/></border>
 </borders>
 <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
-<cellXfs count="7">
+<cellXfs count="8">
 <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
 <xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/>
 <xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>
@@ -353,6 +558,7 @@ ESTILOS = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
 <xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
 <xf numFmtId="0" fontId="4" fillId="3" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+<xf numFmtId="10" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="right"/></xf>
 </cellXfs>
 <cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
 <dxfs count="0"/>
@@ -429,6 +635,11 @@ PORTADA = [
     ('b', 'Son las asignaturas, cursos, notas o evaluaciones que el conversor no sabe tratar: por '
           'ejemplo, una especialidad que tu centro imparte y el catálogo no tiene. La hoja no lleva '
           'datos de nadie, solo esos valores y cuántas filas afectan.'),
+    ('', ''),
+    ('B', '5 · PROMOCION: qué pasa con cada alumno'),
+    ('b', 'Promoción y titulación por curso, alumnado por número de suspensas, pendientes y '
+          'recuperación en la extraordinaria. Se calcula aquí mismo, sin pasar por los analizadores, '
+          'y son solo recuentos: ningún NIA ni ningún nombre.'),
     ('', ''),
     ('H', 'QUÉ HACE CON LOS DATOS'),
     ('b', 'Etapa: la del curso de la asignatura (…EEM o …EPM).'),
@@ -521,9 +732,40 @@ def construir(destino, datos=None):
                                      distintos('vClave,vEsEsp*(vEt="EPM")')), 4)]
     s_incidencias = hoja(filas, anchos=anchos, pestana='FFB91C1C')
 
+    # PROMOCION y sus dos hojas ocultas
+    filas = {1: [texto('A1', 'Promoción, titulación y resultados del alumnado', 2)],
+             2: [formula('A2', CABECERA_PROMOCION, 5)],
+             3: [texto('A3', 'Solo recuentos: ningún NIA, ningún nombre. Un curso que no aparece en la '
+                             'exportación sale como «—», no como 0.', 5)]}
+    r = 5
+    for titulo, nota, etiquetas, cond, columnas in BLOQUES_PROMOCION:
+        filas[r] = [texto('A%d' % r, titulo, 4)]; r += 1
+        filas[r] = [texto('A%d' % r, nota, 5)]; r += 1
+        filas[r] = [texto('A%d' % r, 'Curso', 1)] + [
+            texto('%s%d' % (letra(i + 1), r), c[0], 1) for i, c in enumerate(columnas)]; r += 1
+        for e in etiquetas:
+            filas[r] = [texto('A%d' % r, e, 4 if e.startswith('Total') else 0)] + [
+                formula('%s%d' % (letra(i + 1), r), recuento(cond(e), expr), 7 if pct else 0)
+                for i, (_, expr, pct) in enumerate(columnas)]
+            r += 1
+        r += 1
+    # El listado por asignatura, el último: derrama hacia abajo tantas filas
+    # como asignaturas con suspensas, y debajo no puede haber nada que pisar.
+    filas[r] = [texto('A%d' % r, '6. Recuperación en la extraordinaria, por asignatura', 4)]; r += 1
+    filas[r] = [texto('A%d' % r, 'De más a menos suspensas en ordinaria. Solo las asignaturas con alguna.', 5)]; r += 1
+    filas[r] = [texto('%s%d' % (letra(i), r), c, 1) for i, c in enumerate(CABECERAS_REC_ASIG)]; r += 1
+    filas[r] = [formula('A%d' % r, REC_POR_ASIGNATURA)]
+    s_promocion = hoja(filas, anchos=[40, 14, 14, 16, 16, 14, 14, 16, 16], pestana='FF047857')
+
+    s_filas = hoja({1: [texto('%s1' % letra(i), c, 1) for i, c in enumerate(CABECERAS_FILAS)],
+                    2: [formula('A2', FORMULA_FILAS)]}, anchos=[8] * len(CABECERAS_FILAS))
+    s_alumnado = hoja({1: [texto('%s1' % letra(i), c, 1) for i, c in enumerate(CABECERAS_ALUMNADO)],
+                       2: [formula('A2', FORMULA_ALUMNADO)]}, anchos=[10] * len(CABECERAS_ALUMNADO))
+
     HOJAS = [('PORTADA', s_portada), ('ENTRADA', s_entrada), ('CATALOGO', s_catalogo),
              ('DATOS_EEM', s_datos('EEM')), ('DATOS_EPM', s_datos('EPM')), ('CONTROL', s_control),
-             ('INCIDENCIAS', s_incidencias)]
+             ('INCIDENCIAS', s_incidencias), ('PROMOCION', s_promocion),
+             ('FILAS', s_filas), ('ALUMNADO', s_alumnado)]
 
     nombres = ''.join('<definedName name="%s">%s</definedName>' % (n, escape(al_fichero(v)))
                       for n, v in sorted(NOMBRES.items()))
@@ -531,7 +773,8 @@ def construir(destino, datos=None):
                 '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '
                 'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
                 '<workbookPr/><bookViews><workbookView activeTab="0"/></bookViews><sheets>'
-                + ''.join('<sheet name="%s" sheetId="%d" r:id="rId%d"/>' % (n, i + 1, i + 1)
+                + ''.join('<sheet name="%s" sheetId="%d"%s r:id="rId%d"/>' % (
+                              n, i + 1, ' state="hidden"' if n in OCULTAS else '', i + 1)
                           for i, (n, _) in enumerate(HOJAS))
                 + '</sheets><definedNames>' + nombres + '</definedNames>'
                 '<calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>')

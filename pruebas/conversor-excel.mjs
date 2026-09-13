@@ -95,9 +95,10 @@ const txt = (p) => (piezas.has(p) ? piezas.get(p).toString('utf8') : '');
 const wb = txt('xl/workbook.xml');
 const hojas = [...piezas.keys()].filter((k) => /^xl\/worksheets\/sheet\d+\.xml$/.test(k));
 
-const NOMBRES = ['PORTADA', 'ENTRADA', 'CATALOGO', 'DATOS_EEM', 'DATOS_EPM', 'CONTROL', 'INCIDENCIAS'];
-comprobar('lleva sus siete hojas, con sus nombres',
-  hojas.length === 7 && NOMBRES.every((n) => wb.includes(`name="${n}"`)),
+const NOMBRES = ['PORTADA', 'ENTRADA', 'CATALOGO', 'DATOS_EEM', 'DATOS_EPM', 'CONTROL', 'INCIDENCIAS',
+  'PROMOCION', 'FILAS', 'ALUMNADO'];
+comprobar('lleva sus diez hojas, con sus nombres',
+  hojas.length === 10 && NOMBRES.every((n) => wb.includes(`name="${n}"`)),
   (wb.match(/<sheet name="[^"]+"/g) || []).join(' '));
 
 const malas = hojas.map((h) => [h, ordenValido(txt(h))]).filter(([, e]) => e);
@@ -140,7 +141,7 @@ const todo = formulas.map((x) => x.texto).concat(nombresDef.map((x) => x.texto))
    columna Contenido entera sale como #¿NOMBRE?. Faltaba en esta lista y lo
    cazó el recálculo con Excel, no esta prueba. */
 const MODERNAS = ['LET', 'XLOOKUP', 'XMATCH', 'FILTER', 'UNIQUE', 'SORT', 'SEQUENCE', 'TEXTJOIN',
-  'NUMBERVALUE', 'IFNA', 'HSTACK', 'VSTACK', 'LAMBDA', 'TEXTBEFORE', 'CHOOSECOLS'];
+  'NUMBERVALUE', 'IFNA', 'ANCHORARRAY', 'HSTACK', 'VSTACK', 'LAMBDA', 'TEXTBEFORE', 'CHOOSECOLS'];
 const desnudas = MODERNAS.filter((f) => new RegExp(`(?<![.\\w])${f}\\(`).test(todo));
 comprobar('CANDADO: las funciones modernas llevan su prefijo', desnudas.length === 0, desnudas.join(' · '));
 const variablesSueltas = (todo.match(/(?<![.\w])v[A-Z]\w*/g) || []);
@@ -218,10 +219,59 @@ comprobar('CANDADO: la etapa se decide por el curso, sin «lo que no es EEM es E
    lo aplica elemento a elemento: devuelve el primer valor de toda la matriz,
    y las notas de una asignatura desconocida pasaban a nombre de la primera
    fila del fichero. No da error. Se vio recalculando con Excel. */
-const xlookupConVariable = todo.match(/_xlfn\.XLOOKUP\((?:[^()]|\([^()]*\))*,_xlpm\.v\w+\)/g) || [];
+/* Los argumentos de primer nivel de cada XLOOKUP. Con una expresión regular
+   no se puede: los argumentos llevan paréntesis y comillas dentro. */
+const argumentosDe = (texto, funcion) => {
+  const out = [];
+  let i = texto.indexOf(funcion + '(');
+  while (i >= 0) {
+    let j = i + funcion.length + 1, prof = 0, comillas = false, actual = '';
+    const args = [];
+    for (; j < texto.length; j++) {
+      const ch = texto[j];
+      if (ch === '"') comillas = !comillas;
+      if (!comillas && (ch === '(' || ch === '{')) prof++;
+      if (!comillas && (ch === ')' || ch === '}')) {
+        if (prof === 0) { args.push(actual); break; }
+        prof--;
+      }
+      if (!comillas && prof === 0 && ch === ',') { args.push(actual); actual = ''; continue; }
+      actual += ch;
+    }
+    out.push(args);
+    i = texto.indexOf(funcion + '(', j);
+  }
+  return out;
+};
+const xlookupConVariable = argumentosDe(todo, '_xlfn.XLOOKUP')
+  .filter((a) => a.length >= 4 && /^_xlpm\.v\w+$/.test(a[3].trim()))
+  .map((a) => a.join(','));
 comprobar('CANDADO: ningún XLOOKUP usa una matriz como «si no se encuentra»',
   xlookupConVariable.length === 0 && todo.includes('_xlpm.vCanon,_xlfn.IFNA(_xlfn.XLOOKUP('),
   xlookupConVariable.slice(0, 2).join(' · '));
+
+/* PROMOCION y sus dos hojas de trabajo. */
+comprobar('CANDADO: FILAS y ALUMNADO van ocultas, PROMOCION no',
+  /<sheet name="FILAS"[^>]*state="hidden"/.test(wb) && /<sheet name="ALUMNADO"[^>]*state="hidden"/.test(wb)
+  && !/<sheet name="PROMOCION"[^>]*state="hidden"/.test(wb));
+const enHoja = (n) => formulas.filter((x) => x.donde.startsWith(`sheet${n}.xml`)).map((x) => x.texto).join('\n');
+const promocion = enHoja(8), filasF = enHoja(9), alumnadoF = enHoja(10);
+/* CANDADO. El alumno es el número correlativo, nunca el NIA: estas hojas se
+   quedan en el libro aunque se borre ENTRADA, y el informe se imprime. */
+comprobar('CANDADO: FILAS identifica al alumno por el correlativo, no por el NIA',
+  filasF.includes('CHOOSE({1,2,3,4,5,6,7,8,9,10,11},_xlpm.vId,')
+  && !/CHOOSE\(\{[^}]*\},eNIA/.test(filasF + alumnadoF + promocion));
+/* CANDADO. Ningún rango fijo en el informe: el Excel del que salió esta
+   hoja llegaba a la fila 5.012 y se quedaba corto al año siguiente. */
+comprobar('CANDADO: ni PROMOCION ni sus hojas de trabajo leen ENTRADA con un rango fijo',
+  promocion.length > 1000 && !/ENTRADA!\$?[A-Z]+\$?\d/.test(promocion + filasF + alumnadoF));
+/* CANDADO. Manda la decisión más tardía: con OR y EX, la de la
+   extraordinaria. «Cualquier 1 gana» daba por promocionado a quien la
+   ordinaria decía que sí y la extraordinaria que no. */
+comprobar('CANDADO: la decisión de promoción es la de la evaluación más tardía',
+  alumnadoF.includes('_xlpm.vDec,IF(_xlpm.vPEx<>"",_xlpm.vPEx,_xlpm.vPOtra)'));
+comprobar('y promociona es opcional: se lee siempre dentro de un IFERROR',
+  filasF.includes('IFERROR(ePROMOCIONA&"","")') && !/[^(]ePROMOCIONA/.test(filasF.replace('IFERROR(ePROMOCIONA', '')));
 
 /* INCIDENCIAS: la hoja que un centro nos manda. Agrupa por valor y cuenta;
    no puede llevar nada por lo que se reconozca a alguien. */
