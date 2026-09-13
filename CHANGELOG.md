@@ -11,7 +11,19 @@ van resumidas.
 
 ## Sin publicar
 
-Un libro nuevo; la aplicación y los dos analizadores no cambian ni una cifra.
+Un libro nuevo y un arreglo en el analizador de Profesional. La aplicación no
+cambia ni una cifra.
+
+### ⚠️ Regenera tus CSV de profesional
+
+**Desde la 3.6.0, el analizador de Profesional exportaba el CSV sin
+correlaciones ni agrupaciones.** Las calculaba, pero no las sacaba, y la web
+decía «este fichero no trae correlaciones», que parece un dato y era un fallo.
+Elemental no estaba afectado.
+
+Si tienes un CSV de profesional exportado con la 3.6.0, vuelve a exportarlo
+con el analizador nuevo: tus calificaciones valen tal cual, solo hay que pegar
+DATOS y exportar otra vez.
 
 ### Conversor Excel a Dashboard
 

@@ -347,8 +347,49 @@ for (fila_calc, bloque, tipo) in mapa:
     c = re.sub(r'<c r="([A-Z]+)%d"([^>]*)>(.*?)</c>' % fila_exp, por_nombre, c, flags=re.S)
     salida.append('<row r="%d">%s</row>' % (fila_exp, c))
     fila_exp += 1
-for n in sorted(k for k in fe if k > 9 + 0 and celdas(fe[k][1]).get('A', '').startswith('#')):
-    pass
+# ── #AGRUPACIONES y #CORRELACIONES, detrás ─────────────────────────────────
+#
+# Aquí había un bucle que recorría estas dos secciones del libro original y
+# hacía `pass`: la hoja se reconstruía con METADATA y ESTADISTICAS y lo demás
+# se tiraba. Desde el 24/08/2026 todo CSV de profesional llegaba a la web SIN
+# correlaciones ni agrupaciones —los cálculos seguían en el libro, calculando
+# para nadie— y la portada seguía prometiendo las cuatro secciones. Ninguna
+# prueba miraba el exportador por secciones; ahora `modelos-excel.mjs` sí.
+#
+# Las secciones se localizan por su marca en el libro de partida, no por
+# número de fila: es la lección de este mismo generador.
+marca = {celdas(fe[k][1]).get('A', ''): k for k in fe if celdas(fe[k][1]).get('A', '').startswith('#')}
+F_COR, F_AGR = marca['#CORRELACIONES'], marca['#AGRUPACIONES']
+
+# Agrupaciones: una fila por fila del catálogo, hasta el final del margen
+# libre. NO se copian las del original: apuntaban a las filas 2-28 del
+# catálogo de entonces, y desde que manda la lista el catálogo llega a la 91.
+# Con la guarda de fila vacía, como en elemental, para que el margen libre no
+# exporte filas fantasma.
+fila_exp += 1
+salida.append('<row r="%d">%s</row>' % (fila_exp, txt('A%d' % fila_exp, '', '#AGRUPACIONES')))
+fila_exp += 1
+salida.append('<row r="%d">%s%s%s</row>' % (fila_exp, txt('A%d' % fila_exp, '', 'Tipo'),
+              txt('B%d' % fila_exp, '', 'Asignatura'), txt('C%d' % fila_exp, '', 'Grupos')))
+fila_exp += 1
+for i in range(2, FIN_CFG + 1):
+    salida.append('<row r="%d">%s%s%s</row>' % (
+        fila_exp, txt('A%d' % fila_exp, '', 'AGR'),
+        fx('B%d' % fila_exp, '', 'IF(CONFIG_ASIGNATURAS!B%d="","",CONFIG_ASIGNATURAS!B%d)' % (i, i)),
+        fx('C%d' % fila_exp, '', 'IF(CONFIG_ASIGNATURAS!B%d="","",IF(CONFIG_ASIGNATURAS!E%d="",'
+                                 'CONFIG_ASIGNATURAS!D%d,CONFIG_ASIGNATURAS!D%d&";"&CONFIG_ASIGNATURAS!E%d))'
+                                 % (i, i, i, i, i))))
+    fila_exp += 1
+
+# Correlaciones: tal cual, corridas. Sus fórmulas apuntan a
+# CALC_CORRELACIONES, que este generador no toca, así que siguen valiendo.
+# Van de la marca a la última fila con algo antes de la marca de agrupaciones.
+fila_exp += 1
+for n in sorted(k for k in fe if F_COR <= k < F_AGR and celdas(fe[k][1]).get('A', '')):
+    c = re.sub(r'\br="([A-Z]+)\d+"', lambda m: 'r="%s%d"' % (m.group(1), fila_exp), fe[n][1])
+    salida.append('<row r="%d">%s</row>' % (fila_exp, c))
+    fila_exp += 1
+
 exp_n = re.sub(r'<sheetData>.*?</sheetData>', '<sheetData>' + ''.join(salida) + '</sheetData>',
                exp, flags=re.S)
 exp_n = re.sub(r'<dimension ref="[^"]*"/>', '<dimension ref="A1:X%d"/>' % (fila_exp - 1), exp_n)
