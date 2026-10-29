@@ -144,6 +144,23 @@ MODELOS.forEach((m) => {
     sinDeclarar.length === 0,
     sinDeclarar.slice(0, 5).join(' · ') + (sinDeclarar.length > 5 ? ` (y ${sinDeclarar.length - 5} más)` : ''));
 
+  /* CANDADO. Lo mismo, con la otra forma de matriz: una agregación sobre un
+     `IF(` de rangos —`AVERAGE(IF(cond, nNOTA))`, `STDEV.P(IF(…))`,
+     `MODE.SNGL(IF(…))`—. Sin declarar, Excel no recorre el rango: se queda
+     con una celda, y AVERAGE de un FALSE da 0. Las filas de Total
+     Especialidad, Total no Especialidad y Teórica Troncal salieron con media
+     y desviación 0,00 —y moda «—»— con la distribución y los porcentajes
+     bien, y la web las pintó como si fueran medidas. SUMPRODUCT queda fuera:
+     ese ya recorre el rango por su cuenta. */
+  const aggIf = /(?<![\w.])(?:_xlfn\.)?(?:AVERAGE|STDEV\.P|STDEV\.S|MODE\.SNGL|MEDIAN|MAX|MIN|SUM|COUNT|VAR\.P|LARGE|SMALL|PERCENTILE\.INC|QUARTILE\.INC)\(\s*IF\(/;
+  const ifSinDeclarar = hojas
+    .flatMap((k) => [...txt(k).matchAll(/<c r="([A-Z]+\d+)"([^>]*)><f([^>]*)>([^<]*)/g)]
+      .filter((x) => aggIf.test(x[4]) && !/t="array"/.test(x[3]))
+      .map((x) => `${k.split('/').pop()}!${x[1]}`));
+  comprobar('CANDADO: una agregación sobre IF( de rangos se declara como matriz',
+    ifSinDeclarar.length === 0,
+    ifSinDeclarar.slice(0, 5).join(' · ') + (ifSinDeclarar.length > 5 ? ` (y ${ifSinDeclarar.length - 5} más)` : ''));
+
   /* CANDADO. Excel no guarda `FILTER(`: guarda `_xlfn._xlws.FILTER(`. El
      prefijo no es decoración, es el nombre de la función en el fichero —lo
      mismo con `STDEV.P`, `UNIQUE` o `MODE.SNGL`, que llevan `_xlfn.`—. Escrita

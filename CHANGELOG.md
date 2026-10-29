@@ -11,8 +11,27 @@ van resumidas.
 
 ## Sin publicar
 
-Un libro nuevo y un arreglo en el analizador de Profesional. La aplicación no
-cambia ni una cifra.
+Un libro nuevo y dos arreglos en los analizadores. La aplicación no cambia ni
+una cifra.
+
+### ⚠️ Regenera tus CSV de elemental y de profesional
+
+**Los dos analizadores exportaban a 0,00 la media y la desviación de Total
+Especialidad y Total no Especialidad**, en el global y en cada curso, y
+también las de Teórica Troncal en profesional. La moda salía como «—». El
+número de registros, los porcentajes y la distribución estaban bien, y el
+Total de cada curso también. En alguna fila, en lugar de 0,00 salía una cifra
+plausible y falsa: Total No Especialidad de profesional dio 7,33 / 1,63 cuando
+era 7,51 / 1,39.
+
+Eran fórmulas de matriz (`AVERAGE(IF(…))`, `STDEV.P(IF(…))`,
+`MODE.SNGL(IF(…))`) guardadas como fórmulas normales. Excel no da ningún
+error: se queda con una sola celda y la media de nada sale cero. Ahora están
+declaradas como matriz, comprobadas en Excel con datos inventados, y hay un
+candado nuevo en `pruebas/modelos-excel.mjs` que falla si vuelve a pasar.
+
+Si tienes un CSV exportado con los libros anteriores, pega DATOS en el
+analizador nuevo y exporta otra vez. Las calificaciones valen tal cual.
 
 ### ⚠️ Regenera tus CSV de profesional
 
