@@ -319,12 +319,15 @@ def totales(c, clave, r, es_global):
          'K': 'IFERROR(_xlfn.MODE.SNGL(IF(%s*(%s="N"),%s)),"—")' % (cond, APTO, NOTA)}
     for i, col in enumerate('LMNOPQRSTU', start=1):
         f[col] = 'SUMPRODUCT(%s*(%s=%d))' % (cond, NOTA, i)
+    # E, F, G, J y K son AVERAGE/STDEV.P/MODE.SNGL sobre un IF( de rangos: de
+    # matriz. Escritas con `fx`, Excel se quedaba con una celda y las filas
+    # de Total Especialidad y Total no Especialidad salían con media 0,00.
     for col, formula in f.items():
         m = re.search(r'<c r="%s%d"([^>]*)>' % (col, r), c)
         e = re.search(r's="(\d+)"', m.group(1)) if m else None
         c = re.sub(r'<c r="%s%d"(?:[^>]*/>|[^>]*>.*?</c>)' % (col, r),
                    lambda _m, _c=col, _f=formula, _e=(e.group(1) if e else ''):
-                       fx('%s%d' % (_c, r), _e, _f), c, flags=re.S)
+                       (fxm if _c in 'EFGJK' else fx)('%s%d' % (_c, r), _e, _f), c, flags=re.S)
     return c
 
 # plantillas: GLOBAL (sin guarda) y de curso (con guarda V)
