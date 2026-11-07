@@ -36,7 +36,13 @@ Diseñado por **José Luis Miralles Bono** con ayuda de Claude
 
 **📄 Licencia:**
 
-Proyecto de código abierto disponible en GitHub
+© 2025 José Luis Miralles Bono ([jlmirall.es](https://jlmirall.es)) · joseluismirallesbono@gmail.com
+
+- **Código:** [GNU AGPL v3](https://github.com/JLMirallesB/DashboardAcademico/blob/main/LICENSE). Puedes usarlo, modificarlo y redistribuirlo, también con fines comerciales, siempre que lo que derives se publique con la misma licencia y con su código fuente disponible.
+- **Contenidos** (textos, guías y explicaciones): [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/deed.es).
+- **Fuentes** DM Sans y DM Serif Display: [SIL Open Font License 1.1](https://openfontlicense.org).
+
+Código fuente: [github.com/JLMirallesB/DashboardAcademico](https://github.com/JLMirallesB/DashboardAcademico) · Más información: [El pulpo en el vaso](https://elpulpoenelvaso.jlmirall.es/?p=494)
 
 ---
 
@@ -519,7 +525,13 @@ Dissenyat per **José Luis Miralles Bono** amb ajuda de Claude
 
 **📄 Llicència:**
 
-Projecte de codi obert disponible en GitHub
+© 2025 José Luis Miralles Bono ([jlmirall.es](https://jlmirall.es)) · joseluismirallesbono@gmail.com
+
+- **Codi:** [GNU AGPL v3](https://github.com/JLMirallesB/DashboardAcademico/blob/main/LICENSE). Pots usar-lo, modificar-lo i redistribuir-lo, també amb fins comercials, sempre que el que en derives es publique amb la mateixa llicència i amb el codi font disponible.
+- **Continguts** (textos, guies i explicacions): [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/deed.ca).
+- **Tipografies** DM Sans i DM Serif Display: [SIL Open Font License 1.1](https://openfontlicense.org).
+
+Codi font: [github.com/JLMirallesB/DashboardAcademico](https://github.com/JLMirallesB/DashboardAcademico) · Més informació: [El pulpo en el vaso](https://elpulpoenelvaso.jlmirall.es/?p=494)
 
 ---
 

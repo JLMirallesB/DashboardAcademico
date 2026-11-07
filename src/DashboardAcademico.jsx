@@ -1774,10 +1774,16 @@ const DashboardAcademico = () => {
           {/* Footer */}
           <div className="text-center text-sm text-gray-400 mt-8 space-y-2">
             <p>
-              {t('designedBy')} <a href="https://jlmirall.es" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-gray-900 underline">José Luis Miralles Bono</a> {t('withHelpOf')}
+              {t('designedBy')} <a href="https://jlmirall.es" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-gray-900 underline">José Luis Miralles Bono</a> {t('withHelpOf')} · <a href="mailto:joseluismirallesbono@gmail.com" className="text-gray-600 hover:text-gray-900 underline">joseluismirallesbono@gmail.com</a>
             </p>
             <p>
               {t('supportFooter')} <a href={SUPPORT_URL} target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-gray-900 underline">{t('supportLink')}</a>
+            </p>
+            <p>
+              <a href="https://elpulpoenelvaso.jlmirall.es/?p=494" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-gray-900 underline">{t('moreInfo')}</a>
+            </p>
+            <p className="text-xs">
+              {t('codeLicense')} <a href="https://www.gnu.org/licenses/agpl-3.0.html" rel="license" target="_blank" className="text-gray-600 hover:text-gray-900 underline">AGPL v3</a> · {t('contentLicense')} <a href="https://creativecommons.org/licenses/by-sa/4.0/" rel="license" target="_blank" className="text-gray-600 hover:text-gray-900 underline">CC BY-SA 4.0</a> · <a href="https://github.com/JLMirallesB/DashboardAcademico" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-gray-900 underline">{t('sourceCode')}</a>
             </p>
           </div>
         </div>
@@ -2518,7 +2524,13 @@ const DashboardAcademico = () => {
       {/* Footer */}
       <footer className="max-w-7xl mx-auto mt-12 py-6 border-t border-gray-200">
         <p className="text-center text-sm text-gray-400">
-          {t('designedBy')} <a href="https://jlmirall.es" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-gray-900 underline">José Luis Miralles Bono</a> {t('withHelpOf')}
+          {t('designedBy')} <a href="https://jlmirall.es" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-gray-900 underline">José Luis Miralles Bono</a> {t('withHelpOf')} · <a href="mailto:joseluismirallesbono@gmail.com" className="text-gray-600 hover:text-gray-900 underline">joseluismirallesbono@gmail.com</a>
+        </p>
+        <p className="text-center text-sm text-gray-400 mt-2">
+          {t('supportFooter')} <a href={SUPPORT_URL} target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-gray-900 underline">{t('supportLink')}</a> · <a href="https://elpulpoenelvaso.jlmirall.es/?p=494" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-gray-900 underline">{t('moreInfo')}</a>
+        </p>
+        <p className="text-center text-xs text-gray-400 mt-2">
+          {t('codeLicense')} <a href="https://www.gnu.org/licenses/agpl-3.0.html" rel="license" target="_blank" className="text-gray-600 hover:text-gray-900 underline">AGPL v3</a> · {t('contentLicense')} <a href="https://creativecommons.org/licenses/by-sa/4.0/" rel="license" target="_blank" className="text-gray-600 hover:text-gray-900 underline">CC BY-SA 4.0</a> · <a href="https://github.com/JLMirallesB/DashboardAcademico" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-gray-900 underline">{t('sourceCode')}</a>
         </p>
       </footer>
       </MainLayout>
