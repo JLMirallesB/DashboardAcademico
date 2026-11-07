@@ -586,6 +586,10 @@ export const translations = {
     // Footer
     designedBy: 'App diseñada por',
     withHelpOf: 'con ayuda de Claude',
+    moreInfo: 'Más información sobre este proyecto',
+    codeLicense: 'Código bajo licencia',
+    contentLicense: 'contenidos bajo',
+    sourceCode: 'código fuente',
     supportTitle: 'Apoya el proyecto',
     supportButton: 'Invítame a un café',
     supportFooter: '¿Te gusta el proyecto? Invítame a un café en',
@@ -1169,6 +1173,10 @@ export const translations = {
     // Footer
     designedBy: 'App dissenyada per',
     withHelpOf: 'amb ajuda de Claude',
+    moreInfo: 'Més informació sobre aquest projecte',
+    codeLicense: 'Codi amb llicència',
+    contentLicense: 'continguts amb llicència',
+    sourceCode: 'codi font',
     supportTitle: 'Dona suport al projecte',
     supportButton: 'Convida\'m a un cafè',
     supportFooter: 'T\'agrada el projecte? Convida\'m a un cafè en',
